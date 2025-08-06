@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protein Tracker - Redirecting</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+        }
+        
+        .redirect-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .manual-link {
+            margin-top: 20px;
+        }
+        
+        .manual-link a {
+            color: white;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+        
+        .manual-link a:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="redirect-container">
+        <div class="loading"></div>
+        <h1>🍗 Protein Tracker</h1>
+        <p>Redirecting to login page...</p>
+        <div class="manual-link">
+            <a href="login.html">Click here if not redirected automatically</a>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is already logged in
+        window.onload = function() {
+            const currentUser = localStorage.getItem('currentUser');
+            
+            setTimeout(() => {
+                if (currentUser) {
+                    // User is logged in, go to dashboard
+                    window.location.href = 'dashboard.html';
+                } else {
+                    // User is not logged in, go to login
+                    window.location.href = 'login.html';
+                }
+            }, 2000);
+        };
+    </script>
+</body>
+</html> 

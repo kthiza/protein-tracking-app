@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protein Tracker - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+        }
+        
+        .login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .login-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .login-header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .login-content {
+            padding: 40px 30px;
+        }
+        
+        .tab-container {
+            display: flex;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .tab:hover:not(.active) {
+            background: #e9ecef;
+        }
+        
+        .form-container {
+            display: none;
+        }
+        
+        .form-container.active {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9em;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .success {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .verification-notice {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #0066cc;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🍗 Protein Tracker</h1>
+            <p>AI-Powered Nutrition Tracking</p>
+        </div>
+        
+        <div class="login-content">
+            <div class="tab-container">
+                <div class="tab active" onclick="switchTab('login')">Login</div>
+                <div class="tab" onclick="switchTab('register')">Create Account</div>
+            </div>
+            
+            <!-- Login Form -->
+            <div id="loginForm" class="form-container active">
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="loginUsername">Username:</label>
+                        <input type="text" id="loginUsername" required placeholder="Enter your username">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password:</label>
+                        <input type="password" id="loginPassword" required placeholder="Enter your password">
+                    </div>
+                    <button type="submit" id="loginBtn">
+                        <span id="loginBtnText">Login</span>
+                    </button>
+                </form>
+                <div id="loginResult"></div>
+            </div>
+            
+            <!-- Register Form -->
+            <div id="registerForm" class="form-container">
+                <div class="verification-notice">
+                    <strong>📧 Email Verification Required</strong><br>
+                    After registration, you'll receive a verification email. You must verify your email before logging in.
+                </div>
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label for="registerUsername">Username:</label>
+                        <input type="text" id="registerUsername" required placeholder="Enter your username (min 3 characters)">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email:</label>
+                        <input type="email" id="registerEmail" required placeholder="Enter your email address">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password:</label>
+                        <input type="password" id="registerPassword" required placeholder="Enter your password (min 6 characters)">
+                    </div>
+
+                    <button type="submit" id="registerBtn">
+                        <span id="registerBtnText">Create Account</span>
+                    </button>
+                </form>
+                <div id="registerResult"></div>
+            </div>
+            
+            <div class="footer">
+                <p>Track your protein intake with AI-powered food recognition</p>
+                <p>Powered by <a href="#" onclick="showApiStatus()">FastAPI & Google Cloud Vision</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        // Check if user is already logged in
+        window.onload = function() {
+            const currentUser = localStorage.getItem('currentUser');
+            if (currentUser) {
+                // User is already logged in, redirect to dashboard
+                window.location.href = 'dashboard.html';
+            }
+        };
+        
+        function switchTab(tab) {
+            // Update tab styling
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update form visibility
+            document.querySelectorAll('.form-container').forEach(f => f.classList.remove('active'));
+            if (tab === 'login') {
+                document.getElementById('loginForm').classList.add('active');
+            } else {
+                document.getElementById('registerForm').classList.add('active');
+            }
+            
+            // Clear previous results
+            document.getElementById('loginResult').innerHTML = '';
+            document.getElementById('registerResult').innerHTML = '';
+        }
+        
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginBtnText = document.getElementById('loginBtnText');
+            
+            // Show loading state
+            loginBtn.disabled = true;
+            loginBtnText.innerHTML = '<span class="loading"></span>Logging in...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Store user data and token in localStorage
+                    const userData = {
+                        id: result.user_id,
+                        username: result.username,
+                        email: result.email,
+                        weight_kg: result.weight_kg,
+                        protein_goal: result.protein_goal,
+                        token: result.token
+                    };
+                    localStorage.setItem('currentUser', JSON.stringify(userData));
+                    
+                    // Show success message
+                    document.getElementById('loginResult').innerHTML = `
+                        <div class="result success">
+                            <strong>✅ Login successful!</strong><br>
+                            Welcome back, ${result.username}!<br>
+                            Redirecting to dashboard...
+                        </div>
+                    `;
+                    
+                    // Redirect to dashboard after a short delay
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                    
+                } else {
+                    document.getElementById('loginResult').innerHTML = `
+                        <div class="result error">
+                            <strong>❌ Login failed!</strong><br>
+                            ${result.detail}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                // Reset button state
+                loginBtn.disabled = false;
+                loginBtnText.innerHTML = 'Login';
+            }
+        }
+        
+        async function handleRegister(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const registerBtn = document.getElementById('registerBtn');
+            const registerBtnText = document.getElementById('registerBtnText');
+            
+            // Validate inputs
+            if (username.length < 3) {
+                document.getElementById('registerResult').innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Username too short!</strong><br>
+                        Username must be at least 3 characters long.
+                    </div>
+                `;
+                return;
+            }
+            
+            if (password.length < 6) {
+                document.getElementById('registerResult').innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Password too short!</strong><br>
+                        Password must be at least 6 characters long.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Show loading state
+            registerBtn.disabled = true;
+            registerBtnText.innerHTML = '<span class="loading"></span>Creating account...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('email', email);
+                formData.append('password', password);
+                
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('registerResult').innerHTML = `
+                        <div class="result success">
+                            <strong>✅ Account created successfully!</strong><br>
+                            Welcome, ${result.username}!<br>
+                            <strong>📧 Check your email for verification!</strong><br>
+                            You must verify your email before you can log in.<br>
+                            <small>If you don't see the email, check your spam folder.</small>
+                        </div>
+                    `;
+                    
+                    // Clear form
+                    document.getElementById('registerForm').reset();
+                    
+                } else {
+                    document.getElementById('registerResult').innerHTML = `
+                        <div class="result error">
+                            <strong>❌ Registration failed!</strong><br>
+                            ${result.detail}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('registerResult').innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                // Reset button state
+                registerBtn.disabled = false;
+                registerBtnText.innerHTML = 'Create Account';
+            }
+        }
+        
+        function showApiStatus() {
+            // This could open a modal or redirect to API status page
+            alert('API Status: Online\nVersion: 4.0.0\nFeatures: All Active\nEmail Verification: Enabled');
+        }
+    </script>
+</body>
+</html> 

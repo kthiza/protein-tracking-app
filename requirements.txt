@@ -1,7 +1,7 @@
 fastapi==0.104.1
 uvicorn==0.24.0
 sqlmodel==0.0.8
-google-cloud-vision==3.4.4
 python-multipart==0.0.6
-pillow==10.1.0
-python-dotenv==1.0.0 
+python-dotenv==1.0.0
+google-cloud-vision==3.4.4
+Pillow==10.0.1 
