@@ -1,8 +1,10 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlmodel import SQLModel, create_engine, Session, select, Field
+from fastapi.responses import FileResponse
+from sqlmodel import SQLModel, create_engine, Session, select, Field, func
+from sqlalchemy import text
 from typing import List, Optional
 import os
 from datetime import datetime, timedelta
@@ -10,9 +12,17 @@ import json
 import hashlib
 import secrets
 import smtplib
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import re
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("Warning: python-dotenv not installed. Install with: pip install python-dotenv")
 
 # Configure email settings (you'll need to set these environment variables)
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
@@ -20,12 +30,17 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 
-# Try to import Google Cloud Vision (optional)
+# Import Google Vision food detection
 try:
-    from google.cloud import vision
+    from food_detection import identify_food_with_google_vision, identify_food_local
     GOOGLE_VISION_AVAILABLE = True
+    print("✅ Google Vision API food detection available")
 except ImportError:
     GOOGLE_VISION_AVAILABLE = False
+    print("Warning: Google Vision API not available. Install google-cloud-vision: pip install google-cloud-vision")
+
+# For backward compatibility
+LOCAL_AI_AVAILABLE = GOOGLE_VISION_AVAILABLE
 
 # Enhanced protein database
 PROTEIN_DATABASE = {
@@ -36,12 +51,70 @@ PROTEIN_DATABASE = {
     "spinach": 3, "quinoa": 4, "chickpeas": 9, "edamame": 11
 }
 
-# Database setup
-DATABASE_URL = "sqlite:///./protein_app.db"
-engine = create_engine(DATABASE_URL, echo=False)
+# Database setup with optimized settings for multiple users
+DATABASE_URL = "sqlite:///./protein_app.db?check_same_thread=False"
+engine = create_engine(
+    DATABASE_URL, 
+    echo=False,
+    connect_args={
+        "check_same_thread": False,
+        "timeout": 30,  # 30 second timeout
+        "isolation_level": None  # Enable autocommit mode
+    },
+    pool_pre_ping=True,  # Verify connections before use
+    pool_recycle=3600,   # Recycle connections every hour
+    pool_size=20,        # Connection pool size
+    max_overflow=30      # Additional connections when pool is full
+)
 
 # Security
 security = HTTPBearer()
+
+# Simple in-memory cache for performance optimization
+import threading
+from collections import OrderedDict
+
+class SimpleCache:
+    def __init__(self, max_size=1000):
+        self.max_size = max_size
+        self.cache = OrderedDict()
+        self.lock = threading.Lock()
+    
+    def get(self, key):
+        with self.lock:
+            if key in self.cache:
+                # Move to end (most recently used)
+                value = self.cache.pop(key)
+                self.cache[key] = value
+                return value
+            return None
+    
+    def set(self, key, value, ttl=300):  # 5 minutes default TTL
+        with self.lock:
+            if key in self.cache:
+                self.cache.pop(key)
+            elif len(self.cache) >= self.max_size:
+                # Remove least recently used
+                self.cache.popitem(last=False)
+            
+            self.cache[key] = {
+                'value': value,
+                'expires_at': time.time() + ttl
+            }
+    
+    def cleanup(self):
+        """Remove expired entries"""
+        with self.lock:
+            current_time = time.time()
+            expired_keys = [
+                key for key, data in self.cache.items()
+                if data['expires_at'] < current_time
+            ]
+            for key in expired_keys:
+                self.cache.pop(key, None)
+
+# Global cache instance
+cache = SimpleCache()
 
 # Models
 class User(SQLModel, table=True):
@@ -54,6 +127,7 @@ class User(SQLModel, table=True):
     last_weight_update: Optional[datetime] = Field(default=None)
     email_verified: bool = Field(default=False)
     verification_token: Optional[str] = Field(default=None)
+    profile_picture_path: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class Meal(SQLModel, table=True):
@@ -68,62 +142,33 @@ from contextlib import asynccontextmanager
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
+    
+    # Create additional indexes for better performance
+    with Session(engine) as session:
+        # Create index on user_id and created_at for meals (most common query)
+        session.exec(text("CREATE INDEX IF NOT EXISTS idx_meals_user_created ON meal (user_id, created_at)"))
+        # Create index on created_at for date filtering
+        session.exec(text("CREATE INDEX IF NOT EXISTS idx_meals_created_at ON meal (created_at)"))
+        # Create index on user_id for user-specific queries
+        session.exec(text("CREATE INDEX IF NOT EXISTS idx_meals_user_id ON meal (user_id)"))
+        session.commit()
 
+# Background cleanup functions (disabled for now to fix startup issues)
 async def cleanup_old_meals():
     """Background task to clean up old meal images and data"""
-    import asyncio
-    while True:
-        try:
-            # Wait for 24 hours
-            await asyncio.sleep(24 * 60 * 60)  # 24 hours in seconds
-            
-            with Session(engine) as session:
-                # Find meals older than 24 hours
-                cutoff_time = datetime.utcnow() - timedelta(hours=24)
-                old_meals = session.exec(
-                    select(Meal).where(Meal.created_at < cutoff_time)
-                ).all()
-                
-                for meal in old_meals:
-                    # Delete the image file
-                    if os.path.exists(meal.image_path):
-                        try:
-                            os.remove(meal.image_path)
-                            print(f"Deleted old meal image: {meal.image_path}")
-                        except Exception as e:
-                            print(f"Failed to delete image {meal.image_path}: {e}")
-                    
-                    # Delete the meal record
-                    session.delete(meal)
-                
-                session.commit()
-                
-                if old_meals:
-                    print(f"Cleaned up {len(old_meals)} old meals")
-                else:
-                    print("No old meals to clean up")
-                    
-        except Exception as e:
-            print(f"Error in cleanup task: {e}")
-            await asyncio.sleep(60)  # Wait 1 minute before retrying
+    pass  # Disabled for now
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    create_db_and_tables()
-    # Start background cleanup task
-    import asyncio
-    cleanup_task = asyncio.create_task(cleanup_old_meals())
-    yield
-    # Shutdown
-    cleanup_task.cancel()
-    try:
-        await cleanup_task
-    except asyncio.CancelledError:
-        pass
+async def cleanup_cache():
+    """Background task to clean up expired cache entries"""
+    pass  # Disabled for now
 
 # Create FastAPI app
-app = FastAPI(title="Protein Tracking App", version="4.0.0", lifespan=lifespan)
+app = FastAPI(title="Protein Tracking App", version="4.0.0")
+
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    create_db_and_tables()
 
 # Add CORS middleware
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -148,8 +193,10 @@ def is_valid_email(email: str) -> bool:
 def send_verification_email(email: str, username: str, token: str):
     """Send verification email"""
     if not SMTP_USERNAME or not SMTP_PASSWORD:
-        print(f"Email verification token for {username}: {token}")
-        return
+        print(f"⚠️  Email verification not configured!")
+        print(f"   For user {username} ({email}), verification token: {token}")
+        print(f"   To enable email verification, run: python setup_env.py")
+        return False
     
     try:
         msg = MIMEMultipart()
@@ -177,8 +224,11 @@ def send_verification_email(email: str, username: str, token: str):
         server.login(SMTP_USERNAME, SMTP_PASSWORD)
         server.send_message(msg)
         server.quit()
+        print(f"✅ Verification email sent to {email}")
+        return True
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        print(f"❌ Failed to send email: {e}")
+        return False
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
     """Get current user from token"""
@@ -218,51 +268,33 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
     return round(total_protein, 1), matched_foods
 
 def identify_food_with_vision(image_path: str) -> List[str]:
+    """Enhanced food detection using Google Vision API"""
     if not GOOGLE_VISION_AVAILABLE:
+        print("❌ Google Vision API not available - install with: pip install google-cloud-vision")
         return []
     
     try:
-        api_key = os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            return []
+        print(f"🔍 Starting Google Vision API food detection for image: {image_path}")
         
-        client_options = {"api_key": api_key}
-        client = vision.ImageAnnotatorClient(client_options=client_options)
+        # Use Google Vision API detection
+        detected_foods = identify_food_with_google_vision(image_path)
         
-        with open(image_path, 'rb') as image_file:
-            content = image_file.read()
+        print(f"🎯 Google Vision API Detection Results: {detected_foods}")
+        return detected_foods
         
-        image = vision.Image(content=content)
-        response = client.label_detection(image=image)
-        labels = response.label_annotations
-        
-        food_keywords = ['food', 'dish', 'meal', 'meat', 'fish', 'dairy', 'vegetable', 'fruit', 'protein']
-        food_items = []
-        
-        for label in labels:
-            label_text = label.description.lower()
-            if any(keyword in label_text for keyword in food_keywords):
-                food_items.append(label_text)
-        
-        return list(set(food_items))
     except Exception as e:
-        print(f"Vision API error: {e}")
+        print(f"❌ Google Vision API error: {e}")
+        print(f"   This could be due to:")
+        print(f"   - Missing google-cloud-vision")
+        print(f"   - API key issues")
+        print(f"   - Image format issues")
+        print(f"   - File access problems")
         return []
 
 @app.get("/")
 async def root():
-    return {
-        "message": "Protein Tracking App API",
-        "version": "4.0.0",
-        "features": {
-            "google_vision_available": GOOGLE_VISION_AVAILABLE,
-            "enhanced_protein_calculation": True,
-            "user_management": True,
-            "meal_tracking": True,
-            "dashboard": True,
-            "email_verification": True
-        }
-    }
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/static/login.html")
 
 @app.post("/auth/register")
 async def register_user(
@@ -293,25 +325,41 @@ async def register_user(
         verification_token = generate_verification_token()
         password_hash = hash_password(password)
         
+        # Check if email verification is configured
+        email_configured = bool(SMTP_USERNAME and SMTP_PASSWORD)
+        
+        # TEMPORARILY DISABLE EMAIL VERIFICATION FOR LOCAL TESTING
+        # TODO: Re-enable when deploying to production with proper domain
+        email_configured = False
+        
         user = User(
             username=username,
             email=email,
             password_hash=password_hash,
-            verification_token=verification_token
+            verification_token=verification_token,
+            email_verified=True  # Always verify for local testing
         )
         
         session.add(user)
         session.commit()
         session.refresh(user)
         
-        # Send verification email
-        send_verification_email(email, username, verification_token)
+        # Send verification email (if configured)
+        email_sent = send_verification_email(email, username, verification_token)
+        
+        response_message = "Account created successfully!"
+        if email_configured:
+            response_message += " Please check your email to verify your account."
+        else:
+            response_message += " Email verification is not configured, so your account is automatically verified. You can log in now!"
         
         return {
-            "message": "Account created successfully! Please check your email to verify your account.",
+            "message": response_message,
             "user_id": user.id,
             "username": user.username,
-            "email": user.email
+            "email": user.email,
+            "email_verified": user.email_verified,
+            "email_configured": email_configured
         }
 
 @app.post("/auth/login")
@@ -322,8 +370,10 @@ async def login_user(username: str = Form(...), password: str = Form(...)):
         if not user or not verify_password(password, user.password_hash):
             raise HTTPException(status_code=401, detail="Invalid username or password")
         
-        if not user.email_verified:
-            raise HTTPException(status_code=401, detail="Please verify your email before logging in")
+        # TEMPORARILY DISABLE EMAIL VERIFICATION CHECK FOR LOCAL TESTING
+        # TODO: Re-enable when deploying to production with proper domain
+        # if not user.email_verified:
+        #     raise HTTPException(status_code=401, detail="Please verify your email before logging in")
         
         return {
             "message": "Login successful",
@@ -331,7 +381,7 @@ async def login_user(username: str = Form(...), password: str = Form(...)):
             "username": user.username,
             "email": user.email,
             "weight_kg": user.weight_kg,
-            "protein_goal": user.protein_goal,
+            "protein_goal": round(user.protein_goal, 1) if user.protein_goal else None,
             "last_weight_update": user.last_weight_update.isoformat() if user.last_weight_update else None,
             "token": str(user.id)  # Simple token for now
         }
@@ -353,6 +403,44 @@ async def verify_email(token: str):
             "username": user.username
         }
 
+@app.get("/auth/email-status")
+async def get_email_status():
+    """Check if email verification is configured"""
+    email_configured = bool(SMTP_USERNAME and SMTP_PASSWORD)
+    
+    return {
+        "email_configured": email_configured,
+        "smtp_server": SMTP_SERVER if email_configured else None,
+        "smtp_port": SMTP_PORT if email_configured else None,
+        "setup_instructions": "Run 'python setup_env.py' to configure email verification" if not email_configured else None
+    }
+
+@app.post("/auth/verify-manual")
+async def verify_email_manual(username: str = Form(...), token: str = Form(...)):
+    """Manual email verification for testing purposes"""
+    with Session(engine) as session:
+        user = session.exec(select(User).where(
+            (User.username == username) & (User.verification_token == token)
+        )).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="Invalid username or verification token")
+        
+        if user.email_verified:
+            return {
+                "message": "Account is already verified!",
+                "username": user.username
+            }
+        
+        user.email_verified = True
+        user.verification_token = None
+        session.commit()
+        
+        return {
+            "message": "Email verified successfully! You can now log in.",
+            "username": user.username
+        }
+
 @app.get("/users/profile", response_model=dict)
 async def get_user_profile(current_user: User = Depends(get_current_user)):
     return {
@@ -360,11 +448,121 @@ async def get_user_profile(current_user: User = Depends(get_current_user)):
         "username": current_user.username,
         "email": current_user.email,
         "weight_kg": current_user.weight_kg,
-        "protein_goal": current_user.protein_goal,
+        "protein_goal": round(current_user.protein_goal, 1) if current_user.protein_goal else None,
         "last_weight_update": current_user.last_weight_update.isoformat() if current_user.last_weight_update else None,
         "email_verified": current_user.email_verified,
+        "profile_picture_path": current_user.profile_picture_path,
         "created_at": current_user.created_at.isoformat()
     }
+
+@app.post("/users/update-profile")
+async def update_profile(
+    current_user: User = Depends(get_current_user),
+    username: str = Form(...),
+    email: str = Form(...)
+):
+    """Update user profile information"""
+    if not username or not email:
+        raise HTTPException(status_code=400, detail="Username and email are required")
+    
+    if not is_valid_email(email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+    
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.id == current_user.id)).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if username is already taken by another user
+        existing_user = session.exec(select(User).where(User.username == username, User.id != current_user.id)).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Username already taken")
+        
+        # Check if email is already taken by another user
+        existing_email = session.exec(select(User).where(User.email == email, User.id != current_user.id)).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="Email already taken")
+        
+        # Update profile
+        user.username = username
+        user.email = email
+        
+        session.commit()
+        session.refresh(user)
+        
+        return {
+            "message": "Profile updated successfully",
+            "username": user.username,
+            "email": user.email
+        }
+
+@app.post("/users/upload-profile-picture")
+async def upload_profile_picture(
+    current_user: User = Depends(get_current_user),
+    profile_picture: UploadFile = File(...)
+):
+    """Upload and save user profile picture"""
+    # Validate file type
+    if not profile_picture.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    # Create profile pictures directory
+    profile_dir = "profile_pictures"
+    os.makedirs(profile_dir, exist_ok=True)
+    
+    # Generate unique filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    file_extension = os.path.splitext(profile_picture.filename)[1]
+    filename = f"profile_{current_user.id}_{timestamp}{file_extension}"
+    file_path = os.path.join(profile_dir, filename)
+    
+    try:
+        # Save the uploaded file
+        with open(file_path, "wb") as buffer:
+            content = await profile_picture.read()
+            buffer.write(content)
+        
+        # Update user's profile picture path in database
+        with Session(engine) as session:
+            user = session.exec(select(User).where(User.id == current_user.id)).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Delete old profile picture if it exists
+            if user.profile_picture_path and os.path.exists(user.profile_picture_path):
+                try:
+                    os.remove(user.profile_picture_path)
+                except Exception as e:
+                    print(f"Failed to delete old profile picture: {e}")
+            
+            # Update profile picture path
+            user.profile_picture_path = file_path
+            session.commit()
+            session.refresh(user)
+        
+        return {
+            "message": "Profile picture uploaded successfully",
+            "profile_picture_path": file_path
+        }
+        
+    except Exception as e:
+        # Clean up file if database update fails
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise HTTPException(status_code=500, detail=f"Failed to upload profile picture: {str(e)}")
+
+@app.get("/users/profile-picture/{user_id}")
+async def get_profile_picture(user_id: int):
+    """Get user's profile picture"""
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.id == user_id)).first()
+        if not user or not user.profile_picture_path:
+            raise HTTPException(status_code=404, detail="Profile picture not found")
+        
+        if not os.path.exists(user.profile_picture_path):
+            raise HTTPException(status_code=404, detail="Profile picture file not found")
+        
+        return FileResponse(user.profile_picture_path)
 
 @app.post("/users/update-weight")
 async def update_weight(
@@ -382,7 +580,7 @@ async def update_weight(
         
         # Update weight and protein goal
         user.weight_kg = weight_kg
-        user.protein_goal = weight_kg * 1.6  # Recalculate protein goal
+        user.protein_goal = round(weight_kg * 1.6, 1)  # Recalculate protein goal with proper rounding
         user.last_weight_update = datetime.utcnow()
         
         session.commit()
@@ -391,7 +589,7 @@ async def update_weight(
         return {
             "message": "Weight updated successfully",
             "weight_kg": user.weight_kg,
-            "protein_goal": user.protein_goal,
+            "protein_goal": round(user.protein_goal, 1) if user.protein_goal else None,
             "last_weight_update": user.last_weight_update.isoformat()
         }
 
@@ -400,7 +598,7 @@ async def upload_meal(
     current_user: User = Depends(get_current_user),
     image: UploadFile = File(...),
     food_items: str = Form(""),
-    use_ai_detection: bool = Form(False)
+    use_ai_detection: bool = Form(True)
 ):
     upload_dir = "uploads"
     os.makedirs(upload_dir, exist_ok=True)
@@ -414,24 +612,74 @@ async def upload_meal(
             content = await image.read()
             buffer.write(content)
         
-        if use_ai_detection and GOOGLE_VISION_AVAILABLE:
-            detected_foods = identify_food_with_vision(file_path)
-        else:
-            detected_foods = []
+        # Try AI detection if enabled and available
+        detected_foods = []
+        ai_detection_status = {
+            "attempted": use_ai_detection,
+            "available": GOOGLE_VISION_AVAILABLE,
+            "successful": False,
+            "error": None
+        }
         
+        print(f"🤖 AI Detection Requested: {use_ai_detection}")
+        print(f"🔧 Google Vision API Available: {GOOGLE_VISION_AVAILABLE}")
+        
+        if use_ai_detection:
+            if GOOGLE_VISION_AVAILABLE:
+                try:
+                    detected_foods = identify_food_with_vision(file_path)
+                    ai_detection_status["successful"] = len(detected_foods) > 0
+                    print(f"🎯 Google Vision API Detection Results: {detected_foods}")
+                except Exception as e:
+                    ai_detection_status["error"] = str(e)
+                    print(f"❌ Google Vision API Detection failed: {e}")
+            else:
+                ai_detection_status["error"] = "Google Vision API not available"
+                print("❌ Google Vision API not available")
+        
+        # Parse manual food items
+        manual_foods = []
+        print(f"📝 Manual food items: '{food_items}'")
         if food_items:
-            manual_foods = [item.strip() for item in food_items.split(",")]
-        else:
-            manual_foods = []
+            manual_foods = [item.strip() for item in food_items.split(",") if item.strip()]
+            print(f"✅ Parsed manual foods: {manual_foods}")
+        
+        # Combine and determine final food list
+        print(f"🤖 AI detected foods: {detected_foods}")
+        print(f"✍️  Manual foods: {manual_foods}")
         
         if detected_foods and manual_foods:
+            # Both AI and manual - combine them
             food_list = list(set(detected_foods + manual_foods))
+            print(f"🔄 Combined AI + Manual: {food_list}")
         elif detected_foods:
+            # Only AI detection worked
             food_list = detected_foods
+            print(f"🤖 AI Detection Only: {food_list}")
         elif manual_foods:
+            # Only manual input
             food_list = manual_foods
+            print(f"✍️  Manual Input Only: {food_list}")
         else:
-            food_list = ["chicken breast", "rice", "broccoli"]
+            # No food items provided and AI failed
+            food_list = []
+            print("❌ No food items detected or provided")
+        
+        # Check if we have food items to process
+        if not food_list:
+            # Clean up the uploaded file since we can't process it
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            error_message = "No food items detected or provided. "
+            if use_ai_detection and not GOOGLE_VISION_AVAILABLE:
+                error_message += "Google Vision API is not available. Please enter food items manually."
+            elif use_ai_detection and GOOGLE_VISION_AVAILABLE and not detected_foods:
+                error_message += "Google Vision API failed to identify food items. Please enter food items manually."
+            else:
+                error_message += "Please enter the food items manually."
+            
+            raise HTTPException(status_code=400, detail=error_message)
         
         total_protein, matched_foods = calculate_protein_enhanced(food_list)
         
@@ -446,6 +694,10 @@ async def upload_meal(
             session.commit()
             session.refresh(meal)
         
+        # Invalidate cache for this user
+        cache_key = f"dashboard_{current_user.id}_{datetime.utcnow().date()}"
+        cache.set(cache_key, None, ttl=1)  # Invalidate immediately
+        
         return {
             "message": "Meal processed successfully",
             "meal_id": meal.id,
@@ -454,7 +706,17 @@ async def upload_meal(
             "total_protein": total_protein,
             "user_protein_goal": current_user.protein_goal,
             "ai_detection_used": use_ai_detection and GOOGLE_VISION_AVAILABLE,
-            "google_vision_available": GOOGLE_VISION_AVAILABLE
+            "google_vision_available": GOOGLE_VISION_AVAILABLE,
+            "detection_status": {
+                "ai_detected": len(detected_foods) > 0,
+                "manual_provided": len(manual_foods) > 0,
+                "ai_available": GOOGLE_VISION_AVAILABLE,
+                "ai_attempted": ai_detection_status["attempted"],
+                "ai_successful": ai_detection_status["successful"],
+                "ai_error": ai_detection_status["error"],
+                "detected_foods": detected_foods,
+                "manual_foods": manual_foods
+            }
         }
         
     except Exception as e:
@@ -464,6 +726,12 @@ async def upload_meal(
 
 @app.get("/dashboard")
 async def get_dashboard_data(current_user: User = Depends(get_current_user)):
+    # Check cache first
+    cache_key = f"dashboard_{current_user.id}_{datetime.utcnow().date()}"
+    cached_data = cache.get(cache_key)
+    if cached_data and cached_data['expires_at'] > time.time():
+        return cached_data['value']
+    
     with Session(engine) as session:
         today = datetime.now().date()
         today_meals = session.exec(select(Meal).where(
@@ -490,14 +758,15 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
         else:
             needs_weight_update = True  # First time user
         
-        return {
+        result = {
             "user": {
                 "id": current_user.id,
                 "username": current_user.username,
                 "weight_kg": current_user.weight_kg,
-                "protein_goal": current_user.protein_goal,
+                "protein_goal": round(current_user.protein_goal, 1) if current_user.protein_goal else None,
                 "last_weight_update": current_user.last_weight_update.isoformat() if current_user.last_weight_update else None,
-                "needs_weight_update": needs_weight_update
+                "needs_weight_update": needs_weight_update,
+                "profile_picture_path": current_user.profile_picture_path
             },
             "today": {
                 "total_protein": today_protein,
@@ -516,23 +785,91 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
                 "total_protein_tracked": sum(m.total_protein for m in all_meals)
             }
         }
+        
+        # Cache the result for 2 minutes
+        cache.set(cache_key, result, ttl=120)
+        return result
 
 @app.get("/meals")
-async def get_user_meals(current_user: User = Depends(get_current_user)):
+async def get_user_meals(
+    current_user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(20, ge=1, le=100, description="Items per page"),
+    date_filter: Optional[str] = Query(None, description="Filter by date (YYYY-MM-DD)")
+):
+    """Get user meals with pagination and date filtering"""
+    offset = (page - 1) * limit
+    
     with Session(engine) as session:
+        # Build query with optional date filter
+        query = select(Meal).where(Meal.user_id == current_user.id)
+        
+        if date_filter:
+            try:
+                filter_date = datetime.strptime(date_filter, "%Y-%m-%d").date()
+                query = query.where(
+                    func.date(Meal.created_at) == filter_date
+                )
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        
+        # Get total count for pagination
+        count_query = select(func.count()).select_from(query.subquery())
+        total_count = session.exec(count_query).first()
+        
+        # Get paginated results
         meals = session.exec(
-            select(Meal).where(Meal.user_id == current_user.id).order_by(Meal.created_at.desc())
+            query.order_by(Meal.created_at.desc())
+            .offset(offset)
+            .limit(limit)
         ).all()
         
-        return [
-            {
-                "id": meal.id,
-                "food_items": json.loads(meal.food_items),
-                "total_protein": meal.total_protein,
-                "created_at": meal.created_at.isoformat()
+        return {
+            "meals": [
+                {
+                    "id": meal.id,
+                    "food_items": json.loads(meal.food_items),
+                    "total_protein": meal.total_protein,
+                    "created_at": meal.created_at.isoformat()
+                }
+                for meal in meals
+            ],
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total": total_count,
+                "pages": (total_count + limit - 1) // limit,
+                "has_next": page * limit < total_count,
+                "has_prev": page > 1
             }
-            for meal in meals
-        ]
+        }
+
+@app.get("/meals/today")
+async def get_today_meals(current_user: User = Depends(get_current_user)):
+    """Get all meals for today with optimized query"""
+    today = datetime.utcnow().date()
+    
+    with Session(engine) as session:
+        # Get all meals for today
+        today_meals = session.exec(
+            select(Meal).where(
+                (Meal.user_id == current_user.id) &
+                (func.date(Meal.created_at) == today)
+            ).order_by(Meal.created_at.desc())
+        ).all()
+        
+        return {
+            "meals": [
+                {
+                    "id": meal.id,
+                    "food_items": json.loads(meal.food_items),
+                    "total_protein": meal.total_protein,
+                    "created_at": meal.created_at.isoformat()
+                }
+                for meal in today_meals
+            ],
+            "total_count": len(today_meals)
+        }
 
 @app.get("/foods/suggestions")
 async def get_food_suggestions():

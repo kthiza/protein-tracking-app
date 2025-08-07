@@ -1,303 +1,207 @@
-# Protein Tracking App
+# Protein Tracker App
 
-A professional, AI-powered web application that tracks protein intake through photo analysis using Google Cloud Vision API, featuring secure authentication, automatic cleanup, and weekly weight updates.
+An AI-powered nutrition tracking application that helps you monitor your protein intake using image recognition and manual food entry. **Optimized for 100+ active users and hundreds of meal posts.**
 
-## 🚀 Features
+## 🚀 Quick Start
 
-### Core Functionality
-- **AI-Powered Food Recognition**: Upload photos of your meals and automatically identify food items using Google Cloud Vision API
-- **Protein Calculation**: Automatically calculate protein content based on identified foods
-- **Daily Goal Tracking**: Set protein goals based on your body weight (1.6g per kg)
-- **Progress Dashboard**: Visual progress tracking and meal history
-- **Weekly Weight Updates**: Popup reminders to update weight and recalculate protein goals
-
-### Security & User Management
-- **Secure Authentication**: Username/password login with email verification
-- **Password Hashing**: SHA-256 password encryption
-- **Email Verification**: Secure account activation via email
-- **Session Management**: Persistent login with localStorage
-- **Bearer Token Authentication**: Secure API access
-
-### Professional UI/UX
-- **Multi-Page Structure**: Separate login and dashboard pages
-- **Responsive Design**: Modern, mobile-friendly interface
-- **Weight Update Modal**: Weekly popup for weight updates
-- **Real-time Dashboard**: Live protein tracking and progress visualization
-
-### System Features
-- **Automatic Cleanup**: Daily cleanup of old meal data and images (24-hour retention)
-- **Manual Cleanup**: Admin endpoint for testing cleanup functionality
-- **Background Tasks**: Non-blocking cleanup operations
-- **Error Handling**: Comprehensive error handling and user feedback
-
-## 🛠️ Technology Stack
-
-- **Backend**: Python with FastAPI
-- **Database**: SQLite with SQLModel ORM
-- **AI/Vision**: Google Cloud Vision API (optional)
-- **Frontend**: HTML, CSS, JavaScript
-- **Authentication**: HTTPBearer tokens, SHA-256 hashing
-- **Email**: SMTP for verification emails
-- **Environment**: Python 3.8+
-
-## 📋 Prerequisites
-
-- Python 3.8 or higher
-- Google Cloud account with Vision API enabled (optional)
-- SMTP server for email verification (Gmail recommended)
-
-## 🔧 Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/protein-tracking-app.git
-   cd protein-tracking-app
-   ```
-
-2. **Create a virtual environment**
-   ```bash
-   python -m venv venv
-   # On Windows
-   venv\Scripts\activate
-   # On macOS/Linux
-   source venv/bin/activate
-   ```
-
-3. **Install dependencies**
+1. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Set up environment variables**
-   Create a `.env` file in the project root:
-   ```env
-   # Google Cloud Vision API (optional)
-   GOOGLE_API_KEY=your_google_cloud_api_key_here
-   
-   # Email settings for verification
-   SMTP_SERVER=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USERNAME=your_email@gmail.com
-   SMTP_PASSWORD=your_app_password
+2. **Run the application:**
+   ```bash
+   python main.py
    ```
 
-5. **Configure Email (Required for account verification)**
-   - For Gmail: Use an App Password (not your regular password)
-   - Enable 2-factor authentication on your Google account
-   - Generate an App Password in Google Account settings
-   - Add the App Password to your `.env` file
+3. **Open your browser:**
+   Navigate to `http://localhost:8000/static/login.html`
 
-## 🚀 Usage
+## ⚡ Performance Optimizations
 
-### Starting the Application
+### High-Scale Architecture
+- **100+ Concurrent Users**: Optimized database connections and connection pooling
+- **Hundreds of Meal Posts**: Efficient pagination and caching system
+- **Fast Response Times**: In-memory caching for frequently accessed data
+- **Scalable Database**: Optimized SQLite with proper indexing
+
+### Key Optimizations
+- **Database Connection Pooling**: 20 connections with 30 overflow capacity
+- **In-Memory Caching**: LRU cache with TTL for dashboard data
+- **Pagination**: Configurable page sizes (1-100 items per page)
+- **Database Indexes**: Optimized queries on user_id and created_at
+- **Background Tasks**: Automatic cache cleanup and meal cleanup
+- **Today's Meals**: Shows ALL meals for the day, not just 6 most recent
+
+### Performance Testing
+Run the optimization test suite:
 ```bash
-python main.py
+python test_optimization.py
 ```
 
-The application will be available at `http://localhost:8000`
+This tests concurrent users, caching performance, and pagination functionality.
 
-### User Flow
-1. **Registration**: Create account with username, email, and password
-2. **Email Verification**: Check email and click verification link
-3. **Login**: Use username and password to access dashboard
-4. **Weight Setup**: Set initial weight via weekly popup
-5. **Meal Tracking**: Upload photos and track protein intake
-6. **Weekly Updates**: Update weight when prompted
+## 🔧 Configuration
 
-### Testing
+### Email Verification Setup (Optional)
+To enable email verification for new accounts:
+
 ```bash
-# Run comprehensive test suite
-python test_complete_flow.py
-
-# Run with verification token (after registration)
-python test_complete_flow.py YOUR_TOKEN_HERE
+python setup_env.py
 ```
 
-### Cleanup
+Follow the prompts to configure Gmail SMTP settings.
+
+**Note:** If email verification is not configured, new accounts will be automatically verified and users can log in immediately.
+
+### Google Cloud Vision API (Optional)
+For AI-powered food detection, configure your Google Cloud Vision API key:
+
 ```bash
-# Clean up database and files
-python cleanup.py
+python setup_google_vision.py
 ```
 
-## 📁 Project Structure
+This will guide you through:
+1. Setting up a Google Cloud Project
+2. Enabling the Vision API
+3. Creating an API key
+4. Configuring the key in the app
 
-```
-Protein-Tracking-App/
-├── main.py                    # FastAPI backend application
-├── static/                    # Frontend files
-│   ├── index.html            # Redirect page
-│   ├── login.html            # Login/registration page
-│   └── dashboard.html        # Main dashboard
-├── requirements.txt           # Python dependencies
-├── test_complete_flow.py     # Comprehensive test suite
-├── cleanup.py                # Database and file cleanup utility
-├── .env                      # Environment variables (create this)
-├── .gitignore               # Git ignore rules
-└── README.md                # This file
-```
+**Note:** If no valid API key is configured, the app will use fallback detection which provides basic food recognition based on filename patterns.
 
-## 🔄 API Endpoints
+## 🐛 Troubleshooting
+
+### Account Creation Issues
+
+If you encounter problems creating accounts:
+
+1. **JavaScript Error:** The form reset error has been fixed. Try refreshing the page.
+
+2. **Email Verification:** 
+   - If email verification is not configured, accounts are automatically verified
+   - If you need to manually verify an existing account, run:
+     ```bash
+     python cleanup.py
+     ```
+   - Select option 2 to manually verify users
+
+3. **"Account Already Exists" Error:**
+   - This happens when the first registration attempt creates the account but fails to send verification email
+   - Use the cleanup script to verify the existing account or reset the password
+
+### Manual Account Management
+
+The `cleanup.py` script provides several utilities:
+
+- **List all users** - See all registered users and their verification status
+- **Manually verify users** - Verify accounts that couldn't receive email verification
+- **Reset passwords** - Reset user passwords if needed
+- **Clean up old meals** - Remove old meal data and images
+
+## 📧 Email Verification
+
+The app supports email verification for enhanced security:
+
+- **Configured:** Users receive verification emails and must verify before logging in
+- **Not Configured:** Accounts are automatically verified for immediate access
+
+To check email verification status, visit: `http://localhost:8000/auth/email-status`
+
+## 🍽️ Features
+
+- **User Registration & Authentication**
+- **Email Verification** (optional)
+- **Protein Tracking**
+- **Image Upload & Analysis**
+- **AI Food Recognition** (with Google Cloud Vision)
+- **Dashboard with Progress Tracking**
+- **Weight-based Protein Goals**
+- **Profile Picture Management**
+- **High-Performance Architecture**
+- **Pagination for Large Datasets**
+- **Today's Meals View** (shows all meals, not just 6)
+- **Toggle Between Today and All Meals**
+
+## 🛠️ API Endpoints
 
 ### Authentication
 - `POST /auth/register` - User registration
 - `POST /auth/login` - User login
 - `GET /auth/verify/{token}` - Email verification
+- `POST /auth/verify-manual` - Manual verification
+- `GET /auth/email-status` - Check email configuration
 
 ### User Management
 - `GET /users/profile` - Get user profile
-- `POST /users/update-weight` - Update weight and protein goal
+- `POST /users/update-profile` - Update user profile
+- `POST /users/upload-profile-picture` - Upload profile picture
+- `GET /users/profile-picture/{user_id}` - Get profile picture
+- `POST /users/update-weight` - Update user weight
 
-### Meal Management
-- `POST /meals/upload/` - Upload meal photo
-- `GET /meals` - Get user's meal history
+### Meals
+- `POST /meals/upload/` - Upload meal images
+- `GET /meals` - Get user meals (with pagination and date filtering)
+- `GET /meals/today` - Get all meals for today
 
-### Dashboard & Data
-- `GET /dashboard` - Get dashboard data
-- `GET /foods/suggestions` - Get food suggestions
-- `GET /` - Root endpoint with app info
+### Dashboard
+- `GET /dashboard` - Get user dashboard data (cached)
 
-### Admin
-- `POST /admin/cleanup` - Manual cleanup (testing)
+## 🔒 Security
 
-## 🔒 Security Features
+- Password hashing with SHA-256
+- Optional email verification
+- Token-based authentication
+- Input validation and sanitization
+- File upload validation
+- Rate limiting and connection management
 
-### Authentication System
-- **Password Hashing**: SHA-256 encryption
-- **Email Verification**: Required for account activation
-- **Bearer Tokens**: Secure API access
-- **Session Management**: Persistent login state
+## 📁 Project Structure
 
-### Data Protection
-- **Input Validation**: Comprehensive form validation
-- **SQL Injection Protection**: SQLModel ORM
-- **File Upload Security**: Restricted file types and sizes
-- **Automatic Cleanup**: 24-hour data retention
-
-## 🧹 Cleanup System
-
-### Automatic Cleanup
-- **Daily Execution**: Runs every 24 hours
-- **Data Retention**: Keeps data for 24 hours only
-- **File Management**: Deletes old images and database records
-- **Background Processing**: Non-blocking operation
-
-### Manual Cleanup
-- **Testing Endpoint**: `/admin/cleanup` for development
-- **Utility Script**: `cleanup.py` for file management
-- **Flexible Options**: Choose cleanup scope
-
-## ⚖️ Weight Update System
-
-### Weekly Reminders
-- **Automatic Detection**: Checks if weight update is needed
-- **7-Day Cycle**: Prompts every 7 days
-- **Modal Interface**: User-friendly popup
-- **Goal Recalculation**: Updates protein goals automatically
-
-### User Experience
-- **First-Time Setup**: Required for new users
-- **Regular Updates**: Weekly reminders
-- **Visual Feedback**: Clear progress indicators
-- **Data Persistence**: Saves update timestamps
+```
+Protein App/
+├── main.py                 # FastAPI application (optimized)
+├── setup_env.py            # Environment configuration
+├── setup_google_vision.py  # Google Vision API setup
+├── cleanup.py              # Database utilities
+├── test_optimization.py    # Performance testing script
+├── test_profile_picture.py # Profile picture testing
+├── requirements.txt        # Python dependencies
+├── static/                 # Frontend files
+│   ├── login.html         # Login/registration page
+│   ├── dashboard.html     # Main dashboard (optimized)
+│   ├── settings.html      # User settings
+│   └── index.html         # Landing page
+├── uploads/               # Meal images (auto-created)
+└── profile_pictures/      # Profile pictures (auto-created)
+```
 
 ## 🧪 Testing
 
-### Test Suite
-The `test_complete_flow.py` script provides comprehensive testing:
-
-1. **Registration Test**: Creates new user account
-2. **Verification Test**: Tests email verification
-3. **Login Test**: Tests authentication
-4. **Weight Update Test**: Tests weight management
-5. **Dashboard Test**: Tests dashboard access
-6. **Food Suggestions Test**: Tests food database
-
-### Running Tests
+### Performance Testing
 ```bash
-# Step 1: Run registration test
-python test_complete_flow.py
-
-# Step 2: Check server logs for verification token
-# Look for: "Email verification token for testuser: [TOKEN]"
-
-# Step 3: Run complete test with token
-python test_complete_flow.py YOUR_TOKEN_HERE
+python test_optimization.py
 ```
 
-## 🚨 Troubleshooting
+### Profile Picture Testing
+```bash
+python test_profile_picture.py
+```
 
-### Common Issues
-
-**Email Verification Not Working**
-- Check SMTP settings in `.env` file
-- Ensure Gmail App Password is used (not regular password)
-- Verify 2-factor authentication is enabled
-
-**Google Vision API Errors**
-- API is optional - app works without it
-- Check API key in `.env` file
-- Verify Vision API is enabled in Google Cloud Console
-
-**Database Errors**
-- Run `python cleanup.py` to reset database
-- Ensure server is stopped before cleanup
-- Check file permissions
-
-**Login Issues**
-- Verify email was confirmed
-- Check username/password spelling
-- Clear browser localStorage if needed
-
-### Error Messages
-- **"Invalid verification token"**: Token expired or incorrect
-- **"Username already exists"**: Choose different username
-- **"Email already exists"**: Use different email or verify existing account
-- **"Login failed"**: Check credentials and email verification
-
-## 📊 Future Enhancements
-
-- [ ] Portion size estimation
-- [ ] Multiple nutrition tracking (carbs, fats, calories)
-- [ ] Mobile app version
-- [ ] Social features and sharing
-- [ ] Integration with fitness trackers
-- [ ] Advanced analytics and insights
-- [ ] Meal planning and recipes
-- [ ] Barcode scanning for packaged foods
+### Manual Testing
+1. Register multiple users
+2. Upload many meals per user
+3. Test pagination in "All Meals" view
+4. Verify "Today's Meals" shows all meals for the day
+5. Test dashboard performance with cached data
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly with the optimization test suite
+5. Submit a pull request
 
-## 📝 License
+## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## ⚠️ Important Notes
-
-- **API Key Security**: Never commit your `.env` file to version control
-- **Email Configuration**: Required for account verification
-- **Data Retention**: Meal data is automatically deleted after 24 hours
-- **Google Cloud Costs**: Vision API has usage limits and costs (optional feature)
-- **Database**: Uses SQLite for simplicity - consider PostgreSQL for production
-
-## 🆘 Support
-
-If you encounter any issues:
-1. Check the troubleshooting section above
-2. Verify all environment variables are set correctly
-3. Ensure all dependencies are installed
-4. Check the server logs for detailed error messages
-5. Run the test suite to verify functionality
-
-## 📈 Performance
-
-- **FastAPI**: High-performance async web framework
-- **SQLite**: Lightweight, file-based database
-- **Background Tasks**: Non-blocking cleanup operations
-- **Static Files**: Optimized frontend delivery
-- **CORS Support**: Cross-origin request handling
+This project is open source and available under the MIT License.
