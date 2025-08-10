@@ -3,6 +3,5 @@ uvicorn==0.24.0
 python-multipart==0.0.6
 sqlmodel==0.0.8
 python-dotenv==1.0.0
-opencv-python==4.8.1.78
-google-cloud-vision==3.4.4
-requests==2.31.0 
+requests==2.31.0
+google-cloud-vision

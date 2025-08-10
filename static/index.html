@@ -2,100 +2,1167 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Protein Tracker - Redirecting</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Kthiza Protein Tracker - AI-Powered Nutrition Tracking</title>
+    <meta name="description" content="Track your protein intake with AI-powered photo analysis. Professional nutrition tracking made simple.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --accent-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-tertiary: #94a3b8;
+            --border-color: #e2e8f0;
+            
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--bg-primary);
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--bg-primary);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header.scrolled {
+            box-shadow: var(--shadow-md);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo i {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2rem;
+        }
+
+        /* Dark Mode Variables */
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-tertiary: #94a3b8;
+            --border-color: #475569;
+        }
+
+        [data-theme="dark"] body {
+            background: var(--bg-primary);
+        }
+
+        [data-theme="dark"] .features {
+            background: var(--bg-secondary);
+        }
+
+        [data-theme="dark"] .feature-card {
+            background: var(--bg-tertiary);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .cta-section {
+            background: var(--bg-secondary);
+        }
+
+        [data-theme="dark"] .demo-phone {
+            background: var(--bg-tertiary);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .demo-screen {
+            background: var(--bg-primary);
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 50%;
+            right: 2rem;
+            transform: translateY(-50%);
+            z-index: 1000;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 50px;
+            padding: 0.5rem;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-50%) scale(1.05);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .theme-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: transparent;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .theme-toggle-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .theme-toggle-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2.5rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+        }
+
+        .cta-button {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-gradient);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 8rem 2rem 4rem;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.1;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            line-height: 1.1;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-button {
+            padding: 1rem 2rem;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .hero-button.primary {
+            background: white;
+            color: #667eea;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .hero-button.primary:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .hero-button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .hero-button.secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 6rem 2rem;
+            background: var(--bg-secondary);
+        }
+
+        .features-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            margin-bottom: 4rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--bg-primary);
+            padding: 2rem;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: var(--radius-lg);
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 1.5rem;
             color: white;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .feature-description {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Interactive Demo Section */
+        .demo {
+            padding: 6rem 2rem;
+            background: var(--bg-primary);
+        }
+
+        .demo-content {
+            max-width: 1000px;
+            margin: 0 auto;
             text-align: center;
         }
-        
-        .redirect-container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+
+        .demo-container {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 3rem;
+            align-items: center;
+            margin: 3rem auto;
         }
-        
-        .loading {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid white;
+
+        .demo-controls {
+            text-align: left;
+        }
+
+        .demo-step {
+            padding: 1.5rem;
+            border: 2px solid transparent;
+            border-radius: var(--radius-lg);
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--bg-secondary);
+        }
+
+        .demo-step:hover {
+            border-color: var(--border-color);
+            transform: translateX(5px);
+        }
+
+        .demo-step.active {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .demo-step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 50%;
+            font-weight: 600;
+            margin-right: 1rem;
+        }
+
+        .demo-step-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .demo-step-desc {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .demo-phone {
+            max-width: 300px;
+            position: relative;
+        }
+
+        .phone-mockup {
+            width: 100%;
+            background: linear-gradient(145deg, #2d3748, #1a202c);
+            border-radius: 40px;
+            padding: 20px;
+            box-shadow: var(--shadow-xl);
+            position: relative;
+        }
+
+        .phone-screen {
+            width: 100%;
+            aspect-ratio: 9/19.5;
+            background: var(--bg-secondary);
+            border-radius: 30px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-screen {
+            display: none;
+            padding: 1rem;
+            height: 100%;
+            flex-direction: column;
+        }
+
+        .demo-screen.active {
+            display: flex;
+        }
+
+        .demo-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+
+        .demo-logo {
+            font-weight: 700;
+            font-size: 0.875rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .demo-stats {
+            display: grid;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .demo-stat {
+            background: var(--bg-tertiary);
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .demo-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .demo-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .demo-upload-area {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .demo-upload-area i {
+            font-size: 1.5rem;
+            color: var(--text-tertiary);
+        }
+
+        .demo-analysis {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .demo-food-item {
+            background: var(--bg-tertiary);
+            padding: 0.5rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .demo-loading {
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--bg-tertiary);
+            border-top: 3px solid #667eea;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-bottom: 20px;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        h1 {
-            font-size: 2em;
-            margin-bottom: 10px;
+
+        .demo-result {
+            text-align: center;
         }
-        
-        p {
-            font-size: 1.1em;
+
+        .demo-protein {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.25rem;
+        }
+
+        .demo-confidence {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Stats Section */
+        .stats {
+            padding: 4rem 2rem;
+            background: var(--dark-gradient);
+            color: white;
+        }
+
+        .stats-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 1.5rem;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            opacity: 0.8;
+            font-size: 1rem;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 6rem 2rem;
+            background: var(--accent-gradient);
+            color: white;
+            text-align: center;
+        }
+
+        .cta-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .cta-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .cta-description {
+            font-size: 1.125rem;
+            margin-bottom: 2rem;
             opacity: 0.9;
         }
-        
-        .manual-link {
-            margin-top: 20px;
+
+        /* Footer */
+        .footer {
+            padding: 3rem 2rem 2rem;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
         }
-        
-        .manual-link a {
-            color: white;
-            text-decoration: underline;
-            font-weight: 600;
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
         }
-        
-        .manual-link a:hover {
-            opacity: 0.8;
+
+        .footer-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+        }
+
+        .footer-text {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .theme-toggle {
+                right: 1rem;
+                top: 6rem;
+                transform: none;
+            }
+
+            .hero {
+                padding: 6rem 1rem 3rem;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .features,
+            .demo,
+            .cta-section {
+                padding: 4rem 1rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .feature-card {
+                padding: 1.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+
+            .cta-title {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
     </style>
 </head>
 <body>
-    <div class="redirect-container">
-        <div class="loading"></div>
-        <h1>🍗 Protein Tracker</h1>
-        <p>Redirecting to login page...</p>
-        <div class="manual-link">
-            <a href="login.html">Click here if not redirected automatically</a>
-        </div>
+    <!-- Theme Toggle -->
+    <div class="theme-toggle">
+        <button class="theme-toggle-btn active" id="lightMode" onclick="setTheme('light')">
+            <i class="fas fa-sun"></i>
+        </button>
+        <button class="theme-toggle-btn" id="darkMode" onclick="setTheme('dark')">
+            <i class="fas fa-moon"></i>
+        </button>
+        <button class="theme-toggle-btn" id="autoMode" onclick="setTheme('auto')">
+            <i class="fas fa-adjust"></i>
+        </button>
     </div>
 
-    <script>
-        // Check if user is already logged in
-        window.onload = function() {
-            const currentUser = localStorage.getItem('currentUser');
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-dumbbell"></i>
+                <span>Kthiza Protein Tracker</span>
+            </div>
+            <nav class="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#demo" class="nav-link">Demo</a>
+                <a href="#about" class="nav-link">About</a>
+                <a href="login.html" class="cta-button">Get Started</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Track Your Protein Like a Pro</h1>
+            <p class="hero-subtitle">
+                Revolutionary AI-powered nutrition tracking. Simply take a photo of your meal and get instant protein analysis with professional-grade accuracy.
+            </p>
+            <div class="hero-buttons">
+                <a href="login.html" class="hero-button primary">
+                    <i class="fas fa-rocket"></i>
+                    Start Tracking Now
+                </a>
+                <a href="#demo" class="hero-button secondary">
+                    <i class="fas fa-play"></i>
+                    See How It Works
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="features-content">
+            <h2 class="section-title animate-on-scroll">Powerful Features</h2>
+            <p class="section-subtitle animate-on-scroll">
+                Everything you need to master your protein intake and reach your fitness goals
+            </p>
             
-            setTimeout(() => {
-                if (currentUser) {
-                    // User is logged in, go to dashboard
-                    window.location.href = 'dashboard.html';
-                } else {
-                    // User is not logged in, go to login
-                    window.location.href = 'login.html';
+            <div class="features-grid">
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon" style="background: var(--secondary-gradient)">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <h3 class="feature-title">AI Photo Analysis</h3>
+                    <p class="feature-description">
+                        Advanced computer vision instantly identifies food items and calculates protein content from any photo. No manual logging required.
+                    </p>
+                </div>
+
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon" style="background: var(--accent-gradient)">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="feature-title">Smart Analytics</h3>
+                    <p class="feature-description">
+                        Comprehensive tracking with daily, weekly, and monthly insights. See your progress and optimize your nutrition strategy.
+                    </p>
+                </div>
+
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon" style="background: var(--primary-gradient)">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <h3 class="feature-title">Personalized Goals</h3>
+                    <p class="feature-description">
+                        Custom protein targets based on your body weight, activity level, and fitness goals. Stay motivated with progress tracking.
+                    </p>
+                </div>
+
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon" style="background: var(--dark-gradient)">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Mobile First</h3>
+                    <p class="feature-description">
+                        Optimized for mobile use with offline capabilities. Track your meals anywhere, anytime, even without internet connection.
+                    </p>
+                </div>
+
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon" style="background: var(--secondary-gradient)">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3 class="feature-title">Real-time Tracking</h3>
+                    <p class="feature-description">
+                        Instant meal logging with real-time protein calculations. See your daily progress update immediately after each meal.
+                    </p>
+                </div>
+
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon" style="background: var(--accent-gradient)">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Privacy Focused</h3>
+                    <p class="feature-description">
+                        Your data stays secure with enterprise-grade encryption. No data selling, no ads, just pure nutrition tracking.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Demo Section -->
+    <section class="demo" id="demo">
+        <div class="demo-content">
+            <h2 class="section-title animate-on-scroll">See It In Action</h2>
+            <p class="section-subtitle animate-on-scroll">
+                Experience our AI-powered protein tracking in real-time
+            </p>
+            
+            <div class="demo-container animate-on-scroll">
+                <div class="demo-controls">
+                    <div class="demo-step active" onclick="showDemoStep(1)">
+                        <div class="demo-step-number">1</div>
+                        <div>
+                            <div class="demo-step-title">Upload Your Meal</div>
+                            <div class="demo-step-desc">Take a photo or upload an image of your food</div>
+                        </div>
+                    </div>
+                    
+                    <div class="demo-step" onclick="showDemoStep(2)">
+                        <div class="demo-step-number">2</div>
+                        <div>
+                            <div class="demo-step-title">AI Analysis</div>
+                            <div class="demo-step-desc">Our AI identifies food items with 99% accuracy</div>
+                        </div>
+                    </div>
+                    
+                    <div class="demo-step" onclick="showDemoStep(3)">
+                        <div class="demo-step-number">3</div>
+                        <div>
+                            <div class="demo-step-title">Get Results</div>
+                            <div class="demo-step-desc">Instant protein content and nutritional breakdown</div>
+                        </div>
+                    </div>
+                    
+                    <div class="demo-step" onclick="showDemoStep(4)">
+                        <div class="demo-step-number">4</div>
+                        <div>
+                            <div class="demo-step-title">Track Progress</div>
+                            <div class="demo-step-desc">Monitor daily goals and long-term trends</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="demo-phone">
+                    <div class="phone-mockup">
+                        <div class="phone-screen">
+                            <!-- Step 1: Upload -->
+                            <div class="demo-screen active" id="demo-step-1">
+                                <div class="demo-header">
+                                    <div class="demo-logo">Kthiza</div>
+                                    <i class="fas fa-user-circle"></i>
+                                </div>
+                                <div class="demo-upload-area">
+                                    <i class="fas fa-camera"></i>
+                                    <div>Take Photo</div>
+                                    <div style="font-size: 0.6rem;">or upload image</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 2: Analysis -->
+                            <div class="demo-screen" id="demo-step-2">
+                                <div class="demo-header">
+                                    <div class="demo-logo">Kthiza</div>
+                                    <i class="fas fa-user-circle"></i>
+                                </div>
+                                <div class="demo-analysis">
+                                    <div class="demo-loading"></div>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                                        Analyzing food items...
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 3: Results -->
+                            <div class="demo-screen" id="demo-step-3">
+                                <div class="demo-header">
+                                    <div class="demo-logo">Kthiza</div>
+                                    <i class="fas fa-user-circle"></i>
+                                </div>
+                                <div class="demo-analysis">
+                                    <div class="demo-food-item">🍗 Chicken Breast</div>
+                                    <div class="demo-food-item">🍚 Rice</div>
+                                    <div class="demo-food-item">🥦 Broccoli</div>
+                                    <div class="demo-result">
+                                        <div class="demo-protein">28.5g</div>
+                                        <div class="demo-confidence">97% confidence</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 4: Dashboard -->
+                            <div class="demo-screen" id="demo-step-4">
+                                <div class="demo-header">
+                                    <div class="demo-logo">Kthiza</div>
+                                    <i class="fas fa-user-circle"></i>
+                                </div>
+                                <div class="demo-stats">
+                                    <div class="demo-stat">
+                                        <div class="demo-stat-value">94.5g</div>
+                                        <div class="demo-stat-label">Today's Protein</div>
+                                    </div>
+                                    <div class="demo-stat">
+                                        <div class="demo-stat-value">79%</div>
+                                        <div class="demo-stat-label">Goal Progress</div>
+                                    </div>
+                                    <div class="demo-stat">
+                                        <div class="demo-stat-value">4</div>
+                                        <div class="demo-stat-label">Meals Logged</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="stats-content">
+            <div class="stats-grid">
+                <div class="stat-item animate-on-scroll">
+                    <div class="stat-number">99%</div>
+                    <div class="stat-label">Accuracy Rate</div>
+                </div>
+                <div class="stat-item animate-on-scroll">
+                    <div class="stat-number">< 3s</div>
+                    <div class="stat-label">Analysis Time</div>
+                </div>
+                <div class="stat-item animate-on-scroll">
+                    <div class="stat-number">1000+</div>
+                    <div class="stat-label">Food Database</div>
+                </div>
+                <div class="stat-item animate-on-scroll">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Available</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-content">
+            <h2 class="cta-title animate-on-scroll">Ready to Transform Your Nutrition?</h2>
+            <p class="cta-description animate-on-scroll">
+                Join thousands who have revolutionized their protein tracking with AI-powered analysis
+            </p>
+            <a href="login.html" class="hero-button primary animate-on-scroll">
+                <i class="fas fa-rocket"></i>
+                Start Your Journey Today
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <i class="fas fa-dumbbell"></i>
+                <span>Kthiza Protein Tracker</span>
+            </div>
+            <p class="footer-text">
+                Professional nutrition tracking powered by artificial intelligence
+            </p>
+            <p class="footer-text">
+                © 2024 Kthiza Protein Tracker. Built with ❤️ for fitness enthusiasts.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
                 }
-            }, 2000);
+            });
+        });
+
+        // Animate elements on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
         };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all elements with animate-on-scroll class
+        document.querySelectorAll('.animate-on-scroll').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('.header');
+            if (window.scrollY > 100) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // Interactive Demo
+        function showDemoStep(step) {
+            // Remove active class from all steps and screens
+            document.querySelectorAll('.demo-step').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.demo-screen').forEach(el => el.classList.remove('active'));
+            
+            // Add active class to selected step and screen
+            document.querySelector(`.demo-step:nth-child(${step})`).classList.add('active');
+            document.getElementById(`demo-step-${step}`).classList.add('active');
+        }
+
+        // Auto-cycle demo every 3 seconds
+        let demoStep = 1;
+        setInterval(() => {
+            demoStep = demoStep >= 4 ? 1 : demoStep + 1;
+            showDemoStep(demoStep);
+        }, 3000);
+
+        // Theme Management
+        function setTheme(theme) {
+            // Update toggle buttons
+            document.querySelectorAll('.theme-toggle-btn').forEach(btn => btn.classList.remove('active'));
+            
+            if (theme === 'auto') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+                localStorage.setItem('preferred-theme', 'auto');
+                document.getElementById('autoMode').classList.add('active');
+            } else {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('preferred-theme', theme);
+                document.getElementById(theme + 'Mode').classList.add('active');
+            }
+        }
+
+        // Initialize theme
+        function initTheme() {
+            const savedTheme = localStorage.getItem('preferred-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme === 'auto' || !savedTheme) {
+                setTheme('auto');
+            } else {
+                setTheme(savedTheme);
+            }
+        }
+
+        // Initialize theme on load
+        initTheme();
+
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (localStorage.getItem('preferred-theme') === 'auto') {
+                setTheme('auto');
+            }
+        });
+
+        // Check if user is already logged in
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (currentUser) {
+            // Update CTA buttons to go to dashboard
+            document.querySelectorAll('a[href="login.html"]').forEach(link => {
+                link.href = 'dashboard.html';
+                link.innerHTML = link.innerHTML.replace('Get Started', 'Go to Dashboard')
+                                               .replace('Start Tracking Now', 'Go to Dashboard')
+                                               .replace('Start Your Journey Today', 'Go to Dashboard');
+            });
+        }
     </script>
 </body>
-</html> 
+</html>

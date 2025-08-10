@@ -15,7 +15,7 @@ An AI-powered nutrition tracking application that helps you monitor your protein
    ```
 
 3. **Open your browser:**
-   Navigate to `http://localhost:8000/static/login.html`
+   Navigate to `http://127.0.0.1:8000/static/login.html` (or your server's host). The frontend auto-detects the API base via `window.location.origin` so it works on any IP or hostname.
 
 ## ⚡ Performance Optimizations
 
@@ -55,19 +55,21 @@ Follow the prompts to configure Gmail SMTP settings.
 **Note:** If email verification is not configured, new accounts will be automatically verified and users can log in immediately.
 
 ### Google Cloud Vision API (Optional)
-For AI-powered food detection, configure your Google Cloud Vision API key:
+For AI-powered food detection, add your API key to `.env` and restart the server:
 
-```bash
-python setup_google_vision.py
+```
+GOOGLE_VISION_API_KEY=your_key_here
 ```
 
-This will guide you through:
-1. Setting up a Google Cloud Project
-2. Enabling the Vision API
-3. Creating an API key
-4. Configuring the key in the app
+If the key is missing or a request fails, the app automatically falls back to a heuristic detector so uploads never fail.
 
-**Note:** If no valid API key is configured, the app will use fallback detection which provides basic food recognition based on filename patterns.
+Set `APP_BASE_URL` in your environment if you need email links to point to a public hostname (used in verification emails):
+
+```
+APP_BASE_URL=https://your.domain:8000
+```
+
+**Note:** If no valid API key is configured, the app uses a robust fallback detector so uploads still succeed.
 
 ## 🐛 Troubleshooting
 
@@ -105,7 +107,7 @@ The app supports email verification for enhanced security:
 - **Configured:** Users receive verification emails and must verify before logging in
 - **Not Configured:** Accounts are automatically verified for immediate access
 
-To check email verification status, visit: `http://localhost:8000/auth/email-status`
+To check email verification status, visit: `http://127.0.0.1:8000/auth/email-status` (adjust host as needed)
 
 ## 🍽️ Features
 

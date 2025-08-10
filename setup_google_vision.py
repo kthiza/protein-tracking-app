@@ -8,6 +8,12 @@ import os
 import json
 from typing import Optional
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
 def setup_google_vision_api():
     """Guide user through setting up Google Vision API"""
     print("🔧 Google Vision API Setup")
@@ -20,10 +26,10 @@ def setup_google_vision_api():
     print("4. Configure the API key in this app")
     print()
     
-    # Check if API key is already configured
-    current_key = "93a73af420dc3ca3811ded584c81e5bc03cb76d5"
-    print(f"Current API key: {current_key}")
-    print("Status: ❌ Invalid (as tested)")
+    # Check if API key is already configured in environment
+    current_key = os.getenv("GOOGLE_VISION_API_KEY", "<not set>")
+    print(f"Current API key (from .env / environment): {current_key}")
+    print("Status: " + ("✅ Set" if current_key and current_key != "<not set>" else "❌ Not set"))
     print()
     
     print("📋 Step-by-step instructions:")
@@ -64,28 +70,30 @@ def setup_google_vision_api():
         print("- Keep your API key secure and don't share it publicly")
 
 def update_api_key(new_key: str):
-    """Update the API key in the food detection file"""
+    """Write the API key to a .env file rather than checking code into source."""
     try:
-        # Read the current food_detection.py file
-        with open('food_detection.py', 'r', encoding='utf-8') as f:
-            content = f.read()
+        # Update .env file (create if missing)
+        lines = []
+        if os.path.exists('.env'):
+            with open('.env', 'r', encoding='utf-8') as f:
+                lines = f.readlines()
         
-        # Replace the API key
-        old_key = "93a73af420dc3ca3811ded584c81e5bc03cb76d5"
-        updated_content = content.replace(old_key, new_key)
+        key_written = False
+        with open('.env', 'w', encoding='utf-8') as f:
+            for line in lines:
+                if line.strip().startswith('GOOGLE_VISION_API_KEY='):
+                    f.write(f'GOOGLE_VISION_API_KEY={new_key}\n')
+                    key_written = True
+                else:
+                    f.write(line)
+            if not key_written:
+                f.write(f'GOOGLE_VISION_API_KEY={new_key}\n')
         
-        # Write the updated content back
-        with open('food_detection.py', 'w', encoding='utf-8') as f:
-            f.write(updated_content)
-        
-        print("✅ API key updated successfully!")
-        print(f"New key: {new_key}")
-        print()
+        print("✅ API key saved to .env (GOOGLE_VISION_API_KEY)")
         print("🔄 Restart the application to use the new API key")
-        
     except Exception as e:
-        print(f"❌ Failed to update API key: {e}")
-        print("Please manually update the API key in food_detection.py")
+        print(f"❌ Failed to write .env: {e}")
+        print("Please set the environment variable GOOGLE_VISION_API_KEY manually.")
 
 def test_api_key(api_key: str) -> bool:
     """Test if the API key is valid"""

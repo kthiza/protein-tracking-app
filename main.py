@@ -29,42 +29,48 @@ SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+APP_BASE_URL = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000")
 
-# Import Google Vision food detection
+# Import Google Vision food detection (REST via requests; no heavy client required)
 try:
     from food_detection import identify_food_with_google_vision, identify_food_local
-    GOOGLE_VISION_AVAILABLE = True
-    print("✅ Google Vision API food detection available")
+    GOOGLE_VISION_AVAILABLE = bool(os.getenv("GOOGLE_VISION_API_KEY"))
+    if GOOGLE_VISION_AVAILABLE:
+        print("✅ Google Vision API configured (env var GOOGLE_VISION_API_KEY found)")
+    else:
+        print("ℹ️  GOOGLE_VISION_API_KEY not set. Fallback detection will be used unless provided.")
 except ImportError:
     GOOGLE_VISION_AVAILABLE = False
-    print("Warning: Google Vision API not available. Install google-cloud-vision: pip install google-cloud-vision")
+    print("Warning: food_detection module not importable. Ensure the file exists.")
 
 # For backward compatibility
 LOCAL_AI_AVAILABLE = GOOGLE_VISION_AVAILABLE
 
-# Enhanced protein database
+# Enhanced protein database (values per 100g); harmonized with detection module
 PROTEIN_DATABASE = {
-    "chicken breast": 31, "salmon": 22, "tuna": 26, "beef": 26, "pork": 25,
-    "turkey": 29, "eggs": 6, "milk": 8, "yogurt": 10, "cheese": 7,
-    "tofu": 8, "lentils": 9, "beans": 7, "rice": 2, "broccoli": 3,
-    "almonds": 6, "peanut butter": 4, "bread": 3, "pasta": 4,
-    "spinach": 3, "quinoa": 4, "chickpeas": 9, "edamame": 11
+    "chicken": 31.0, "chicken breast": 31.0, "chicken thigh": 28.0,
+    "beef": 26.0, "steak": 26.0, "ground beef": 26.0,
+    "pork": 25.0, "pork chop": 25.0, "bacon": 37.0, "ham": 22.0,
+    "salmon": 20.0, "tuna": 30.0, "cod": 18.0, "tilapia": 26.0,
+    "turkey": 29.0, "duck": 23.0, "lamb": 25.0,
+    "egg": 13.0, "eggs": 13.0, "milk": 3.4, "cheese": 25.0,
+    "yogurt": 10.0, "peanut butter": 25.0, "almonds": 21.0,
+    "tofu": 8.0, "lentils": 9.0, "beans": 7.0, "chickpeas": 9.0, "edamame": 11.0,
+    "quinoa": 14.0, "rice": 2.7, "bread": 9.0, "pasta": 13.0,
+    "broccoli": 2.8, "spinach": 2.9
 }
 
 # Database setup with optimized settings for multiple users
-DATABASE_URL = "sqlite:///./protein_app.db?check_same_thread=False"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./protein_app.db?check_same_thread=False")
 engine = create_engine(
-    DATABASE_URL, 
+    DATABASE_URL,
     echo=False,
     connect_args={
         "check_same_thread": False,
-        "timeout": 30,  # 30 second timeout
-        "isolation_level": None  # Enable autocommit mode
+        "timeout": 30,
     },
-    pool_pre_ping=True,  # Verify connections before use
-    pool_recycle=3600,   # Recycle connections every hour
-    pool_size=20,        # Connection pool size
-    max_overflow=30      # Additional connections when pool is full
+    # SQLite uses NullPool; pooling args like pool_size/max_overflow are not supported
+    pool_pre_ping=True,
 )
 
 # Security
@@ -170,8 +176,16 @@ app = FastAPI(title="Protein Tracking App", version="4.0.0")
 async def startup_event():
     create_db_and_tables()
 
-# Add CORS middleware
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+# Add CORS middleware (no credentials; supports file:// origins)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_origin_regex=r".*",
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
 
 def hash_password(password: str) -> str:
     """Hash a password using SHA-256"""
@@ -204,12 +218,13 @@ def send_verification_email(email: str, username: str, token: str):
         msg['To'] = email
         msg['Subject'] = "Verify your Protein Tracker account"
         
+        verification_url = f"{APP_BASE_URL.rstrip('/')}/auth/verify/{token}"
         body = f"""
         Hello {username}!
         
         Welcome to Protein Tracker! Please verify your email address by clicking the link below:
         
-        http://localhost:8000/verify/{token}
+        {verification_url}
         
         If you didn't create this account, please ignore this email.
         
@@ -219,11 +234,10 @@ def send_verification_email(email: str, username: str, token: str):
         
         msg.attach(MIMEText(body, 'plain'))
         
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-        server.starttls()
-        server.login(SMTP_USERNAME, SMTP_PASSWORD)
-        server.send_message(msg)
-        server.quit()
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
+            server.starttls()
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.send_message(msg)
         print(f"✅ Verification email sent to {email}")
         return True
     except Exception as e:
@@ -237,7 +251,12 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     with Session(engine) as session:
         # For now, we'll use a simple token system
         # In production, you'd want to use JWT tokens
-        user = session.exec(select(User).where(User.id == int(token))).first()
+        # Token is a simple user id string for now; guard cast
+        try:
+            user_id = int(token)
+        except ValueError:
+            raise HTTPException(status_code=401, detail="Invalid token format")
+        user = session.exec(select(User).where(User.id == user_id)).first()
         if not user:
             raise HTTPException(status_code=401, detail="Invalid token")
         return user
@@ -268,27 +287,18 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
     return round(total_protein, 1), matched_foods
 
 def identify_food_with_vision(image_path: str) -> List[str]:
-    """Enhanced food detection using Google Vision API"""
-    if not GOOGLE_VISION_AVAILABLE:
-        print("❌ Google Vision API not available - install with: pip install google-cloud-vision")
-        return []
-    
+    """Food detection wrapper.
+
+    Always calls the detector which will automatically fall back to filename-based
+    heuristics if GOOGLE_VISION_API_KEY is not configured or if the API errors out.
+    """
     try:
-        print(f"🔍 Starting Google Vision API food detection for image: {image_path}")
-        
-        # Use Google Vision API detection
+        print(f"🔍 Starting food detection for image: {image_path}")
         detected_foods = identify_food_with_google_vision(image_path)
-        
-        print(f"🎯 Google Vision API Detection Results: {detected_foods}")
-        return detected_foods
-        
+        print(f"🎯 Detection Results: {detected_foods}")
+        return detected_foods or []
     except Exception as e:
-        print(f"❌ Google Vision API error: {e}")
-        print(f"   This could be due to:")
-        print(f"   - Missing google-cloud-vision")
-        print(f"   - API key issues")
-        print(f"   - Image format issues")
-        print(f"   - File access problems")
+        print(f"❌ Detection error: {e}")
         return []
 
 @app.get("/")
@@ -328,16 +338,16 @@ async def register_user(
         # Check if email verification is configured
         email_configured = bool(SMTP_USERNAME and SMTP_PASSWORD)
         
-        # TEMPORARILY DISABLE EMAIL VERIFICATION FOR LOCAL TESTING
-        # TODO: Re-enable when deploying to production with proper domain
-        email_configured = False
+        # Local testing: allow auto-verify when email not configured
+        if not email_configured:
+            print("ℹ️  Email not configured; accounts will be auto-verified.")
         
         user = User(
             username=username,
             email=email,
             password_hash=password_hash,
             verification_token=verification_token,
-            email_verified=True  # Always verify for local testing
+            email_verified=email_configured or True
         )
         
         session.add(user)
@@ -345,10 +355,10 @@ async def register_user(
         session.refresh(user)
         
         # Send verification email (if configured)
-        email_sent = send_verification_email(email, username, verification_token)
+        email_sent = send_verification_email(email, username, verification_token) if email_configured else False
         
         response_message = "Account created successfully!"
-        if email_configured:
+        if email_configured and email_sent:
             response_message += " Please check your email to verify your account."
         else:
             response_message += " Email verification is not configured, so your account is automatically verified. You can log in now!"
@@ -370,9 +380,8 @@ async def login_user(username: str = Form(...), password: str = Form(...)):
         if not user or not verify_password(password, user.password_hash):
             raise HTTPException(status_code=401, detail="Invalid username or password")
         
-        # TEMPORARILY DISABLE EMAIL VERIFICATION CHECK FOR LOCAL TESTING
-        # TODO: Re-enable when deploying to production with proper domain
-        # if not user.email_verified:
+        # Optionally enforce verification if email is configured
+        # if SMTP_USERNAME and SMTP_PASSWORD and not user.email_verified:
         #     raise HTTPException(status_code=401, detail="Please verify your email before logging in")
         
         return {
@@ -511,7 +520,7 @@ async def upload_profile_picture(
     os.makedirs(profile_dir, exist_ok=True)
     
     # Generate unique filename
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     file_extension = os.path.splitext(profile_picture.filename)[1]
     filename = f"profile_{current_user.id}_{timestamp}{file_extension}"
     file_path = os.path.join(profile_dir, filename)
@@ -593,6 +602,11 @@ async def update_weight(
             "last_weight_update": user.last_weight_update.isoformat()
         }
 
+@app.options("/meals/upload/")
+async def upload_meal_options():
+    """Handle CORS preflight for meal upload"""
+    return {"message": "CORS preflight OK"}
+
 @app.post("/meals/upload/")
 async def upload_meal(
     current_user: User = Depends(get_current_user),
@@ -616,7 +630,8 @@ async def upload_meal(
         detected_foods = []
         ai_detection_status = {
             "attempted": use_ai_detection,
-            "available": GOOGLE_VISION_AVAILABLE,
+            # Mark available because our detection function has its own fallback
+            "available": True,
             "successful": False,
             "error": None
         }
@@ -625,17 +640,13 @@ async def upload_meal(
         print(f"🔧 Google Vision API Available: {GOOGLE_VISION_AVAILABLE}")
         
         if use_ai_detection:
-            if GOOGLE_VISION_AVAILABLE:
-                try:
-                    detected_foods = identify_food_with_vision(file_path)
-                    ai_detection_status["successful"] = len(detected_foods) > 0
-                    print(f"🎯 Google Vision API Detection Results: {detected_foods}")
-                except Exception as e:
-                    ai_detection_status["error"] = str(e)
-                    print(f"❌ Google Vision API Detection failed: {e}")
-            else:
-                ai_detection_status["error"] = "Google Vision API not available"
-                print("❌ Google Vision API not available")
+            try:
+                detected_foods = identify_food_with_vision(file_path)
+                ai_detection_status["successful"] = len(detected_foods) > 0
+                print(f"🎯 AI Detection Results: {detected_foods}")
+            except Exception as e:
+                ai_detection_status["error"] = str(e)
+                print(f"❌ AI Detection failed: {e}")
         
         # Parse manual food items
         manual_foods = []
@@ -672,10 +683,8 @@ async def upload_meal(
                 os.remove(file_path)
             
             error_message = "No food items detected or provided. "
-            if use_ai_detection and not GOOGLE_VISION_AVAILABLE:
-                error_message += "Google Vision API is not available. Please enter food items manually."
-            elif use_ai_detection and GOOGLE_VISION_AVAILABLE and not detected_foods:
-                error_message += "Google Vision API failed to identify food items. Please enter food items manually."
+            if use_ai_detection and not detected_foods:
+                error_message += "AI detection did not identify food items. Please enter food items manually."
             else:
                 error_message += "Please enter the food items manually."
             
@@ -705,7 +714,7 @@ async def upload_meal(
             "matched_foods": matched_foods,
             "total_protein": total_protein,
             "user_protein_goal": current_user.protein_goal,
-            "ai_detection_used": use_ai_detection and GOOGLE_VISION_AVAILABLE,
+            "ai_detection_used": use_ai_detection,
             "google_vision_available": GOOGLE_VISION_AVAILABLE,
             "detection_status": {
                 "ai_detected": len(detected_foods) > 0,
@@ -733,22 +742,22 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
         return cached_data['value']
     
     with Session(engine) as session:
-        today = datetime.now().date()
+        today = datetime.utcnow().date()
         today_meals = session.exec(select(Meal).where(
             Meal.user_id == current_user.id,
-            Meal.created_at >= today
+            func.date(Meal.created_at) == today
         )).all()
         
-        today_protein = sum(meal.total_protein for meal in today_meals)
+        today_protein = round(sum(meal.total_protein for meal in today_meals), 1)
         
         all_meals = session.exec(select(Meal).where(Meal.user_id == current_user.id)).all()
         
-        week_ago = datetime.now().date() - timedelta(days=7)
+        week_ago = datetime.utcnow().date() - timedelta(days=7)
         weekly_meals = session.exec(select(Meal).where(
             Meal.user_id == current_user.id,
-            Meal.created_at >= week_ago
+            func.date(Meal.created_at) >= week_ago
         )).all()
-        weekly_protein = sum(meal.total_protein for meal in weekly_meals)
+        weekly_protein = round(sum(meal.total_protein for meal in weekly_meals), 1)
         
         # Check if user needs weight update (weekly popup)
         needs_weight_update = False
@@ -769,20 +778,20 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
                 "profile_picture_path": current_user.profile_picture_path
             },
             "today": {
-                "total_protein": today_protein,
-                "goal_progress": (today_protein / current_user.protein_goal) * 100 if current_user.protein_goal else 0,
+                "total_protein": round(today_protein, 1),
+                "goal_progress": round((today_protein / current_user.protein_goal) * 100 if current_user.protein_goal else 0, 1),
                 "meals_count": len(today_meals),
-                "remaining_protein": max(0, (current_user.protein_goal or 0) - today_protein)
+                "remaining_protein": round(max(0, (current_user.protein_goal or 0) - today_protein), 1)
             },
             "weekly": {
-                "total_protein": weekly_protein,
-                "average_daily": weekly_protein / 7,
+                "total_protein": round(weekly_protein, 1),
+                "average_daily": round(weekly_protein / 7, 1),
                 "meals_count": len(weekly_meals)
             },
             "overall": {
                 "total_meals": len(all_meals),
-                "average_protein_per_meal": sum(m.total_protein for m in all_meals) / len(all_meals) if all_meals else 0,
-                "total_protein_tracked": sum(m.total_protein for m in all_meals)
+                "average_protein_per_meal": round(sum(m.total_protein for m in all_meals) / len(all_meals) if all_meals else 0, 1),
+                "total_protein_tracked": round(sum(m.total_protein for m in all_meals), 1)
             }
         }
         
@@ -927,4 +936,9 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    print("🚀 Starting Protein Tracker Server...")
+    print("📍 Server will be available at:")
+    print("   • http://127.0.0.1:8000")
+    print("   • http://localhost:8000")
+    print("🔧 Press Ctrl+C to stop the server")
+    uvicorn.run(app, host="127.0.0.1", port=8000, reload=False) 

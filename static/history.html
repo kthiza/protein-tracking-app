@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Meal History - Kthiza Protein Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-tertiary: #94a3b8;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+        }
+
+        /* Dark Mode Variables */
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-tertiary: #94a3b8;
+            --border-color: #475569;
+        }
+
+
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Clean Select Styling (similar to user navigation) */
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 8px center;
+            background-repeat: no-repeat;
+            background-size: 12px 12px;
+            padding: 0.5rem 2rem 0.5rem 0.75rem !important;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+            font-weight: 400;
+            line-height: 1.4;
+            min-height: auto;
+        }
+
+        select:hover {
+            border-color: var(--border-color) !important;
+            background-color: var(--bg-tertiary) !important;
+        }
+
+        select:focus {
+            outline: none !important;
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+        }
+
+        /* Clean option styling */
+        select option {
+            padding: 6px 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: none;
+            font-size: 0.875rem;
+        }
+
+        [data-theme="dark"] select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%9ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--bg-secondary);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        [data-theme="dark"] body {
+            background: var(--bg-primary);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo i {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.5rem;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .profile-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .profile-btn:hover {
+            background: var(--bg-quaternary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .profile-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .back-btn:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 80px;
+            padding: 2rem 1.5rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+        }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .filter-select {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 120px;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            margin: 0 auto 1rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        /* Meal Cards */
+        .meals-container {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+        }
+
+        .meals-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            gap: 1rem;
+        }
+
+        .meals-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .meals-count {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            padding: 0.25rem 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            font-weight: 500;
+        }
+
+        .meals-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .meal-card {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-lg);
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .meal-card:hover {
+            background: var(--bg-primary);
+            transform: translateX(4px);
+            border-color: var(--border-color);
+        }
+
+        .meal-image {
+            width: 80px;
+            height: 80px;
+            border-radius: var(--radius-lg);
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .meal-info {
+            flex: 1;
+        }
+
+        .meal-foods {
+            font-weight: 600;
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .meal-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .meal-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .meal-tag {
+            padding: 0.25rem 0.75rem;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .meal-protein {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .protein-value {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .protein-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .pagination-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .pagination-btn:hover:not(.disabled) {
+            background: var(--bg-tertiary);
+            transform: translateY(-1px);
+        }
+
+        .pagination-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        .pagination-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--bg-tertiary);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .empty-description {
+            margin-bottom: 1.5rem;
+        }
+
+        .empty-action {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .empty-action:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .meals-container {
+                padding: 1.5rem;
+            }
+
+            .meal-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .meal-protein {
+                text-align: left;
+                align-self: stretch;
+            }
+
+            .pagination {
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .meal-image {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .meals-container {
+                padding: 1rem;
+                border-radius: var(--radius-lg);
+            }
+        }
+    </style>
+</head>
+<body>
+
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-dumbbell"></i>
+                <span>Kthiza Protein Tracker</span>
+            </div>
+            <div class="nav-actions">
+                <div class="profile-btn" onclick="showProfileMenu()">
+                    <div class="profile-avatar" id="profileAvatar">U</div>
+                    <span id="usernameDisplay">User</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Meal History</h1>
+            <p class="page-subtitle">Track your protein journey over time</p>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="stats-grid" id="summaryStats">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--success-gradient)">
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <div class="stat-value" id="totalMeals">-</div>
+                <div class="stat-label">Total Meals</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--warning-gradient)">
+                    <i class="fas fa-dumbbell"></i>
+                </div>
+                <div class="stat-value" id="totalProtein">-</div>
+                <div class="stat-label">Total Protein</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--danger-gradient)">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-value" id="avgProtein">-</div>
+                <div class="stat-label">Avg per Meal</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--dark-gradient)">
+                    <i class="fas fa-calendar"></i>
+                </div>
+                <div class="stat-value" id="daysCounted">-</div>
+                <div class="stat-label">Days Tracked</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label class="filter-label">Date Range:</label>
+                <select class="filter-select" id="dateFilter" onchange="applyFilters()">
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Sort by:</label>
+                <select class="filter-select" id="sortFilter" onchange="applyFilters()">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="protein-high">Highest Protein</option>
+                    <option value="protein-low">Lowest Protein</option>
+                </select>
+            </div>
+            
+            <div class="search-box">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" id="searchInput" placeholder="Search foods..." oninput="applyFilters()">
+            </div>
+        </div>
+
+        <!-- Meals Container -->
+        <div class="meals-container">
+            <div class="meals-header">
+                <h2 class="meals-title">
+                    <i class="fas fa-history"></i>
+                    Your Meals
+                </h2>
+                <div class="meals-count" id="mealsCount">Loading...</div>
+            </div>
+            
+            <div id="mealsContent">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading your meal history...</p>
+                </div>
+            </div>
+            
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </main>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        // Global variables
+        let currentUser = null;
+        let allMeals = [];
+        let filteredMeals = [];
+        let currentPage = 1;
+        const mealsPerPage = 10;
+        const API_BASE = 'http://127.0.0.1:8000';
+
+        // Initialize
+                document.addEventListener('DOMContentLoaded', function() {
+            currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Update navigation with username and profile picture
+            updateUserDisplay();
+            
+            initTheme();
+            loadMealHistory();
+        });
+
+        function updateUserDisplay() {
+            const profileAvatar = document.getElementById('profileAvatar');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            
+            // Check for saved profile picture
+            const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+            if (userProfile.profilePicture) {
+                // Create or update profile image
+                let profileImg = profileAvatar.querySelector('img');
+                if (!profileImg) {
+                    profileImg = document.createElement('img');
+                    profileImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;';
+                    profileAvatar.appendChild(profileImg);
+                }
+                profileImg.src = userProfile.profilePicture;
+                profileAvatar.style.fontSize = '0'; // Hide text when image is shown
+            } else {
+                // Remove any existing image and show initials
+                const existingImg = profileAvatar.querySelector('img');
+                if (existingImg) existingImg.remove();
+                profileAvatar.style.fontSize = '0.875rem';
+                profileAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+            }
+            
+            usernameDisplay.textContent = currentUser.username;
+        }
+
+        async function loadMealHistory() {
+            try {
+                console.log('Loading meal history for user:', currentUser);
+                const response = await fetch(`${API_BASE}/meals?page=1&limit=100`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentUser.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Meal data received:', data);
+                    allMeals = data.meals || [];
+                    filteredMeals = [...allMeals];
+                    
+                    updateSummaryStats();
+                    applyFilters();
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to load meals:', response.status, errorText);
+                    if (response.status === 401) {
+                        showError('Authentication failed. Please log in again.');
+                        setTimeout(() => window.location.href = 'login.html', 2000);
+                    } else {
+                        showError('Failed to load meal history');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading meals:', error);
+                showError('Unable to connect to server');
+            }
+        }
+
+        function updateSummaryStats() {
+            const totalMeals = allMeals.length;
+            const totalProtein = allMeals.reduce((sum, meal) => sum + meal.total_protein, 0);
+            const avgProtein = totalMeals > 0 ? totalProtein / totalMeals : 0;
+            
+            // Calculate unique days
+            const uniqueDays = new Set(allMeals.map(meal => 
+                new Date(meal.created_at).toDateString()
+            )).size;
+
+            document.getElementById('totalMeals').textContent = totalMeals;
+            document.getElementById('totalProtein').textContent = `${totalProtein.toFixed(1)}g`;
+            document.getElementById('avgProtein').textContent = `${avgProtein.toFixed(1)}g`;
+            document.getElementById('daysCounted').textContent = uniqueDays;
+        }
+
+        function applyFilters() {
+            const dateFilter = document.getElementById('dateFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            // Apply date filter
+            let filtered = [...allMeals];
+            
+            if (dateFilter !== 'all') {
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                
+                filtered = filtered.filter(meal => {
+                    const mealDate = new Date(meal.created_at);
+                    
+                    switch (dateFilter) {
+                        case 'today':
+                            return mealDate >= today;
+                        case 'week':
+                            const weekAgo = new Date(today);
+                            weekAgo.setDate(weekAgo.getDate() - 7);
+                            return mealDate >= weekAgo;
+                        case 'month':
+                            const monthAgo = new Date(today);
+                            monthAgo.setMonth(monthAgo.getMonth() - 1);
+                            return mealDate >= monthAgo;
+                        default:
+                            return true;
+                    }
+                });
+            }
+
+            // Apply search filter
+            if (searchTerm) {
+                filtered = filtered.filter(meal => {
+                    const foods = Array.isArray(meal.food_items) 
+                        ? meal.food_items 
+                        : JSON.parse(meal.food_items || '[]');
+                    return foods.some(food => 
+                        food.toLowerCase().includes(searchTerm)
+                    );
+                });
+            }
+
+            // Apply sort
+            filtered.sort((a, b) => {
+                switch (sortFilter) {
+                    case 'newest':
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    case 'oldest':
+                        return new Date(a.created_at) - new Date(b.created_at);
+                    case 'protein-high':
+                        return b.total_protein - a.total_protein;
+                    case 'protein-low':
+                        return a.total_protein - b.total_protein;
+                    default:
+                        return new Date(b.created_at) - new Date(a.created_at);
+                }
+            });
+
+            filteredMeals = filtered;
+            currentPage = 1;
+            displayMeals();
+        }
+
+        function displayMeals() {
+            const container = document.getElementById('mealsContent');
+            const countElement = document.getElementById('mealsCount');
+            
+            countElement.textContent = `${filteredMeals.length} meals found`;
+
+            if (filteredMeals.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <h3 class="empty-title">No meals found</h3>
+                        <p class="empty-description">
+                            Try adjusting your filters or add some meals to get started.
+                        </p>
+                        <a href="dashboard.html" class="empty-action">
+                            <i class="fas fa-plus"></i>
+                            Add Your First Meal
+                        </a>
+                    </div>
+                `;
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            // Paginate meals
+            const startIndex = (currentPage - 1) * mealsPerPage;
+            const endIndex = startIndex + mealsPerPage;
+            const paginatedMeals = filteredMeals.slice(startIndex, endIndex);
+
+            // Render meals
+            const mealsHTML = paginatedMeals.map(meal => {
+                const foods = Array.isArray(meal.food_items) 
+                    ? meal.food_items 
+                    : JSON.parse(meal.food_items || '[]');
+                const foodsText = foods.join(', ') || 'Mixed foods';
+                const date = new Date(meal.created_at);
+                const timeAgo = getTimeAgo(date);
+                const formattedDate = date.toLocaleDateString();
+                const formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="meal-card">
+                        <div class="meal-image">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <div class="meal-info">
+                            <div class="meal-foods">${foodsText}</div>
+                            <div class="meal-meta">
+                                <span><i class="fas fa-calendar"></i> ${formattedDate}</span>
+                                <span><i class="fas fa-clock"></i> ${formattedTime}</span>
+                                <span><i class="fas fa-history"></i> ${timeAgo}</span>
+                            </div>
+                            <div class="meal-tags">
+                                ${foods.map(food => `<span class="meal-tag">${food}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="meal-protein">
+                            <div class="protein-value">${meal.total_protein.toFixed(1)}g</div>
+                            <div class="protein-label">protein</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `<div class="meals-grid">${mealsHTML}</div>`;
+
+            // Update pagination
+            updatePagination();
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredMeals.length / mealsPerPage);
+            const pagination = document.getElementById('pagination');
+
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = '';
+
+            // Previous button
+            paginationHTML += `
+                <a href="#" class="pagination-btn ${currentPage === 1 ? 'disabled' : ''}" 
+                   onclick="changePage(${currentPage - 1})">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            `;
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    paginationHTML += `
+                        <a href="#" class="pagination-btn ${i === currentPage ? 'active' : ''}" 
+                           onclick="changePage(${i})">${i}</a>
+                    `;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    paginationHTML += '<span class="pagination-btn disabled">...</span>';
+                }
+            }
+
+            // Next button
+            paginationHTML += `
+                <a href="#" class="pagination-btn ${currentPage === totalPages ? 'disabled' : ''}" 
+                   onclick="changePage(${currentPage + 1})">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            `;
+
+            pagination.innerHTML = paginationHTML;
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredMeals.length / mealsPerPage);
+            if (page < 1 || page > totalPages) return;
+            
+            currentPage = page;
+            displayMeals();
+            
+            // Scroll to top of meals
+            document.querySelector('.meals-container').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        function showError(message) {
+            const container = document.getElementById('mealsContent');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h3 class="empty-title">Error Loading Meals</h3>
+                    <p class="empty-description">${message}</p>
+                    <button class="empty-action" onclick="loadMealHistory()">
+                        <i class="fas fa-refresh"></i>
+                        Try Again
+                    </button>
+                </div>
+            `;
+        }
+
+        // Initialize theme from localStorage
+        function initTheme() {
+            const savedTheme = localStorage.getItem('preferred-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+
+        function showProfileMenu() {
+            // Create a proper dropdown menu
+            const existingMenu = document.querySelector('.profile-dropdown');
+            if (existingMenu) {
+                existingMenu.remove();
+                return;
+            }
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'profile-dropdown';
+            dropdown.style.cssText = `
+                position: absolute;
+                top: 100%;
+                right: 0;
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-lg);
+                box-shadow: var(--shadow-xl);
+                padding: 0.5rem;
+                min-width: 180px;
+                z-index: 1000;
+                margin-top: 0.5rem;
+            `;
+
+            dropdown.innerHTML = `
+                <a href="dashboard.html" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.75rem 1rem;
+                    color: var(--text-primary);
+                    text-decoration: none;
+                    border-radius: var(--radius-md);
+                    transition: background 0.2s ease;
+                " onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="settings.html" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.75rem 1rem;
+                    color: var(--text-primary);
+                    text-decoration: none;
+                    border-radius: var(--radius-md);
+                    transition: background 0.2s ease;
+                " onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <hr style="margin: 0.5rem 0; border: none; border-top: 1px solid var(--border-color);">
+                <button onclick="logout()" style="
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.75rem 1rem;
+                    background: transparent;
+                    border: none;
+                    color: #dc2626;
+                    cursor: pointer;
+                    border-radius: var(--radius-md);
+                    transition: background 0.2s ease;
+                " onmouseover="this.style.background='rgba(220, 38, 38, 0.1)'" onmouseout="this.style.background='transparent'">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            `;
+
+            // Position relative to profile button
+            const profileBtn = document.querySelector('.profile-btn');
+            profileBtn.style.position = 'relative';
+            profileBtn.appendChild(dropdown);
+
+            // Close dropdown when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                    if (!profileBtn.contains(e.target)) {
+                        dropdown.remove();
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                });
+            }, 0);
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('currentUser');
+                window.location.href = 'login.html';
+            }
+        }
+
+
+    </script>
+</body>
+</html>

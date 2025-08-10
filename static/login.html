@@ -2,671 +2,684 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Protein Tracker - Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Kthiza Protein Tracker - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+        }
+
+        /* Dark Mode Variables */
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-tertiary: #94a3b8;
+            --border-color: #475569;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 1000;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 50px;
+            padding: 0.5rem;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .theme-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: transparent;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .theme-toggle-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .theme-toggle-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--primary-gradient);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            color: white;
+            padding: 1rem;
         }
-        
+
         .login-container {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
             overflow: hidden;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             position: relative;
         }
-        
+
         .login-header {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 50%, #ff9ff3 100%);
-            padding: 40px 30px 30px;
             text-align: center;
-            position: relative;
+            padding: 3rem 2rem 2rem;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
         }
-        
-        .login-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-            animation: shimmer 3s infinite;
-        }
-        
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-        
-        .login-header h1 {
-            font-size: 2.2em;
-            margin-bottom: 8px;
-            font-weight: 700;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            position: relative;
-            z-index: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-        }
-        
+
         .logo {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            border-radius: 12px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
         }
-        
-        .logo-icon {
-            width: 30px;
-            height: 30px;
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-            border-radius: 8px;
-            position: relative;
+
+        .logo i {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2rem;
         }
-        
-        .logo-icon::before {
-            content: '';
-            width: 18px;
-            height: 18px;
-            background: white;
-            border-radius: 4px;
-            position: absolute;
-            top: 6px;
-            left: 6px;
+
+        .login-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
         }
-        
-        .logo-icon::after {
-            content: '';
-            width: 12px;
-            height: 12px;
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-            border-radius: 3px;
-            position: absolute;
-            top: 9px;
-            left: 9px;
+
+        .login-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
         }
-        
-        .login-header p {
-            font-size: 1em;
-            opacity: 0.9;
-            font-weight: 500;
-            position: relative;
-            z-index: 1;
+
+        .login-form {
+            padding: 2rem;
         }
-        
-        .login-content {
-            padding: 30px;
-        }
-        
-        .tab-container {
-            display: flex;
-            margin-bottom: 25px;
-            border-radius: 16px;
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .tab {
-            flex: 1;
-            padding: 16px 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-            font-size: 0.9em;
-            color: rgba(255, 255, 255, 0.7);
-            position: relative;
-        }
-        
-        .tab.active {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-        }
-        
-        .tab:hover:not(.active) {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-        }
-        
-        .form-container {
-            display: none;
-        }
-        
-        .form-container.active {
-            display: block;
-            animation: slideIn 0.4s ease;
-        }
-        
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
+
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 1.5rem;
         }
-        
-        label {
+
+        .form-label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 0.5rem;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 0.9em;
+            color: var(--text-primary);
+            font-size: 0.875rem;
         }
-        
-        input {
+
+        .form-input {
             width: 100%;
-            padding: 16px 18px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.05);
-            color: white;
-            backdrop-filter: blur(10px);
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
         }
-        
-        input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-        
-        input:focus {
+
+        .form-input:focus {
             outline: none;
-            border-color: #ff6b6b;
-            box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.1);
-            background: rgba(255, 255, 255, 0.1);
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        
-        button {
+
+        .form-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .input-icon {
+            position: relative;
+        }
+
+        .input-icon i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .input-icon .form-input {
+            padding-left: 2.75rem;
+        }
+
+        .form-button {
             width: 100%;
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            padding: 1rem;
+            background: var(--primary-gradient);
             color: white;
             border: none;
-            padding: 16px;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: relative;
-            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 1rem;
         }
-        
-        button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-        }
-        
-        button:hover::before {
-            left: 100%;
-        }
-        
-        button:hover {
+
+        .form-button:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+            box-shadow: var(--shadow-lg);
         }
-        
-        button:disabled {
+
+        .form-button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
-        
-        .result {
-            margin-top: 20px;
-            padding: 16px;
-            border-radius: 12px;
-            border-left: 4px solid #ff6b6b;
-            animation: slideIn 0.4s ease;
-            backdrop-filter: blur(10px);
-        }
-        
-        .success {
-            background: rgba(46, 213, 115, 0.1);
-            border-left-color: #2ed573;
-            color: #2ed573;
-            border: 1px solid rgba(46, 213, 115, 0.2);
-        }
-        
-        .error {
-            background: rgba(255, 71, 87, 0.1);
-            border-left-color: #ff4757;
-            color: #ff4757;
-            border: 1px solid rgba(255, 71, 87, 0.2);
-        }
-        
-        .warning {
-            background: rgba(255, 165, 2, 0.1);
-            border-left-color: #ffa502;
-            color: #ffa502;
-            border: 1px solid rgba(255, 165, 2, 0.2);
-        }
-        
-        .loading {
+
+        .form-button .loading {
             display: inline-block;
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top: 2px solid white;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 8px;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 0.5rem;
         }
-        
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
-        
-        .footer {
+
+        .form-toggle {
             text-align: center;
-            margin-top: 25px;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.85em;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
         }
-        
-        .footer a {
-            color: #ff6b6b;
+
+        .form-toggle p {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .toggle-link {
+            color: #667eea;
             text-decoration: none;
             font-weight: 600;
+            cursor: pointer;
+            transition: color 0.2s ease;
         }
-        
-        .footer a:hover {
-            text-decoration: underline;
+
+        .toggle-link:hover {
+            color: #5a6fd8;
         }
-        
-        .verification-notice {
-            background: rgba(116, 185, 255, 0.1);
-            border: 1px solid rgba(116, 185, 255, 0.2);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-            color: #74b9ff;
-            font-size: 0.9em;
-            backdrop-filter: blur(10px);
+
+        .result {
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            font-weight: 500;
+            text-align: center;
         }
-        
-        /* Mobile Responsive */
+
+        .result.success {
+            background: rgba(34, 197, 94, 0.1);
+            color: #059669;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .result.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .result.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .features {
+            background: var(--bg-primary);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .features-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .feature {
+            text-align: center;
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+            margin: 0 auto 0.5rem;
+        }
+
+        .feature-text {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .hidden { display: none !important; }
+
         @media (max-width: 480px) {
             .login-container {
-                margin: 10px;
-                border-radius: 20px;
+                margin: 0;
+                border-radius: var(--radius-lg);
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
             }
-            
+
             .login-header {
-                padding: 30px 20px 25px;
+                padding: 2rem 1.5rem 1.5rem;
             }
-            
-            .login-header h1 {
-                font-size: 1.8em;
+
+            .login-form {
+                padding: 1.5rem;
+                flex: 1;
             }
-            
-            .login-content {
-                padding: 25px 20px;
+
+            .features {
+                padding: 1.5rem;
             }
-            
-            .tab {
-                padding: 14px 8px;
-                font-size: 0.85em;
-            }
-            
-            input {
-                padding: 14px 16px;
-            }
-            
-            button {
-                padding: 14px;
-            }
-        }
-        
-        /* Tablet Responsive */
-        @media (min-width: 481px) and (max-width: 768px) {
-            .login-container {
-                max-width: 450px;
-            }
-        }
-        
-        /* Desktop Responsive */
-        @media (min-width: 769px) {
-            .login-container {
-                max-width: 450px;
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-header">
-            <h1>
-                <div class="logo">
-                    <div class="logo-icon"></div>
-                </div>
-                Protein Tracker
-            </h1>
-            <p>AI-Powered Nutrition Tracking</p>
-        </div>
-        
-        <div class="login-content">
-            <div class="tab-container">
-                <div class="tab active" onclick="switchTab('login')">Login</div>
-                <div class="tab" onclick="switchTab('register')">Create Account</div>
-            </div>
-            
-            <!-- Login Form -->
-            <div id="loginForm" class="form-container active">
-                <form onsubmit="handleLogin(event)">
-                    <div class="form-group">
-                        <label for="loginUsername">Username</label>
-                        <input type="text" id="loginUsername" required placeholder="Enter your username">
-                    </div>
-                    <div class="form-group">
-                        <label for="loginPassword">Password</label>
-                        <input type="password" id="loginPassword" required placeholder="Enter your password">
-                    </div>
-                    <button type="submit" id="loginBtn">
-                        <span id="loginBtnText">Login</span>
-                    </button>
-                </form>
-                <div id="loginResult"></div>
-            </div>
-            
-            <!-- Register Form -->
-            <div id="registerForm" class="form-container">
-                <div class="verification-notice" id="verificationNotice">
-                    <strong>📧 Email Verification Required</strong><br>
-                    After registration, you'll receive a verification email. You must verify your email before logging in.
-                </div>
-                <form onsubmit="handleRegister(event)">
-                    <div class="form-group">
-                        <label for="registerUsername">Username</label>
-                        <input type="text" id="registerUsername" required placeholder="Enter your username (min 3 characters)">
-                    </div>
-                    <div class="form-group">
-                        <label for="registerEmail">Email</label>
-                        <input type="email" id="registerEmail" required placeholder="Enter your email address">
-                    </div>
-                    <div class="form-group">
-                        <label for="registerPassword">Password</label>
-                        <input type="password" id="registerPassword" required placeholder="Enter your password (min 6 characters)">
-                    </div>
+    <!-- Theme toggle moved to settings page -->
 
-                    <button type="submit" id="registerBtn">
-                        <span id="registerBtnText">Create Account</span>
-                    </button>
-                </form>
-                <div id="registerResult"></div>
+    <div class="login-container">
+        <!-- Header -->
+        <div class="login-header">
+                    <div class="logo">
+            <i class="fas fa-dumbbell"></i>
+            <span>Kthiza Protein Tracker</span>
+        </div>
+            <h1 class="login-title" id="formTitle">Welcome Back</h1>
+            <p class="login-subtitle" id="formSubtitle">Sign in to track your protein goals</p>
+        </div>
+
+        <!-- Login Form -->
+        <form class="login-form" id="authForm">
+            <div id="loginResult"></div>
+
+            <!-- Username/Email -->
+            <div class="form-group">
+                <label class="form-label" for="username">Username or Email</label>
+                <div class="input-icon">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="username" class="form-input" placeholder="Enter your username or email" required>
+                </div>
             </div>
-            
-            <div class="footer">
-                <p>Track your protein intake with AI-powered food recognition</p>
-                <p>Powered by <a href="#" onclick="showApiStatus()">FastAPI & Google Cloud Vision</a></p>
+
+            <!-- Email (Register only) -->
+            <div class="form-group hidden" id="emailGroup">
+                <label class="form-label" for="email">Email Address</label>
+                <div class="input-icon">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" class="form-input" placeholder="Enter your email address">
+                </div>
+            </div>
+
+            <!-- Password -->
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <div class="input-icon">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+                </div>
+            </div>
+
+            <!-- Confirm Password (Register only) -->
+            <div class="form-group hidden" id="confirmPasswordGroup">
+                <label class="form-label" for="confirmPassword">Confirm Password</label>
+                <div class="input-icon">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="confirmPassword" class="form-input" placeholder="Confirm your password">
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="form-button" id="submitBtn">
+                <span id="submitBtnText">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Sign In
+                </span>
+            </button>
+
+            <!-- Toggle Form -->
+            <div class="form-toggle">
+                <p id="toggleText">Don't have an account?</p>
+                <a class="toggle-link" id="toggleLink" onclick="toggleForm()">Create Account</a>
+            </div>
+        </form>
+
+        <!-- Features -->
+        <div class="features">
+            <h3 class="features-title">Start Your Protein Journey</h3>
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <div class="feature-text">AI Photo Analysis</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="feature-text">Progress Tracking</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <div class="feature-text">Smart Goals</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <div class="feature-text">Mobile Ready</div>
+                </div>
             </div>
         </div>
     </div>
 
+    <script src="/static/js/app.js"></script>
     <script>
-        const API_BASE = 'http://localhost:8000';
-        
-        // Check if user is already logged in
-        window.onload = function() {
-            const currentUser = localStorage.getItem('currentUser');
+        let isLoginMode = true;
+        const API_BASE = 'http://127.0.0.1:8000';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if already logged in
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
             if (currentUser) {
-                // User is already logged in, redirect to dashboard
                 window.location.href = 'dashboard.html';
+                return;
             }
+
+            // Setup form
+            document.getElementById('authForm').addEventListener('submit', handleSubmit);
             
-            // Check email verification status
-            checkEmailStatus();
-        };
-        
-        async function checkEmailStatus() {
+            // Check server connectivity
+            checkServerStatus();
+        });
+
+        async function checkServerStatus() {
             try {
                 const response = await fetch(`${API_BASE}/auth/email-status`);
-                const status = await response.json();
-                
-                const notice = document.getElementById('verificationNotice');
-                if (status.email_configured) {
-                    notice.innerHTML = `
-                        <strong>📧 Email Verification Required</strong><br>
-                        After registration, you'll receive a verification email. You must verify your email before logging in.
-                    `;
-                } else {
-                    notice.innerHTML = `
-                        <strong>🎉 Quick Registration (Local Testing)</strong><br>
-                        Email verification is disabled for local testing. Your account will be automatically verified and you can log in immediately.
-                    `;
-                }
+                if (!response.ok) throw new Error('Server unreachable');
             } catch (error) {
-                console.log('Could not check email status:', error);
+                showResult(
+                    '⚠️ Cannot reach server. Please ensure the backend is running.',
+                    'warning'
+                );
             }
         }
-        
-        function switchTab(tab) {
-            // Update tab styling
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
+
+        function toggleForm() {
+            isLoginMode = !isLoginMode;
             
-            // Update form visibility
-            document.querySelectorAll('.form-container').forEach(f => f.classList.remove('active'));
-            if (tab === 'login') {
-                document.getElementById('loginForm').classList.add('active');
+            const formTitle = document.getElementById('formTitle');
+            const formSubtitle = document.getElementById('formSubtitle');
+            const emailGroup = document.getElementById('emailGroup');
+            const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+            const submitBtnText = document.getElementById('submitBtnText');
+            const toggleText = document.getElementById('toggleText');
+            const toggleLink = document.getElementById('toggleLink');
+            const usernameLabel = document.querySelector('label[for="username"]');
+
+            if (isLoginMode) {
+                // Login mode
+                formTitle.textContent = 'Welcome Back';
+                formSubtitle.textContent = 'Sign in to track your protein goals';
+                emailGroup.classList.add('hidden');
+                confirmPasswordGroup.classList.add('hidden');
+                submitBtnText.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+                toggleText.textContent = "Don't have an account?";
+                toggleLink.textContent = 'Create Account';
+                usernameLabel.textContent = 'Username or Email';
+                document.getElementById('username').placeholder = 'Enter your username or email';
             } else {
-                document.getElementById('registerForm').classList.add('active');
+                // Register mode
+                formTitle.textContent = 'Create Account';
+                formSubtitle.textContent = 'Join thousands tracking their protein goals';
+                emailGroup.classList.remove('hidden');
+                confirmPasswordGroup.classList.remove('hidden');
+                submitBtnText.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+                toggleText.textContent = 'Already have an account?';
+                toggleLink.textContent = 'Sign In';
+                usernameLabel.textContent = 'Username';
+                document.getElementById('username').placeholder = 'Choose a username';
             }
-            
-            // Clear previous results
+
+            // Clear form
+            document.getElementById('authForm').reset();
             document.getElementById('loginResult').innerHTML = '';
-            document.getElementById('registerResult').innerHTML = '';
         }
-        
-        async function handleLogin(event) {
-            event.preventDefault();
+
+        async function handleSubmit(e) {
+            e.preventDefault();
             
-            const username = document.getElementById('loginUsername').value;
-            const password = document.getElementById('loginPassword').value;
-            const loginBtn = document.getElementById('loginBtn');
-            const loginBtnText = document.getElementById('loginBtnText');
+            const submitBtn = document.getElementById('submitBtn');
+            const submitBtnText = document.getElementById('submitBtnText');
             
-            // Show loading state
-            loginBtn.disabled = true;
-            loginBtnText.innerHTML = '<span class="loading"></span>Logging in...';
+            // Get form data
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
             
-            try {
-                const formData = new FormData();
-                formData.append('username', username);
-                formData.append('password', password);
-                
-                const response = await fetch(`${API_BASE}/auth/login`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    // Store user data and token in localStorage
-                    const userData = {
-                        id: result.user_id,
-                        username: result.username,
-                        email: result.email,
-                        weight_kg: result.weight_kg,
-                        protein_goal: result.protein_goal,
-                        token: result.token
-                    };
-                    localStorage.setItem('currentUser', JSON.stringify(userData));
-                    
-                    // Show success message
-                    document.getElementById('loginResult').innerHTML = `
-                        <div class="result success">
-                            <strong>✅ Login successful!</strong><br>
-                            Welcome back, ${result.username}!<br>
-                            Redirecting to dashboard...
-                        </div>
-                    `;
-                    
-                    // Redirect to dashboard after a short delay
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
-                    
-                } else {
-                    document.getElementById('loginResult').innerHTML = `
-                        <div class="result error">
-                            <strong>❌ Login failed!</strong><br>
-                            ${result.detail}
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                document.getElementById('loginResult').innerHTML = `
-                    <div class="result error">
-                        <strong>❌ Error:</strong> ${error.message}
-                    </div>
-                `;
-            } finally {
-                // Reset button state
-                loginBtn.disabled = false;
-                loginBtnText.innerHTML = 'Login';
-            }
-        }
-        
-        async function handleRegister(event) {
-            event.preventDefault();
-            
-            const username = document.getElementById('registerUsername').value;
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
-            const registerBtn = document.getElementById('registerBtn');
-            const registerBtnText = document.getElementById('registerBtnText');
-            
-            // Validate inputs
-            if (username.length < 3) {
-                document.getElementById('registerResult').innerHTML = `
-                    <div class="result error">
-                        <strong>❌ Username too short!</strong><br>
-                        Username must be at least 3 characters long.
-                    </div>
-                `;
+            if (!username || !password) {
+                showResult('Please fill in all required fields.', 'error');
                 return;
             }
-            
+
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            submitBtnText.innerHTML = '<span class="loading"></span>Processing...';
+
+            try {
+                if (isLoginMode) {
+                    await handleLogin(username, password);
+                } else {
+                    await handleRegister();
+                }
+            } catch (error) {
+                showResult(`Error: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtnText.innerHTML = isLoginMode ? 
+                    '<i class="fas fa-sign-in-alt"></i> Sign In' : 
+                    '<i class="fas fa-user-plus"></i> Create Account';
+            }
+        }
+
+        async function handleLogin(username, password) {
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+
+            const response = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Store user data
+                localStorage.setItem('currentUser', JSON.stringify({
+                    id: result.user_id,
+                    username: result.username,
+                    token: result.access_token
+                }));
+
+                showResult('🎉 Login successful! Redirecting...', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1500);
+            } else {
+                showResult(`❌ ${result.detail || 'Login failed'}`, 'error');
+            }
+        }
+
+        async function handleRegister() {
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Validation
+            if (!email) {
+                showResult('Please enter your email address.', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showResult('Passwords do not match.', 'error');
+                return;
+            }
+
             if (password.length < 6) {
-                document.getElementById('registerResult').innerHTML = `
-                    <div class="result error">
-                        <strong>❌ Password too short!</strong><br>
-                        Password must be at least 6 characters long.
-                    </div>
-                `;
+                showResult('Password must be at least 6 characters long.', 'error');
                 return;
             }
-            
-            // Show loading state
-            registerBtn.disabled = true;
-            registerBtnText.innerHTML = '<span class="loading"></span>Creating account...';
-            
-            try {
-                const formData = new FormData();
-                formData.append('username', username);
-                formData.append('email', email);
-                formData.append('password', password);
+
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('email', email);
+            formData.append('password', password);
+
+            const response = await fetch(`${API_BASE}/auth/register`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                showResult('🎉 Account created successfully! Please sign in.', 'success');
                 
-                const response = await fetch(`${API_BASE}/auth/register`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    let successMessage = `
-                        <div class="result success">
-                            <strong>✅ Account created successfully!</strong><br>
-                            Welcome, ${result.username}!<br>
-                    `;
-                    
-                    if (result.email_configured) {
-                        successMessage += `
-                            <strong>📧 Check your email for verification!</strong><br>
-                            You must verify your email before you can log in.<br>
-                            <small>If you don't see the email, check your spam folder.</small>
-                        `;
-                    } else {
-                        successMessage += `
-                            <strong>🎉 Your account is ready!</strong><br>
-                            Email verification is not configured, so your account is automatically verified.<br>
-                            <small>You can log in now!</small>
-                        `;
-                    }
-                    
-                    successMessage += `</div>`;
-                    document.getElementById('registerResult').innerHTML = successMessage;
-                    
-                    // Clear form fields manually instead of using reset()
-                    document.getElementById('registerUsername').value = '';
-                    document.getElementById('registerEmail').value = '';
-                    document.getElementById('registerPassword').value = '';
-                    
-                } else {
-                    document.getElementById('registerResult').innerHTML = `
-                        <div class="result error">
-                            <strong>❌ Registration failed!</strong><br>
-                            ${result.detail}
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                document.getElementById('registerResult').innerHTML = `
-                    <div class="result error">
-                        <strong>❌ Error:</strong> ${error.message}
-                    </div>
-                `;
-            } finally {
-                // Reset button state
-                registerBtn.disabled = false;
-                registerBtnText.innerHTML = 'Create Account';
-            }
+                setTimeout(() => {
+                    toggleForm(); // Switch to login mode
+                    document.getElementById('username').value = username;
+                }, 2000);
+            } else {
+                            showResult(`❌ ${result.detail || 'Registration failed'}`, 'error');
         }
+    }
+
+    function showResult(message, type) {
+        const resultDiv = document.getElementById('loginResult');
+        resultDiv.innerHTML = `<div class="result ${type}">${message}</div>`;
         
-        function showApiStatus() {
-            // This could open a modal or redirect to API status page
-            alert('API Status: Online\nVersion: 4.0.0\nFeatures: All Active\nEmail Verification: Enabled');
+        if (type === 'success') {
+            setTimeout(() => {
+                resultDiv.innerHTML = '';
+            }, 8000);
+        } else {
+            setTimeout(() => {
+                resultDiv.innerHTML = '';
+            }, 5000);
         }
+    }
+
+    // Theme Management
+    function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('preferred-theme', theme);
+        
+        // Update toggle buttons
+        document.querySelectorAll('.theme-toggle-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(theme + 'Mode').classList.add('active');
+    }
+
+    // Initialize theme
+    function initTheme() {
+        const savedTheme = localStorage.getItem('preferred-theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+        setTheme(theme);
+    }
+
+    // Initialize theme on load
+    initTheme();
     </script>
 </body>
-</html> 
+</html>
