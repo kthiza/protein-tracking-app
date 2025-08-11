@@ -50,4 +50,8 @@ Thumbs.db
 *.sqlite3
 
 # Jupyter Notebook
-.ipynb_checkpoints 
+.ipynb_checkpoints
+
+# Google Cloud Service Account (sensitive credentials)
+service-account-key.json
+*.json 
