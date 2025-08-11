@@ -929,19 +929,36 @@
         const API_BASE = 'http://127.0.0.1:8000';
 
         // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Dashboard page loaded');
+            console.log('localStorage currentUser:', localStorage.getItem('currentUser'));
+            
             currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
             if (!currentUser) {
+                console.log('No currentUser found, redirecting to login');
                 window.location.href = 'login.html';
                 return;
             }
             
-            initializeApp();
+            console.log('Current user:', currentUser);
+            console.log('Token:', currentUser.token);
+            console.log('Token type:', typeof currentUser.token);
+            
+            if (!currentUser.token) {
+                console.log('No token found in currentUser, redirecting to login');
+                localStorage.removeItem('currentUser');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            await initializeApp();
             setupEventListeners();
+            
+                    // Weekly weigh-in popup removed as requested by user
         });
 
-        function initializeApp() {
-            updateUserDisplay();
+        async function initializeApp() {
+            await updateUserDisplay();
             loadDashboardData();
             loadRecentMeals();
             setupDropZone();
@@ -958,24 +975,41 @@
             dropZone.addEventListener('drop', handleDrop);
         }
 
-        function updateUserDisplay() {
+        async function updateUserDisplay() {
             const profileAvatar = document.getElementById('profileAvatar');
             const usernameDisplay = document.getElementById('usernameDisplay');
             
-            // Check for saved profile picture
-            const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-            if (userProfile.profilePicture) {
-                // Create or update profile image
-                let profileImg = profileAvatar.querySelector('img');
-                if (!profileImg) {
-                    profileImg = document.createElement('img');
-                    profileImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;';
-                    profileAvatar.appendChild(profileImg);
+            // Load profile picture from backend
+            try {
+                const response = await fetch(`${API_BASE}/users/profile-picture/${currentUser.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentUser.token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    // Create or update profile image
+                    let profileImg = profileAvatar.querySelector('img');
+                    if (!profileImg) {
+                        profileImg = document.createElement('img');
+                        profileImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;';
+                        profileAvatar.appendChild(profileImg);
+                    }
+                    profileImg.src = imageUrl;
+                    profileAvatar.style.fontSize = '0'; // Hide text when image is shown
+                } else {
+                    // No profile picture found, show initials
+                    const existingImg = profileAvatar.querySelector('img');
+                    if (existingImg) existingImg.remove();
+                    profileAvatar.style.fontSize = '0.875rem';
+                    profileAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
                 }
-                profileImg.src = userProfile.profilePicture;
-                profileAvatar.style.fontSize = '0'; // Hide text when image is shown
-            } else {
-                // Remove any existing image and show initials
+            } catch (error) {
+                console.error('Error loading profile picture:', error);
+                // Show initials on error
                 const existingImg = profileAvatar.querySelector('img');
                 if (existingImg) existingImg.remove();
                 profileAvatar.style.fontSize = '0.875rem';
@@ -1115,16 +1149,18 @@
             }).join('');
         }
 
-        function getTimeAgo(date) {
+                function getTimeAgo(date) {
+            // Fix timezone issue by adding 3 hours to the date (UTC to Kosovo time)
+            const adjustedDate = new Date(date.getTime() + (3 * 60 * 60 * 1000));
             const now = new Date();
-            const diffMs = now - date;
+            const diffMs = now - adjustedDate;
             const diffMins = Math.floor(diffMs / 60000);
             const diffHours = Math.floor(diffMins / 60);
-            
+
             if (diffMins < 1) return 'Just now';
             if (diffMins < 60) return `${diffMins}m ago`;
             if (diffHours < 24) return `${diffHours}h ago`;
-            return date.toLocaleDateString();
+            return adjustedDate.toLocaleDateString();
         }
 
         function selectMethod(method) {
@@ -1244,7 +1280,16 @@
 
         async function uploadMeal() {
             if (!capturedImage) {
-                showResult('Please select or capture an image first.', 'error');
+                showResult('❌ Please capture or select an image first', 'error');
+                return;
+            }
+
+            // Debug token format
+            console.log('Current user token:', currentUser?.token);
+            console.log('Token type:', typeof currentUser?.token);
+            
+            if (!currentUser?.token) {
+                showResult('❌ Authentication token missing. Please log in again.', 'error');
                 return;
             }
 
@@ -1256,11 +1301,16 @@
             uploadBtnText.innerHTML = '<span class="loading"></span>Analyzing...';
 
             try {
+                // Apply photo quality settings
+                const processedImage = await applyPhotoQuality(capturedImage);
+                
                 const formData = new FormData();
-                formData.append('image', capturedImage);
+                formData.append('image', processedImage);
                 formData.append('use_ai_detection', true);
 
                 console.log('Uploading to:', `${API_BASE}/meals/upload/`);
+                console.log('Using token:', currentUser.token);
+                
                 const response = await fetch(`${API_BASE}/meals/upload/`, {
                     method: 'POST',
                     headers: {
@@ -1270,43 +1320,54 @@
                 });
 
                 console.log('Upload response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.log('Error response:', errorText);
+                    let errorMessage = 'Upload failed';
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errorMessage = errorJson.detail || 'Upload failed';
+                    } catch (e) {
+                        errorMessage = errorText || 'Upload failed';
+                    }
+                    showResult(`❌ ${errorMessage}`, 'error');
+                    return;
+                }
+                
                 const result = await response.json();
                 console.log('Upload result:', result);
 
-                if (response.ok) {
-                    let message = `🎉 Meal logged successfully! <strong>${result.total_protein}g protein</strong> detected.`;
+                let message = `🎉 Meal logged successfully! <strong>${result.total_protein}g protein</strong> detected.`;
+                
+                if (result.detection_status) {
+                    const detectionInfo = result.detection_status;
                     
-                    if (result.detection_status) {
-                        const detectionInfo = result.detection_status;
-                        
-                        if (detectionInfo.ai_successful && detectionInfo.manual_provided) {
-                            message += '<br><small>Combined AI detection with your manual input</small>';
-                        } else if (detectionInfo.ai_successful) {
-                            message += '<br><small>Detected using AI: ' + detectionInfo.detected_foods.join(', ') + '</small>';
-                        } else if (detectionInfo.manual_provided) {
-                            message += '<br><small>Using your manual input</small>';
-                        }
+                    if (detectionInfo.ai_successful && detectionInfo.manual_provided) {
+                        message += '<br><small>Combined AI detection with your manual input</small>';
+                    } else if (detectionInfo.ai_successful) {
+                        message += '<br><small>Detected using AI: ' + detectionInfo.detected_foods.join(', ') + '</small>';
+                    } else if (detectionInfo.manual_provided) {
+                        message += '<br><small>Using your manual input</small>';
                     }
-                    
-                    showResult(message, 'success');
-                    
-                    // Clear form
-                    // Image cleared successfully
-                    capturedImage = null;
-                    document.getElementById('fileInput').value = '';
-                    document.getElementById('imagePreview').classList.add('hidden');
-                    
-                    // Reload data with delay to prevent interference
-                    setTimeout(() => {
-                        loadDashboardData().catch(err => console.error('Dashboard reload failed:', err));
-                        loadRecentMeals().catch(err => console.error('Meals reload failed:', err));
-                    }, 1000);
-                    
-                } else {
-                    let errorMessage = result.detail || 'Upload failed';
-                    showResult(`❌ ${errorMessage}`, 'error');
                 }
+                
+                showResult(message, 'success');
+                
+                // Clear form
+                // Image cleared successfully
+                capturedImage = null;
+                document.getElementById('fileInput').value = '';
+                document.getElementById('imagePreview').classList.add('hidden');
+                
+                // Reload data with delay to prevent interference
+                setTimeout(() => {
+                    loadDashboardData().catch(err => console.error('Dashboard reload failed:', err));
+                    loadRecentMeals().catch(err => console.error('Meals reload failed:', err));
+                }, 1000);
+                
             } catch (error) {
+                console.error('Upload error:', error);
                 showResult(`❌ Error: ${error.message}`, 'error');
             } finally {
                 uploadBtn.disabled = false;
@@ -1323,6 +1384,70 @@
             setTimeout(() => {
                 resultDiv.innerHTML = '';
             }, 8000);
+        }
+
+        async function applyPhotoQuality(imageFile) {
+            // Get photo quality setting from localStorage
+            const settings = JSON.parse(localStorage.getItem('userSettings') || '{}');
+            const photoQuality = settings.photoQuality || 'medium';
+            
+            // If quality is high, return original image
+            if (photoQuality === 'high') {
+                return imageFile;
+            }
+            
+            // Create canvas to resize/compress image
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            return new Promise((resolve) => {
+                img.onload = function() {
+                    // Set quality based on setting
+                    let quality, maxWidth, maxHeight;
+                    
+                    switch(photoQuality) {
+                        case 'low':
+                            quality = 0.6;
+                            maxWidth = 800;
+                            maxHeight = 600;
+                            break;
+                        case 'medium':
+                        default:
+                            quality = 0.8;
+                            maxWidth = 1200;
+                            maxHeight = 900;
+                            break;
+                    }
+                    
+                    // Calculate new dimensions
+                    let { width, height } = img;
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        width *= ratio;
+                        height *= ratio;
+                    }
+                    
+                    // Set canvas dimensions
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // Draw and compress image
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Convert to blob with quality setting
+                    canvas.toBlob((blob) => {
+                        // Create new file with processed image
+                        const processedFile = new File([blob], imageFile.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        resolve(processedFile);
+                    }, 'image/jpeg', quality);
+                };
+                
+                img.src = URL.createObjectURL(imageFile);
+            });
         }
 
         function showProfileMenu() {
@@ -1441,6 +1566,8 @@
         // Initialize AI status and theme on load
 
         initTheme();
+
+        // Weekly weigh-in popup system removed as requested by user
     </script>
 </body>
 </html>

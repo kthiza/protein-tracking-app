@@ -747,38 +747,70 @@
         const API_BASE = 'http://127.0.0.1:8000';
 
         // Initialize
-                document.addEventListener('DOMContentLoaded', function() {
+                document.addEventListener('DOMContentLoaded', async function() {
+            console.log('History page loaded');
+            console.log('localStorage currentUser:', localStorage.getItem('currentUser'));
+            
             currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
             if (!currentUser) {
+                console.log('No currentUser found, redirecting to login');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            console.log('Current user:', currentUser);
+            console.log('Token:', currentUser.token);
+            console.log('Token type:', typeof currentUser.token);
+            
+            if (!currentUser.token) {
+                console.log('No token found in currentUser, redirecting to login');
+                localStorage.removeItem('currentUser');
                 window.location.href = 'login.html';
                 return;
             }
             
             // Update navigation with username and profile picture
-            updateUserDisplay();
+            await updateUserDisplay();
             
             initTheme();
             loadMealHistory();
         });
 
-        function updateUserDisplay() {
+        async function updateUserDisplay() {
             const profileAvatar = document.getElementById('profileAvatar');
             const usernameDisplay = document.getElementById('usernameDisplay');
             
-            // Check for saved profile picture
-            const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-            if (userProfile.profilePicture) {
-                // Create or update profile image
-                let profileImg = profileAvatar.querySelector('img');
-                if (!profileImg) {
-                    profileImg = document.createElement('img');
-                    profileImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;';
-                    profileAvatar.appendChild(profileImg);
+            // Load profile picture from backend
+            try {
+                const response = await fetch(`${API_BASE}/users/profile-picture/${currentUser.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentUser.token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    // Create or update profile image
+                    let profileImg = profileAvatar.querySelector('img');
+                    if (!profileImg) {
+                        profileImg = document.createElement('img');
+                        profileImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;';
+                        profileAvatar.appendChild(profileImg);
+                    }
+                    profileImg.src = imageUrl;
+                    profileAvatar.style.fontSize = '0'; // Hide text when image is shown
+                } else {
+                    // No profile picture found, show initials
+                    const existingImg = profileAvatar.querySelector('img');
+                    if (existingImg) existingImg.remove();
+                    profileAvatar.style.fontSize = '0.875rem';
+                    profileAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
                 }
-                profileImg.src = userProfile.profilePicture;
-                profileAvatar.style.fontSize = '0'; // Hide text when image is shown
-            } else {
-                // Remove any existing image and show initials
+            } catch (error) {
+                console.error('Error loading profile picture:', error);
+                // Show initials on error
                 const existingImg = profileAvatar.querySelector('img');
                 if (existingImg) existingImg.remove();
                 profileAvatar.style.fontSize = '0.875rem';
@@ -813,7 +845,7 @@
                     console.error('Failed to load meals:', response.status, errorText);
                     if (response.status === 401) {
                         showError('Authentication failed. Please log in again.');
-                        setTimeout(() => window.location.href = 'login.html', 2000);
+                        // Remove automatic redirect - let user decide
                     } else {
                         showError('Failed to load meal history');
                     }
@@ -1031,8 +1063,10 @@
         }
 
         function getTimeAgo(date) {
+            // Fix timezone issue by adding 3 hours to the date (UTC to Kosovo time)
+            const adjustedDate = new Date(date.getTime() + (3 * 60 * 60 * 1000));
             const now = new Date();
-            const diffMs = now - date;
+            const diffMs = now - adjustedDate;
             const diffMins = Math.floor(diffMs / 60000);
             const diffHours = Math.floor(diffMins / 60);
             const diffDays = Math.floor(diffHours / 24);
@@ -1041,7 +1075,7 @@
             if (diffMins < 60) return `${diffMins}m ago`;
             if (diffHours < 24) return `${diffHours}h ago`;
             if (diffDays < 7) return `${diffDays}d ago`;
-            return date.toLocaleDateString();
+            return adjustedDate.toLocaleDateString();
         }
 
         function showError(message) {

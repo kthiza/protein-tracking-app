@@ -62,10 +62,10 @@ def setup_google_vision_api():
     if new_key:
         update_api_key(new_key)
     else:
-        print("API key not updated. The app will continue using fallback detection.")
+        print("API key not updated. The app requires Google Vision API for food detection.")
         print()
         print("💡 Tips:")
-        print("- The fallback detection works but is less accurate")
+        print("- Google Vision API is required for accurate food detection")
         print("- You can always run this script again to update the API key")
         print("- Keep your API key secure and don't share it publicly")
 

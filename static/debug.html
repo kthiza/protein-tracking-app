@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Authentication</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        button { padding: 10px 15px; margin: 5px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Authentication Debug</h1>
+    
+    <div class="debug-section">
+        <h3>1. Check Local Storage</h3>
+        <button onclick="checkLocalStorage()">Check Local Storage</button>
+        <div id="localStorageResult"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>2. Test Login</h3>
+        <input type="text" id="testUsername" placeholder="Username" value="debuguser">
+        <input type="password" id="testPassword" placeholder="Password" value="debugpass">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>3. Test Profile API</h3>
+        <button onclick="testProfile()">Test Profile API</button>
+        <div id="profileResult"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>4. Test Settings Page</h3>
+        <button onclick="goToSettings()">Go to Settings</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000';
+        
+        function checkLocalStorage() {
+            const result = document.getElementById('localStorageResult');
+            const currentUser = localStorage.getItem('currentUser');
+            
+            if (currentUser) {
+                try {
+                    const user = JSON.parse(currentUser);
+                    result.innerHTML = `
+                        <div class="success">✅ currentUser found in localStorage</div>
+                        <pre>${JSON.stringify(user, null, 2)}</pre>
+                        <div><strong>Token:</strong> ${user.token || 'MISSING'}</div>
+                        <div><strong>Token type:</strong> ${typeof user.token}</div>
+                    `;
+                } catch (e) {
+                    result.innerHTML = `<div class="error">❌ Error parsing currentUser: ${e.message}</div>`;
+                }
+            } else {
+                result.innerHTML = '<div class="error">❌ No currentUser found in localStorage</div>';
+            }
+        }
+        
+        async function testLogin() {
+            const result = document.getElementById('loginResult');
+            const username = document.getElementById('testUsername').value;
+            const password = document.getElementById('testPassword').value;
+            
+            if (!username || !password) {
+                result.innerHTML = '<div class="error">❌ Please enter username and password</div>';
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `
+                        <div class="success">✅ Login successful!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    
+                    // Store in localStorage like the real app
+                    const userData = {
+                        id: data.user_id,
+                        username: data.username,
+                        email: data.email,
+                        weight_kg: data.weight_kg,
+                        protein_goal: data.protein_goal,
+                        token: data.token
+                    };
+                    
+                    localStorage.setItem('currentUser', JSON.stringify(userData));
+                    
+                    console.log('Stored currentUser:', localStorage.getItem('currentUser'));
+                    console.log('Token stored:', userData.token);
+                    
+                    // Auto-check localStorage after storing
+                    setTimeout(() => checkLocalStorage(), 100);
+                } else {
+                    result.innerHTML = `
+                        <div class="error">❌ Login failed: ${data.detail}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function testProfile() {
+            const result = document.getElementById('profileResult');
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            
+            if (!currentUser || !currentUser.token) {
+                result.innerHTML = '<div class="error">❌ No user or token found. Please login first.</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/users/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentUser.token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    result.innerHTML = `
+                        <div class="success">✅ Profile API successful!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    result.innerHTML = `
+                        <div class="error">❌ Profile API failed: ${response.status}</div>
+                        <pre>${errorText}</pre>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function goToSettings() {
+            window.location.href = 'settings.html';
+        }
+        
+        // Auto-check localStorage on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLocalStorage();
+        });
+    </script>
+</body>
+</html>

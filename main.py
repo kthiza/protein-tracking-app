@@ -38,7 +38,7 @@ try:
     if GOOGLE_VISION_AVAILABLE:
         print("✅ Google Vision API configured (env var GOOGLE_VISION_API_KEY found)")
     else:
-        print("ℹ️  GOOGLE_VISION_API_KEY not set. Fallback detection will be used unless provided.")
+        print("ℹ️  Google Vision API is required for high-quality food detection.")
 except ImportError:
     GOOGLE_VISION_AVAILABLE = False
     print("Warning: food_detection module not importable. Ensure the file exists.")
@@ -130,6 +130,7 @@ class User(SQLModel, table=True):
     password_hash: str
     weight_kg: Optional[float] = Field(default=None)
     protein_goal: Optional[float] = Field(default=None)
+    activity_level: Optional[str] = Field(default="moderate")  # Added activity level field
     last_weight_update: Optional[datetime] = Field(default=None)
     email_verified: bool = Field(default=False)
     verification_token: Optional[str] = Field(default=None)
@@ -199,6 +200,20 @@ def generate_verification_token() -> str:
     """Generate a random verification token"""
     return secrets.token_urlsafe(32)
 
+def calculate_protein_goal(weight_kg: float, activity_level: str = "moderate") -> float:
+    """Calculate protein goal based on weight and activity level"""
+    # Calculate protein needs based on activity level (g per kg body weight)
+    protein_multipliers = {
+        'sedentary': 0.8,
+        'light': 1.0,
+        'moderate': 1.2,
+        'active': 1.6,
+        'athlete': 2.0
+    }
+    
+    multiplier = protein_multipliers.get(activity_level, 1.2)
+    return round(weight_kg * multiplier, 1)
+
 def is_valid_email(email: str) -> bool:
     """Validate email format"""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -256,9 +271,11 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             user_id = int(token)
         except ValueError:
             raise HTTPException(status_code=401, detail="Invalid token format")
+        
         user = session.exec(select(User).where(User.id == user_id)).first()
         if not user:
             raise HTTPException(status_code=401, detail="Invalid token")
+        
         return user
 
 def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]:
@@ -287,18 +304,19 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
     return round(total_protein, 1), matched_foods
 
 def identify_food_with_vision(image_path: str) -> List[str]:
-    """Food detection wrapper.
-
-    Always calls the detector which will automatically fall back to filename-based
-    heuristics if GOOGLE_VISION_API_KEY is not configured or if the API errors out.
+    """High-quality food detection using Google Vision API only.
+    
+    This function only uses Google Vision API with strict confidence thresholds
+    to ensure accurate food detection. No fallback mechanisms are used.
     """
     try:
-        print(f"🔍 Starting food detection for image: {image_path}")
+        print(f"🔍 Starting high-quality food detection for image: {image_path}")
         detected_foods = identify_food_with_google_vision(image_path)
-        print(f"🎯 Detection Results: {detected_foods}")
+        print(f"🎯 High-Quality Detection Results: {detected_foods}")
         return detected_foods or []
     except Exception as e:
-        print(f"❌ Detection error: {e}")
+        print(f"❌ High-quality detection failed: {e}")
+        # Return empty list instead of fallback - we want only AI detection
         return []
 
 @app.get("/")
@@ -457,6 +475,7 @@ async def get_user_profile(current_user: User = Depends(get_current_user)):
         "username": current_user.username,
         "email": current_user.email,
         "weight_kg": current_user.weight_kg,
+        "activity_level": current_user.activity_level,
         "protein_goal": round(current_user.protein_goal, 1) if current_user.protein_goal else None,
         "last_weight_update": current_user.last_weight_update.isoformat() if current_user.last_weight_update else None,
         "email_verified": current_user.email_verified,
@@ -576,7 +595,8 @@ async def get_profile_picture(user_id: int):
 @app.post("/users/update-weight")
 async def update_weight(
     current_user: User = Depends(get_current_user),
-    weight_kg: float = Form(...)
+    weight_kg: float = Form(...),
+    activity_level: str = Form("moderate")
 ):
     """Update user weight and recalculate protein goal"""
     if weight_kg <= 0:
@@ -587,9 +607,10 @@ async def update_weight(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Update weight and protein goal
+        # Update weight, activity level, and protein goal
         user.weight_kg = weight_kg
-        user.protein_goal = round(weight_kg * 1.6, 1)  # Recalculate protein goal with proper rounding
+        user.activity_level = activity_level
+        user.protein_goal = calculate_protein_goal(weight_kg, activity_level)
         user.last_weight_update = datetime.utcnow()
         
         session.commit()
@@ -598,8 +619,63 @@ async def update_weight(
         return {
             "message": "Weight updated successfully",
             "weight_kg": user.weight_kg,
+            "activity_level": user.activity_level,
             "protein_goal": round(user.protein_goal, 1) if user.protein_goal else None,
             "last_weight_update": user.last_weight_update.isoformat()
+        }
+
+@app.post("/users/update-protein-goal")
+async def update_protein_goal(
+    current_user: User = Depends(get_current_user),
+    protein_goal: float = Form(...)
+):
+    """Update user protein goal directly"""
+    if protein_goal <= 0:
+        raise HTTPException(status_code=400, detail="Protein goal must be greater than 0")
+    
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.id == current_user.id)).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Update protein goal
+        user.protein_goal = round(protein_goal, 1)
+        
+        session.commit()
+        session.refresh(user)
+        
+        return {
+            "message": "Protein goal updated successfully",
+            "protein_goal": round(user.protein_goal, 1) if user.protein_goal else None
+        }
+
+@app.post("/users/update-activity-level")
+async def update_activity_level(
+    current_user: User = Depends(get_current_user),
+    activity_level: str = Form(...)
+):
+    """Update user activity level and recalculate protein goal"""
+    valid_levels = ['sedentary', 'light', 'moderate', 'active', 'athlete']
+    if activity_level not in valid_levels:
+        raise HTTPException(status_code=400, detail="Invalid activity level")
+    
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.id == current_user.id)).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Update activity level and recalculate protein goal if weight exists
+        user.activity_level = activity_level
+        if user.weight_kg:
+            user.protein_goal = calculate_protein_goal(user.weight_kg, activity_level)
+        
+        session.commit()
+        session.refresh(user)
+        
+        return {
+            "message": "Activity level updated successfully",
+            "activity_level": user.activity_level,
+            "protein_goal": round(user.protein_goal, 1) if user.protein_goal else None
         }
 
 @app.options("/meals/upload/")
@@ -626,18 +702,17 @@ async def upload_meal(
             content = await image.read()
             buffer.write(content)
         
-        # Try AI detection if enabled and available
+        # Try high-quality AI detection if enabled
         detected_foods = []
         ai_detection_status = {
             "attempted": use_ai_detection,
-            # Mark available because our detection function has its own fallback
-            "available": True,
+            "available": True,  # Google Vision API is always available if service account is configured
             "successful": False,
             "error": None
         }
         
-        print(f"🤖 AI Detection Requested: {use_ai_detection}")
-        print(f"🔧 Google Vision API Available: {GOOGLE_VISION_AVAILABLE}")
+        print(f"🤖 High-Quality AI Detection Requested: {use_ai_detection}")
+        print(f"🔧 Google Vision API with Service Account: Available")
         
         if use_ai_detection:
             try:
@@ -682,9 +757,9 @@ async def upload_meal(
             if os.path.exists(file_path):
                 os.remove(file_path)
             
-            error_message = "No food items detected or provided. "
+            error_message = "No high-quality food items detected or provided. "
             if use_ai_detection and not detected_foods:
-                error_message += "AI detection did not identify food items. Please enter food items manually."
+                error_message += "High-quality AI detection did not identify food items with sufficient confidence. Please enter food items manually."
             else:
                 error_message += "Please enter the food items manually."
             

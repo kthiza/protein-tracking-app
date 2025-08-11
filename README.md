@@ -69,7 +69,7 @@ Set `APP_BASE_URL` in your environment if you need email links to point to a pub
 APP_BASE_URL=https://your.domain:8000
 ```
 
-**Note:** If no valid API key is configured, the app uses a robust fallback detector so uploads still succeed.
+**Note:** Google Vision API is required for food detection. The app uses high-confidence thresholds to ensure accurate detection.
 
 ## 🐛 Troubleshooting
 

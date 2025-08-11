@@ -586,7 +586,10 @@
                 localStorage.setItem('currentUser', JSON.stringify({
                     id: result.user_id,
                     username: result.username,
-                    token: result.access_token
+                    email: result.email,
+                    weight_kg: result.weight_kg,
+                    protein_goal: result.protein_goal,
+                    token: result.token
                 }));
 
                 showResult('🎉 Login successful! Redirecting...', 'success');
