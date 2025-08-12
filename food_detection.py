@@ -454,13 +454,8 @@ class GoogleVisionFoodDetector:
                     "detection_method": "google_vision_api"
                 }
             
-            # Calculate total protein content for multi-item meals with smart portion adjustment
-            raw_protein = sum(self.protein_database.get(food, 5.0) for food in filtered_foods)
-            
-            # Apply smart portion adjustment based on number of detected items
-            # This prevents unrealistic protein totals for multi-item meals
-            portion_multiplier = self._calculate_portion_multiplier(len(filtered_foods))
-            total_protein = raw_protein * portion_multiplier
+            # Calculate total protein content using the new 120g normalization
+            total_protein = self.calculate_protein_content(filtered_foods)
             
             print(f"🎯 Successfully detected {len(filtered_foods)} food items:")
             for food in filtered_foods:
@@ -468,13 +463,16 @@ class GoogleVisionFoodDetector:
                 protein = self.protein_database.get(food, 5.0)
                 print(f"   - {food} (confidence: {conf:.3f}, protein: {protein}g/100g)")
             
-            print(f"📊 Raw protein sum: {raw_protein:.1f}g")
-            print(f"📊 Portion multiplier: {portion_multiplier:.2f}x")
-            print(f"📊 Adjusted protein content: {total_protein:.1f}g")
+            if len(filtered_foods) == 1:
+                print(f"📊 Single food item: {filtered_foods[0]}, 120g")
+            else:
+                grams_per_item = 120.0 / len(filtered_foods)
+                print(f"📊 Multiple food items: {len(filtered_foods)} items, {grams_per_item:.0f}g each")
+            print(f"📊 Total protein content: {total_protein:.1f}g")
             
             return {
                 "foods": filtered_foods,
-                "protein_per_100g": round(total_protein, 1),  # Adjusted protein total
+                "protein_per_100g": total_protein,  # Now represents protein for 120g total food
                 "confidence_scores": {k: v for k, v in confidence_scores.items() if k in filtered_foods},
                 "detection_method": "google_vision_api"
             }
@@ -533,6 +531,29 @@ class GoogleVisionFoodDetector:
                     " " + food_item + " " in " " + label + " " or  # Word surrounded by spaces
                     food_item in label.split()  # Food item is a separate word
                 )
+                
+                # Prevent overlapping wrap-related detections
+                # If we're about to add a generic wrap but a specific wrap type is already detected (or vice versa), skip
+                wrap_types = ["wrap", "burrito", "taco", "quesadilla", "enchilada", "fajita", "shawarma", "gyro", "kebab"]
+                if food_item in wrap_types:
+                    # Check if any other wrap type is already detected
+                    skip_this_item = False
+                    for existing_food in foods:
+                        if existing_food in wrap_types and existing_food != food_item:
+                            # If we're trying to add "wrap" but a specific type like "burrito" is already detected, skip wrap
+                            if food_item == "wrap" and existing_food != "wrap":
+                                skip_this_item = True
+                                break
+                            # If we're trying to add a specific type but "wrap" is already detected, replace wrap with specific type
+                            elif food_item != "wrap" and existing_food == "wrap":
+                                foods.remove("wrap")  # Remove generic wrap in favor of specific type
+                                break
+                            # If both are specific types, keep the one with higher confidence (handled by filtering later)
+                            elif food_item != "wrap" and existing_food != "wrap":
+                                skip_this_item = True
+                                break
+                    if skip_this_item:
+                        continue
                 
                 if is_valid_match and is_not_partial_word and is_word_boundary_match and food_item not in foods:
                     foods.append(food_item)
@@ -636,7 +657,8 @@ class GoogleVisionFoodDetector:
             "pasta_group": ["pasta", "spaghetti", "penne", "fettuccine", "lasagna", "noodles"],
             "rice_group": ["rice", "white rice", "brown rice", "wild rice", "jasmine rice"],
             "sauce_group": ["bolognese", "marinara", "alfredo", "carbonara", "pesto", "tomato sauce"],
-            "pizza_group": ["pizza", "pepperoni", "margherita", "hawaiian", "supreme", "cheese pizza", "pepperoni pizza"]
+            "pizza_group": ["pizza", "pepperoni", "margherita", "hawaiian", "supreme", "cheese pizza", "pepperoni pizza"],
+            "wrap_group": ["wrap", "burrito", "taco", "quesadilla", "enchilada", "fajita", "shawarma", "gyro", "kebab", "pita", "tortilla", "flatbread", "naan", "roti", "chapati"]
         }
         
         # Find the best item from each group
@@ -689,6 +711,24 @@ class GoogleVisionFoodDetector:
                             new_score = confidence + (protein_content / 100)
                             if food == "pizza" or new_score > current_score:
                                 best_items[group_name] = (food, confidence, protein_content)
+                    # Special handling for wrap group - prioritize specific items over generic "wrap"
+                    elif group_name == "wrap_group":
+                        specific_wraps = ["burrito", "taco", "quesadilla", "enchilada", "fajita", "shawarma", "gyro", "kebab"]
+                        if food in specific_wraps:
+                            # Specific wrap types get priority over generic wrap
+                            if group_name not in best_items:
+                                best_items[group_name] = (food, confidence + 0.1, protein_content)  # Boost confidence
+                            else:
+                                # Only replace if the new item is more specific or has higher score
+                                current_best = best_items[group_name]
+                                current_score = current_best[1] + (current_best[2] / 100)
+                                new_score = confidence + (protein_content / 100)
+                                if new_score > current_score:
+                                    best_items[group_name] = (food, confidence, protein_content)
+                        elif food == "wrap" and group_name not in best_items:
+                            # Only add generic wrap if no specific wrap type is detected
+                            best_items[group_name] = (food, confidence, protein_content)
+                        continue
                     else:
                         # Keep the best item from this group (highest confidence + protein)
                         if group_name not in best_items:
@@ -743,45 +783,34 @@ class GoogleVisionFoodDetector:
         # Return up to 4 items for complex meals (reduced from 6)
         return [food for food, conf, protein in filtered[:4]] if filtered else []
 
-    def calculate_protein_content(self, foods: List[str], portion_size: float = 100.0) -> float:
-        """Calculate total protein content for detected foods in multi-item meals with smart portion adjustment"""
+    def calculate_protein_content(self, foods: List[str]) -> float:
+        """Calculate total protein content for detected foods normalized to 120g total food weight"""
         if not foods:
             return 0.0
         
-        # Calculate raw protein sum
-        raw_protein = 0.0
+        # Calculate raw protein sum per 100g for each food
+        raw_protein_per_100g = 0.0
         for food in foods:
             protein_per_100g = self.protein_database.get(food, 5.0)  # Default 5g if not found
-            raw_protein += protein_per_100g
+            raw_protein_per_100g += protein_per_100g
         
-        # Apply smart portion adjustment based on number of items
-        portion_multiplier = self._calculate_portion_multiplier(len(foods))
-        total_protein = raw_protein * portion_multiplier
+        # For single food item: return protein content for 120g of that food
+        if len(foods) == 1:
+            protein_per_100g = self.protein_database.get(foods[0], 5.0)
+            total_protein = (protein_per_100g * 120.0) / 100.0
+            return round(total_protein, 1)
         
-        # Adjust for portion size if needed
-        if portion_size != 100.0:
-            # Scale the total protein based on portion size
-            total_protein = total_protein * (portion_size / 100.0)
+        # For multiple food items: distribute 120g equally among items
+        # Each item gets 120g / num_items, then calculate protein for that portion
+        grams_per_item = 120.0 / len(foods)
+        total_protein = 0.0
+        
+        for food in foods:
+            protein_per_100g = self.protein_database.get(food, 5.0)
+            protein_for_this_item = (protein_per_100g * grams_per_item) / 100.0
+            total_protein += protein_for_this_item
         
         return round(total_protein, 1)
-
-    def _calculate_portion_multiplier(self, num_items: int) -> float:
-        """
-        Calculates a multiplier to reduce protein content for multi-item meals.
-        This prevents unrealistic protein totals for large meals.
-        """
-        if num_items <= 1:
-            return 1.0
-        elif num_items == 2:
-            return 0.7
-        elif num_items == 3:
-            return 0.55
-        elif num_items == 4:
-            return 0.45
-        elif num_items == 5:
-            return 0.4
-        else:
-            return 0.35
 
 
 def identify_food_with_google_vision(image_path: str) -> List[str]:

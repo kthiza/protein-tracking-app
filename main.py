@@ -313,7 +313,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         return user
 
 def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]:
-    """Calculate total protein content for multi-item meals with smart portion adjustment"""
+    """Calculate total protein content for detected foods normalized to 120g total food weight"""
     raw_protein = 0.0
     matched_foods = []
     
@@ -342,13 +342,52 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
             raw_protein += estimated_protein
             print(f"   ⚠️  No exact match for '{food_item}' -> {estimated_protein}g protein (estimated)")
     
-    # Apply smart portion adjustment based on number of items
-    portion_multiplier = _calculate_portion_multiplier(len(food_items))
-    total_protein = raw_protein * portion_multiplier
+    # For single food item: return protein content for 120g of that food
+    if len(food_items) == 1:
+        food_lower = food_items[0].lower().strip()
+        protein_per_100g = 0.0
+        
+        if food_lower in PROTEIN_DATABASE:
+            protein_per_100g = PROTEIN_DATABASE[food_lower]
+        else:
+            # Try to find a match
+            for db_item, protein_value in PROTEIN_DATABASE.items():
+                if db_item in food_lower or food_lower in db_item:
+                    protein_per_100g = protein_value
+                    break
+            if protein_per_100g == 0.0:
+                protein_per_100g = _estimate_protein_from_food_name(food_lower)
+        
+        total_protein = (protein_per_100g * 120.0) / 100.0
+        print(f"📊 Single food item: {food_items[0]}, 120g")
+        print(f"📊 Protein calculation: {total_protein:.1f}g from 120g of {food_items[0]}")
+        return round(total_protein, 1), matched_foods
     
-    print(f"📊 Raw protein sum: {raw_protein:.1f}g")
-    print(f"📊 Portion multiplier: {portion_multiplier:.2f}x")
-    print(f"📊 Adjusted protein calculation: {total_protein:.1f}g from {len(food_items)} items")
+    # For multiple food items: distribute 120g equally among items
+    # Each item gets 120g / num_items, then calculate protein for that portion
+    grams_per_item = 120.0 / len(food_items)
+    total_protein = 0.0
+    
+    for i, food_item in enumerate(food_items):
+        food_lower = food_item.lower().strip()
+        protein_per_100g = 0.0
+        
+        if food_lower in PROTEIN_DATABASE:
+            protein_per_100g = PROTEIN_DATABASE[food_lower]
+        else:
+            # Try to find a match
+            for db_item, protein_value in PROTEIN_DATABASE.items():
+                if db_item in food_lower or food_lower in db_item:
+                    protein_per_100g = protein_value
+                    break
+            if protein_per_100g == 0.0:
+                protein_per_100g = _estimate_protein_from_food_name(food_lower)
+        
+        protein_for_this_item = (protein_per_100g * grams_per_item) / 100.0
+        total_protein += protein_for_this_item
+    
+    print(f"📊 Multiple food items: {len(food_items)} items, {grams_per_item:.0f}g each")
+    print(f"📊 Protein calculation: {total_protein:.1f}g from 120g total ({grams_per_item:.0f}g per item)")
     return round(total_protein, 1), matched_foods
 
 def _estimate_protein_from_food_name(food_name: str) -> float:
