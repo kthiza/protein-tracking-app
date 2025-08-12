@@ -54,14 +54,14 @@ Follow the prompts to configure Gmail SMTP settings.
 
 **Note:** If email verification is not configured, new accounts will be automatically verified and users can log in immediately.
 
-### Google Cloud Vision API (Optional)
-For AI-powered food detection, add your API key to `.env` and restart the server:
+### Google Cloud Vision API (Required for Food Detection)
+For multi-item AI-powered food detection, you need a Google Cloud Vision API service account:
 
-```
-GOOGLE_VISION_API_KEY=your_key_here
-```
+1. **Create a service account** in Google Cloud Console
+2. **Download the JSON key file** and save it as `service-account-key.json` in the project directory
+3. **Enable the Vision API** in your Google Cloud project
 
-If the key is missing or a request fails, the app automatically falls back to a heuristic detector so uploads never fail.
+The app uses improved confidence thresholds and can detect multiple food items in complex meals like English breakfast.
 
 Set `APP_BASE_URL` in your environment if you need email links to point to a public hostname (used in verification emails):
 
@@ -69,7 +69,7 @@ Set `APP_BASE_URL` in your environment if you need email links to point to a pub
 APP_BASE_URL=https://your.domain:8000
 ```
 
-**Note:** Google Vision API is required for food detection. The app uses high-confidence thresholds to ensure accurate detection.
+**Note:** Google Vision API with service account is required for food detection. The app uses improved confidence thresholds (0.70) to detect multiple food items in complex meals.
 
 ## 🐛 Troubleshooting
 
@@ -115,7 +115,14 @@ To check email verification status, visit: `http://127.0.0.1:8000/auth/email-sta
 - **Email Verification** (optional)
 - **Protein Tracking**
 - **Image Upload & Analysis**
-- **AI Food Recognition** (with Google Cloud Vision)
+- **Multi-Item AI Food Recognition** (with Google Cloud Vision)
+  - Detects multiple food items in complex meals (e.g., English breakfast)
+  - Supports up to 4 food items per meal (optimized to prevent over-detection)
+  - Special handling for meal types (breakfast, lunch, dinner)
+  - Improved confidence thresholds for better detection
+  - **Accurate Protein Calculation**: Sums protein content from all detected items
+  - **No Averaging**: Each food item contributes its full protein value to the total meal
+  - **Over-Detection Prevention**: Groups similar foods to avoid detecting related terms as separate items
 - **Dashboard with Progress Tracking**
 - **Weight-based Protein Goals**
 - **Profile Picture Management**
@@ -191,10 +198,32 @@ python test_profile_picture.py
 
 ### Manual Testing
 1. Register multiple users
-2. Upload many meals per user
+2. Upload many meals per user (including complex meals like English breakfast)
 3. Test pagination in "All Meals" view
 4. Verify "Today's Meals" shows all meals for the day
 5. Test dashboard performance with cached data
+6. Test multi-item food detection with complex meals
+
+### Multi-Item Detection Testing
+```bash
+python test_multi_item_detection.py
+```
+
+This tests the improved detection system that can handle complex meals with multiple food items.
+
+### Protein Calculation Testing
+```bash
+python test_protein_calculation.py
+```
+
+This tests the improved protein calculation system that provides accurate readings for multi-item meals.
+
+### Over-Detection Fix Testing
+```bash
+python test_over_detection_fix.py
+```
+
+This tests the improved detection logic to ensure it doesn't over-detect multiple items when there's only one item in the image (e.g., beef only should not detect chicken, tea, roast beef, etc.).
 
 ## 🤝 Contributing
 

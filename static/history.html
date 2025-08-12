@@ -744,7 +744,7 @@
         let filteredMeals = [];
         let currentPage = 1;
         const mealsPerPage = 10;
-        const API_BASE = 'http://127.0.0.1:8000';
+        const API_BASE = window.AppAPI ? window.AppAPI.baseURL : 'http://127.0.0.1:8000';
 
         // Initialize
                 document.addEventListener('DOMContentLoaded', async function() {
@@ -1063,10 +1063,9 @@
         }
 
         function getTimeAgo(date) {
-            // Fix timezone issue by adding 3 hours to the date (UTC to Kosovo time)
-            const adjustedDate = new Date(date.getTime() + (3 * 60 * 60 * 1000));
+            // Use local timezone instead of hardcoded offset
             const now = new Date();
-            const diffMs = now - adjustedDate;
+            const diffMs = now - date;
             const diffMins = Math.floor(diffMs / 60000);
             const diffHours = Math.floor(diffMins / 60);
             const diffDays = Math.floor(diffHours / 24);
@@ -1075,7 +1074,7 @@
             if (diffMins < 60) return `${diffMins}m ago`;
             if (diffHours < 24) return `${diffHours}h ago`;
             if (diffDays < 7) return `${diffDays}d ago`;
-            return adjustedDate.toLocaleDateString();
+            return date.toLocaleDateString();
         }
 
         function showError(message) {

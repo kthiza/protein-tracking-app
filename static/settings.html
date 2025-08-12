@@ -1112,7 +1112,7 @@
 
     <script>
         // Settings page JavaScript
-        const API_BASE = 'http://127.0.0.1:8000';
+        const API_BASE = window.AppAPI ? window.AppAPI.baseURL : 'http://127.0.0.1:8000';
         let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
         let isEditingProfile = false;
 

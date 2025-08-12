@@ -132,13 +132,14 @@
             font-weight: 700;
             font-size: 1.25rem;
             background: var(--primary-gradient);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .logo i {
             background: var(--primary-gradient);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-size: 1.5rem;
@@ -926,7 +927,7 @@
         let capturedImage = null;
         let stream = null;
         let selectedMethod = null;
-        const API_BASE = 'http://127.0.0.1:8000';
+        const API_BASE = window.AppAPI ? window.AppAPI.baseURL : 'http://127.0.0.1:8000';
 
         // Initialize app
         document.addEventListener('DOMContentLoaded', async function() {
@@ -1150,17 +1151,16 @@
         }
 
                 function getTimeAgo(date) {
-            // Fix timezone issue by adding 3 hours to the date (UTC to Kosovo time)
-            const adjustedDate = new Date(date.getTime() + (3 * 60 * 60 * 1000));
+            // Use local timezone instead of hardcoded offset
             const now = new Date();
-            const diffMs = now - adjustedDate;
+            const diffMs = now - date;
             const diffMins = Math.floor(diffMs / 60000);
             const diffHours = Math.floor(diffMins / 60);
 
             if (diffMins < 1) return 'Just now';
             if (diffMins < 60) return `${diffMins}m ago`;
             if (diffHours < 24) return `${diffHours}h ago`;
-            return adjustedDate.toLocaleDateString();
+            return date.toLocaleDateString();
         }
 
         function selectMethod(method) {

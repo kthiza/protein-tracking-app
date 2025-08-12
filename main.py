@@ -48,16 +48,45 @@ LOCAL_AI_AVAILABLE = GOOGLE_VISION_AVAILABLE
 
 # Enhanced protein database (values per 100g); harmonized with detection module
 PROTEIN_DATABASE = {
-    "chicken": 31.0, "chicken breast": 31.0, "chicken thigh": 28.0,
-    "beef": 26.0, "steak": 26.0, "ground beef": 26.0,
-    "pork": 25.0, "pork chop": 25.0, "bacon": 37.0, "ham": 22.0,
-    "salmon": 20.0, "tuna": 30.0, "cod": 18.0, "tilapia": 26.0,
-    "turkey": 29.0, "duck": 23.0, "lamb": 25.0,
-    "egg": 13.0, "eggs": 13.0, "milk": 3.4, "cheese": 25.0,
-    "yogurt": 10.0, "peanut butter": 25.0, "almonds": 21.0,
-    "tofu": 8.0, "lentils": 9.0, "beans": 7.0, "chickpeas": 9.0, "edamame": 11.0,
-    "quinoa": 14.0, "rice": 2.7, "bread": 9.0, "pasta": 13.0,
-    "broccoli": 2.8, "spinach": 2.9
+    # Meats & Poultry
+    "chicken": 31.0, "chicken breast": 31.0, "chicken thigh": 28.0, "chicken wing": 30.0,
+    "beef": 26.0, "steak": 26.0, "ground beef": 26.0, "beef burger": 26.0, "burger": 26.0,
+    "pork": 25.0, "pork chop": 25.0, "bacon": 37.0, "ham": 22.0, "sausage": 18.0,
+    "salmon": 20.0, "tuna": 30.0, "cod": 18.0, "tilapia": 26.0, "fish": 20.0,
+    "turkey": 29.0, "duck": 23.0, "lamb": 25.0, "shrimp": 24.0, "prawns": 24.0,
+    
+    # Dairy & Eggs
+    "egg": 13.0, "eggs": 13.0, "milk": 3.4, "cheese": 25.0, "cheddar": 25.0,
+    "yogurt": 10.0, "greek yogurt": 10.0, "cottage cheese": 11.0, "cream cheese": 6.0,
+    
+    # Nuts & Seeds
+    "peanut butter": 25.0, "almonds": 21.0, "walnuts": 15.0, "cashews": 18.0,
+    "sunflower seeds": 21.0, "chia seeds": 17.0, "pumpkin seeds": 19.0,
+    
+    # Plant-based Proteins
+    "tofu": 8.0, "tempeh": 20.0, "lentils": 9.0, "beans": 21.0, "black beans": 21.0,
+    "kidney beans": 24.0, "chickpeas": 19.0, "edamame": 11.0, "hummus": 8.0,
+    
+    # Grains & Cereals
+    "quinoa": 14.0, "rice": 2.7, "brown rice": 2.7, "bread": 9.0, "whole wheat bread": 13.0,
+    "pasta": 13.0, "spaghetti": 13.0, "oatmeal": 13.0, "oats": 13.0, "cereal": 10.0,
+    
+    # Vegetables
+    "broccoli": 2.8, "spinach": 2.9, "kale": 4.3, "asparagus": 2.2, "brussels sprouts": 3.4,
+    "cauliflower": 1.9, "peas": 5.4, "corn": 3.2, "potato": 2.0, "sweet potato": 1.6,
+    
+    # Fast Food & Common Meals (adjusted for typical serving sizes)
+    "pizza": 25.0, "pizza slice": 12.0, "hamburger": 35.0, "hot dog": 15.0,
+    "sandwich": 20.0, "wrap": 20.0, "taco": 18.0, "burrito": 25.0,
+    "noodles": 20.0, "ramen": 20.0, "soup": 12.0, "salad": 8.0,
+    
+    # Breakfast Foods
+    "pancakes": 6.0, "waffles": 6.0, "french toast": 8.0, "bagel": 10.0,
+    "muffin": 5.0, "croissant": 8.0, "english muffin": 8.0,
+    
+    # Snacks & Others
+    "protein bar": 20.0, "protein shake": 25.0, "smoothie": 8.0,
+    "ice cream": 4.0, "chocolate": 5.0, "cookies": 5.0, "cake": 4.0
 }
 
 # Database setup with optimized settings for multiple users
@@ -135,7 +164,7 @@ class User(SQLModel, table=True):
     email_verified: bool = Field(default=False)
     verification_token: Optional[str] = Field(default=None)
     profile_picture_path: Optional[str] = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.now)
 
 class Meal(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -143,7 +172,7 @@ class Meal(SQLModel, table=True):
     image_path: str
     food_items: str
     total_protein: float
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.now)
 
 from contextlib import asynccontextmanager
 
@@ -262,6 +291,7 @@ def send_verification_email(email: str, username: str, token: str):
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
     """Get current user from token"""
     token = credentials.credentials
+    print(f"🔐 Authentication attempt with token: {token}")
     
     with Session(engine) as session:
         # For now, we'll use a simple token system
@@ -269,17 +299,22 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         # Token is a simple user id string for now; guard cast
         try:
             user_id = int(token)
+            print(f"🔐 Parsed user_id: {user_id}")
         except ValueError:
+            print(f"❌ Invalid token format: {token}")
             raise HTTPException(status_code=401, detail="Invalid token format")
         
         user = session.exec(select(User).where(User.id == user_id)).first()
         if not user:
+            print(f"❌ User not found for id: {user_id}")
             raise HTTPException(status_code=401, detail="Invalid token")
         
+        print(f"✅ Authenticated user: {user.username} (ID: {user.id})")
         return user
 
 def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]:
-    total_protein = 0.0
+    """Calculate total protein content for multi-item meals with smart portion adjustment"""
+    raw_protein = 0.0
     matched_foods = []
     
     for food_item in food_items:
@@ -287,35 +322,121 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
         found_match = False
         
         if food_lower in PROTEIN_DATABASE:
-            total_protein += PROTEIN_DATABASE[food_lower]
+            protein_value = PROTEIN_DATABASE[food_lower]
+            raw_protein += protein_value
             matched_foods.append(food_item)
             found_match = True
+            print(f"   ✅ Matched '{food_item}' -> {protein_value}g protein")
         else:
             for db_item, protein_value in PROTEIN_DATABASE.items():
                 if db_item in food_lower or food_lower in db_item:
-                    total_protein += protein_value
+                    raw_protein += protein_value
                     matched_foods.append(food_item)
                     found_match = True
+                    print(f"   ✅ Matched '{food_item}' -> {protein_value}g protein (via '{db_item}')")
                     break
         
         if not found_match:
-            total_protein += 5.0
+            # Try to estimate protein based on food type
+            estimated_protein = _estimate_protein_from_food_name(food_lower)
+            raw_protein += estimated_protein
+            print(f"   ⚠️  No exact match for '{food_item}' -> {estimated_protein}g protein (estimated)")
     
+    # Apply smart portion adjustment based on number of items
+    portion_multiplier = _calculate_portion_multiplier(len(food_items))
+    total_protein = raw_protein * portion_multiplier
+    
+    print(f"📊 Raw protein sum: {raw_protein:.1f}g")
+    print(f"📊 Portion multiplier: {portion_multiplier:.2f}x")
+    print(f"📊 Adjusted protein calculation: {total_protein:.1f}g from {len(food_items)} items")
     return round(total_protein, 1), matched_foods
 
-def identify_food_with_vision(image_path: str) -> List[str]:
-    """High-quality food detection using Google Vision API only.
+def _estimate_protein_from_food_name(food_name: str) -> float:
+    """
+    Estimate protein content based on food name patterns.
+    Returns reasonable protein values for common foods not in the database.
+    """
+    food_name = food_name.lower()
     
-    This function only uses Google Vision API with strict confidence thresholds
-    to ensure accurate food detection. No fallback mechanisms are used.
+    # Meat and protein-rich foods
+    if any(word in food_name for word in ['meat', 'beef', 'steak', 'burger', 'patty', 'cutlet']):
+        return 25.0
+    elif any(word in food_name for word in ['chicken', 'poultry', 'breast', 'thigh', 'wing']):
+        return 30.0
+    elif any(word in food_name for word in ['fish', 'salmon', 'tuna', 'cod', 'seafood']):
+        return 20.0
+    elif any(word in food_name for word in ['pork', 'bacon', 'ham', 'sausage']):
+        return 25.0
+    elif any(word in food_name for word in ['egg', 'eggs']):
+        return 13.0
+    
+    # Dairy products
+    elif any(word in food_name for word in ['cheese', 'milk', 'yogurt', 'cream']):
+        return 15.0
+    
+    # Grains and carbs
+    elif any(word in food_name for word in ['bread', 'toast', 'sandwich', 'wrap']):
+        return 10.0
+    elif any(word in food_name for word in ['pasta', 'noodles', 'spaghetti', 'macaroni']):
+        return 13.0
+    elif any(word in food_name for word in ['rice', 'quinoa', 'oatmeal', 'cereal']):
+        return 8.0
+    elif any(word in food_name for word in ['pizza', 'slice']):
+        return 20.0
+    
+    # Vegetables
+    elif any(word in food_name for word in ['salad', 'vegetable', 'broccoli', 'spinach', 'kale']):
+        return 3.0
+    
+    # Nuts and seeds
+    elif any(word in food_name for word in ['nut', 'seed', 'almond', 'peanut']):
+        return 20.0
+    
+    # Fast food and processed foods
+    elif any(word in food_name for word in ['burger', 'hot dog', 'taco', 'burrito']):
+        return 25.0
+    elif any(word in food_name for word in ['fries', 'chips', 'snack']):
+        return 5.0
+    
+    # Desserts and sweets
+    elif any(word in food_name for word in ['cake', 'cookie', 'dessert', 'sweet', 'chocolate']):
+        return 4.0
+    
+    # Default for unknown foods
+    else:
+        return 8.0  # Reasonable default for mixed/complex foods
+
+def _calculate_portion_multiplier(num_items: int) -> float:
+    """
+    Calculates a multiplier to adjust protein content for multi-item meals.
+    Uses more realistic portion sizes for typical meal servings.
+    """
+    if num_items <= 1:
+        return 1.0
+    elif num_items == 2:
+        return 0.65  # Each item gets about 65% of full portion
+    elif num_items == 3:
+        return 0.50  # Each item gets about 50% of full portion
+    elif num_items == 4:
+        return 0.35  # Each item gets about 35% of full portion
+    elif num_items == 5:
+        return 0.30  # Each item gets about 30% of full portion
+    else:
+        return 0.25  # Each item gets about 25% of full portion for very large meals
+
+def identify_food_with_vision(image_path: str) -> List[str]:
+    """Multi-item food detection using Google Vision API.
+    
+    This function uses Google Vision API with improved confidence thresholds
+    to detect multiple food items in complex meals like English breakfast.
     """
     try:
-        print(f"🔍 Starting high-quality food detection for image: {image_path}")
+        print(f"🔍 Starting multi-item food detection for image: {image_path}")
         detected_foods = identify_food_with_google_vision(image_path)
-        print(f"🎯 High-Quality Detection Results: {detected_foods}")
+        print(f"🎯 Multi-Item Detection Results: {detected_foods}")
         return detected_foods or []
     except Exception as e:
-        print(f"❌ High-quality detection failed: {e}")
+        print(f"❌ Multi-item detection failed: {e}")
         # Return empty list instead of fallback - we want only AI detection
         return []
 
@@ -323,6 +444,11 @@ def identify_food_with_vision(image_path: str) -> List[str]:
 async def root():
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/static/login.html")
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 @app.post("/auth/register")
 async def register_user(
@@ -539,7 +665,7 @@ async def upload_profile_picture(
     os.makedirs(profile_dir, exist_ok=True)
     
     # Generate unique filename
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     file_extension = os.path.splitext(profile_picture.filename)[1]
     filename = f"profile_{current_user.id}_{timestamp}{file_extension}"
     file_path = os.path.join(profile_dir, filename)
@@ -599,6 +725,9 @@ async def update_weight(
     activity_level: str = Form("moderate")
 ):
     """Update user weight and recalculate protein goal"""
+    print(f"⚖️  Weight update request for user: {current_user.username} (ID: {current_user.id})")
+    print(f"⚖️  New weight: {weight_kg}kg, Activity level: {activity_level}")
+    
     if weight_kg <= 0:
         raise HTTPException(status_code=400, detail="Weight must be greater than 0")
     
@@ -611,7 +740,7 @@ async def update_weight(
         user.weight_kg = weight_kg
         user.activity_level = activity_level
         user.protein_goal = calculate_protein_goal(weight_kg, activity_level)
-        user.last_weight_update = datetime.utcnow()
+        user.last_weight_update = datetime.now()
         
         session.commit()
         session.refresh(user)
@@ -702,7 +831,7 @@ async def upload_meal(
             content = await image.read()
             buffer.write(content)
         
-        # Try high-quality AI detection if enabled
+        # Try multi-item AI detection if enabled
         detected_foods = []
         ai_detection_status = {
             "attempted": use_ai_detection,
@@ -711,14 +840,14 @@ async def upload_meal(
             "error": None
         }
         
-        print(f"🤖 High-Quality AI Detection Requested: {use_ai_detection}")
+        print(f"🤖 Multi-Item AI Detection Requested: {use_ai_detection}")
         print(f"🔧 Google Vision API with Service Account: Available")
         
         if use_ai_detection:
             try:
                 detected_foods = identify_food_with_vision(file_path)
                 ai_detection_status["successful"] = len(detected_foods) > 0
-                print(f"🎯 AI Detection Results: {detected_foods}")
+                print(f"🎯 Multi-Item AI Detection Results: {detected_foods}")
             except Exception as e:
                 ai_detection_status["error"] = str(e)
                 print(f"❌ AI Detection failed: {e}")
@@ -735,7 +864,7 @@ async def upload_meal(
         print(f"✍️  Manual foods: {manual_foods}")
         
         if detected_foods and manual_foods:
-            # Both AI and manual - combine them
+            # Both AI and manual - combine them, removing duplicates
             food_list = list(set(detected_foods + manual_foods))
             print(f"🔄 Combined AI + Manual: {food_list}")
         elif detected_foods:
@@ -757,9 +886,9 @@ async def upload_meal(
             if os.path.exists(file_path):
                 os.remove(file_path)
             
-            error_message = "No high-quality food items detected or provided. "
+            error_message = "No food items detected or provided. "
             if use_ai_detection and not detected_foods:
-                error_message += "High-quality AI detection did not identify food items with sufficient confidence. Please enter food items manually."
+                error_message += "AI detection did not identify food items. Please enter food items manually."
             else:
                 error_message += "Please enter the food items manually."
             
@@ -779,7 +908,7 @@ async def upload_meal(
             session.refresh(meal)
         
         # Invalidate cache for this user
-        cache_key = f"dashboard_{current_user.id}_{datetime.utcnow().date()}"
+        cache_key = f"dashboard_{current_user.id}_{datetime.now().date()}"
         cache.set(cache_key, None, ttl=1)  # Invalidate immediately
         
         return {
@@ -811,13 +940,13 @@ async def upload_meal(
 @app.get("/dashboard")
 async def get_dashboard_data(current_user: User = Depends(get_current_user)):
     # Check cache first
-    cache_key = f"dashboard_{current_user.id}_{datetime.utcnow().date()}"
+    cache_key = f"dashboard_{current_user.id}_{datetime.now().date()}"
     cached_data = cache.get(cache_key)
     if cached_data and cached_data['expires_at'] > time.time():
         return cached_data['value']
     
     with Session(engine) as session:
-        today = datetime.utcnow().date()
+        today = datetime.now().date()
         today_meals = session.exec(select(Meal).where(
             Meal.user_id == current_user.id,
             func.date(Meal.created_at) == today
@@ -827,7 +956,7 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
         
         all_meals = session.exec(select(Meal).where(Meal.user_id == current_user.id)).all()
         
-        week_ago = datetime.utcnow().date() - timedelta(days=7)
+        week_ago = datetime.now().date() - timedelta(days=7)
         weekly_meals = session.exec(select(Meal).where(
             Meal.user_id == current_user.id,
             func.date(Meal.created_at) >= week_ago
@@ -837,7 +966,7 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
         # Check if user needs weight update (weekly popup)
         needs_weight_update = False
         if current_user.last_weight_update:
-            days_since_update = (datetime.utcnow() - current_user.last_weight_update).days
+            days_since_update = (datetime.now() - current_user.last_weight_update).days
             needs_weight_update = days_since_update >= 7
         else:
             needs_weight_update = True  # First time user
@@ -882,6 +1011,7 @@ async def get_user_meals(
     date_filter: Optional[str] = Query(None, description="Filter by date (YYYY-MM-DD)")
 ):
     """Get user meals with pagination and date filtering"""
+    print(f"🍽️  Loading meals for user: {current_user.username} (ID: {current_user.id})")
     offset = (page - 1) * limit
     
     with Session(engine) as session:
@@ -931,7 +1061,7 @@ async def get_user_meals(
 @app.get("/meals/today")
 async def get_today_meals(current_user: User = Depends(get_current_user)):
     """Get all meals for today with optimized query"""
-    today = datetime.utcnow().date()
+    today = datetime.now().date()
     
     with Session(engine) as session:
         # Get all meals for today
@@ -979,7 +1109,7 @@ async def manual_cleanup():
     try:
         with Session(engine) as session:
             # Find meals older than 1 hour (for testing)
-            cutoff_time = datetime.utcnow() - timedelta(hours=1)
+            cutoff_time = datetime.now() - timedelta(hours=1)
             old_meals = session.exec(
                 select(Meal).where(Meal.created_at < cutoff_time)
             ).all()

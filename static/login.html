@@ -463,7 +463,7 @@
     <script src="/static/js/app.js"></script>
     <script>
         let isLoginMode = true;
-        const API_BASE = 'http://127.0.0.1:8000';
+        const API_BASE = window.AppAPI ? window.AppAPI.baseURL : 'http://127.0.0.1:8000';
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
