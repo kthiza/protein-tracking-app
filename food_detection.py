@@ -58,8 +58,8 @@ class GoogleVisionFoodDetector:
             "goat": 25.0, "wild boar": 25.0, "antelope": 30.0, "moose": 30.0,
             
             # Dairy & Eggs (High Protein)
-            "egg": 13.0, "eggs": 13.0, "scrambled eggs": 13.0, "fried eggs": 13.0, "boiled eggs": 13.0,
-            "omelet": 13.0, "omelette": 13.0, "poached eggs": 13.0, "deviled eggs": 13.0,
+            "egg": 13.0, "eggs": 13.0, "scrambled eggs": 13.0, "fried eggs": 13.0, "fried egg": 13.0, "boiled eggs": 13.0,
+            "omelet": 13.0, "omelette": 13.0, "poached eggs": 13.0, "deviled eggs": 13.0, "yolk": 16.0,
             "milk": 3.4, "cheese": 25.0, "cheddar": 25.0, "mozzarella": 22.0, "parmesan": 38.0,
             "feta": 14.0, "blue cheese": 21.0, "swiss": 27.0, "gouda": 25.0, "brie": 20.0,
             "yogurt": 10.0, "greek yogurt": 10.0, "cottage cheese": 11.0, "cream cheese": 6.0,
@@ -67,7 +67,7 @@ class GoogleVisionFoodDetector:
             
             # Plant-based Proteins (Medium-High Protein)
             "tofu": 8.0, "tempeh": 20.0, "edamame": 11.0, "soybeans": 36.0, "soy milk": 3.3,
-            "lentils": 9.0, "beans": 21.0, "black beans": 21.0, "kidney beans": 24.0, "pinto beans": 21.0,
+            "lentils": 9.0,             "beans": 21.0, "baked beans": 21.0, "black beans": 21.0, "kidney beans": 24.0, "pinto beans": 21.0,
             "navy beans": 22.0, "lima beans": 21.0, "cannellini beans": 23.0, "great northern beans": 22.0, "white beans": 23.0, "garbanzo beans": 19.0, "chickpeas": 19.0,
             "hummus": 8.0, "falafel": 8.0,
             "split peas": 25.0, "black eyed peas": 24.0, "adzuki beans": 20.0, "mung beans": 24.0,
@@ -493,7 +493,7 @@ class GoogleVisionFoodDetector:
         # Direct exact matches - highest priority
         if label in self.protein_database:
             foods.append(label)
-            return foods  # If we have an exact match, return it immediately
+            # Don't return immediately - continue processing other labels for multi-item meals
         
         # Handle multi-item meal descriptions (e.g., "english breakfast", "full breakfast")
         meal_keywords = ["breakfast", "lunch", "dinner", "meal", "plate", "dish"]
@@ -524,12 +524,22 @@ class GoogleVisionFoodDetector:
                 
                 # Additional validation to prevent substring false positives
                 # Check if this is a real word boundary match, not just substring
+                # More flexible matching for multi-word food items like "fried egg", "baked beans"
                 is_word_boundary_match = (
                     food_item == label or  # Exact match
                     label.startswith(food_item + " ") or  # Starts with food item + space
                     label.endswith(" " + food_item) or  # Ends with space + food item
                     " " + food_item + " " in " " + label + " " or  # Word surrounded by spaces
-                    food_item in label.split()  # Food item is a separate word
+                    food_item in label.split() or  # Food item is a separate word
+                    # For multi-word food items, check if all words are present
+                    (len(food_item.split()) > 1 and all(word in label for word in food_item.split())) or
+                    # For single words, check if they're part of the label as a complete word
+                    (len(food_item.split()) == 1 and (
+                        food_item in label.split() or  # Food item is a separate word in the label
+                        label.startswith(food_item + " ") or  # Label starts with food item
+                        label.endswith(" " + food_item) or  # Label ends with food item
+                        " " + food_item + " " in " " + label + " "  # Food item surrounded by spaces
+                    ))
                 )
                 
                 # Prevent overlapping wrap-related detections
@@ -652,13 +662,58 @@ class GoogleVisionFoodDetector:
             "pork_group": ["pork", "pork chop", "bacon", "ham", "pork loin", "pork tenderloin", "pork belly", "pulled pork", "pork ribs", "pork shoulder"],
             "fish_group": ["salmon", "tuna", "cod", "tilapia", "trout", "mackerel", "halibut", "sea bass", "red snapper", "grouper", "swordfish"],
             "dairy_group": ["milk", "cheese", "cheddar", "mozzarella", "parmesan", "feta", "blue cheese", "swiss", "gouda", "brie", "yogurt", "greek yogurt", "cottage cheese"],
-            "egg_group": ["egg", "eggs", "scrambled eggs", "fried eggs", "boiled eggs", "omelet", "omelette", "poached eggs", "deviled eggs"],
+            "egg_group": ["egg", "eggs", "scrambled eggs", "fried eggs", "fried egg", "boiled eggs", "omelet", "omelette", "poached eggs", "deviled eggs"],
             "bread_group": ["bread", "white bread", "whole wheat bread", "sourdough", "bagel", "toast"],
             "pasta_group": ["pasta", "spaghetti", "penne", "fettuccine", "lasagna", "noodles"],
             "rice_group": ["rice", "white rice", "brown rice", "wild rice", "jasmine rice"],
             "sauce_group": ["bolognese", "marinara", "alfredo", "carbonara", "pesto", "tomato sauce"],
             "pizza_group": ["pizza", "pepperoni", "margherita", "hawaiian", "supreme", "cheese pizza", "pepperoni pizza"],
-            "wrap_group": ["wrap", "burrito", "taco", "quesadilla", "enchilada", "fajita", "shawarma", "gyro", "kebab", "pita", "tortilla", "flatbread", "naan", "roti", "chapati"]
+            "wrap_group": ["wrap", "burrito", "taco", "quesadilla", "enchilada", "fajita", "shawarma", "gyro", "kebab", "pita", "tortilla", "flatbread", "naan", "roti", "chapati"],
+            "bean_group": ["beans", "baked beans", "black beans", "kidney beans", "pinto beans", "navy beans", "lima beans", "cannellini beans", "great northern beans", "white beans", "garbanzo beans", "chickpeas"]
+        }
+        
+        # Define specificity levels for each group to prioritize more specific terms
+        specificity_rules = {
+            "egg_group": {
+                "specific": ["scrambled eggs", "fried eggs", "fried egg", "boiled eggs", "omelet", "omelette", "poached eggs", "deviled eggs"],
+                "generic": ["egg", "eggs"]
+            },
+            "pasta_group": {
+                "specific": ["spaghetti", "penne", "fettuccine", "lasagna"],
+                "generic": ["pasta", "noodles"]
+            },
+            "pizza_group": {
+                "specific": ["pizza"],
+                "generic": ["pepperoni", "margherita", "hawaiian", "supreme", "cheese pizza", "pepperoni pizza"]
+            },
+            "wrap_group": {
+                "specific": ["burrito", "taco", "quesadilla", "enchilada", "fajita", "shawarma", "gyro", "kebab"],
+                "generic": ["wrap", "pita", "tortilla", "flatbread", "naan", "roti", "chapati"]
+            },
+            "bean_group": {
+                "specific": ["baked beans", "black beans", "kidney beans", "pinto beans", "navy beans", "lima beans", "cannellini beans", "great northern beans", "white beans", "garbanzo beans", "chickpeas"],
+                "generic": ["beans"]
+            },
+            "bread_group": {
+                "specific": ["white bread", "whole wheat bread", "sourdough", "bagel", "toast"],
+                "generic": ["bread"]
+            },
+            "rice_group": {
+                "specific": ["white rice", "brown rice", "wild rice", "jasmine rice"],
+                "generic": ["rice"]
+            },
+            "chicken_group": {
+                "specific": ["chicken breast", "chicken thigh", "chicken wing", "chicken nuggets", "chicken tenders", "fried chicken", "roasted chicken"],
+                "generic": ["chicken"]
+            },
+            "beef_group": {
+                "specific": ["steak", "roast beef", "ground beef", "beef steak", "ribeye", "sirloin", "filet mignon", "t-bone", "porterhouse", "beef burger", "hamburger"],
+                "generic": ["beef"]
+            },
+            "pork_group": {
+                "specific": ["pork chop", "bacon", "ham", "pork loin", "pork tenderloin", "pork belly", "pulled pork", "pork ribs", "pork shoulder"],
+                "generic": ["pork"]
+            }
         }
         
         # Find the best item from each group
@@ -672,70 +727,58 @@ class GoogleVisionFoodDetector:
             for group_name, group_items in food_groups.items():
                 if food in group_items:
                     food_grouped = True
+                    
                     # Special handling for beef group - only include if specifically detected
                     if group_name == "beef_group":
                         # Only add beef items if they were specifically detected, not through category matching
                         if food in ["beef", "steak"] and confidence < 0.8:
                             continue  # Skip low-confidence beef detections that might be from category matching
                     
-                    # Special handling for pasta group - prioritize specific pasta types over generic noodles
-                    if group_name == "pasta_group":
-                        specific_pastas = ["spaghetti", "penne", "fettuccine", "lasagna"]
-                        if food in specific_pastas:
-                            # Specific pasta types get priority over generic noodles
+                    # Generalized specificity handling for all groups
+                    if group_name in specificity_rules:
+                        rules = specificity_rules[group_name]
+                        specific_terms = rules["specific"]
+                        generic_terms = rules["generic"]
+                        
+                        if food in specific_terms:
+                            # Specific terms get priority over generic terms
                             if group_name not in best_items:
                                 best_items[group_name] = (food, confidence + 0.1, protein_content)  # Boost confidence
                             else:
                                 # Only replace if the new item is more specific or has higher score
                                 current_best = best_items[group_name]
-                                current_score = current_best[1] + (current_best[2] / 100)
-                                new_score = confidence + (protein_content / 100)
-                                if food in specific_pastas or new_score > current_score:
+                                current_food = current_best[0]
+                                
+                                # If current item is generic and new item is specific, replace it
+                                if current_food in generic_terms and food in specific_terms:
                                     best_items[group_name] = (food, confidence, protein_content)
-                        elif food == "noodles" and group_name not in best_items:
-                            # Only add noodles if no specific pasta type is detected
-                            best_items[group_name] = (food, confidence, protein_content)
-                        continue
-                    
-                    # Special handling for pizza group - prioritize pizza over components
-                    if group_name == "pizza_group":
-                        if "pizza" in group_items and food == "pizza":
-                            # Pizza gets highest priority
-                            best_items[group_name] = (food, confidence + 0.1, protein_content)  # Boost confidence
-                        elif group_name not in best_items:
-                            best_items[group_name] = (food, confidence, protein_content)
-                        else:
-                            # Only replace if the new item is pizza or has higher score
-                            current_best = best_items[group_name]
-                            current_score = current_best[1] + (current_best[2] / 100)
-                            new_score = confidence + (protein_content / 100)
-                            if food == "pizza" or new_score > current_score:
+                                # If both are specific or both are generic, use score comparison
+                                elif (current_food in specific_terms) == (food in specific_terms):
+                                    current_score = current_best[1] + (current_best[2] / 100)
+                                    new_score = confidence + (protein_content / 100)
+                                    if new_score > current_score:
+                                        best_items[group_name] = (food, confidence, protein_content)
+                        elif food in generic_terms:
+                            # Only add generic terms if no specific term is detected
+                            if group_name not in best_items:
                                 best_items[group_name] = (food, confidence, protein_content)
-                    # Special handling for wrap group - prioritize specific items over generic "wrap"
-                    elif group_name == "wrap_group":
-                        specific_wraps = ["burrito", "taco", "quesadilla", "enchilada", "fajita", "shawarma", "gyro", "kebab"]
-                        if food in specific_wraps:
-                            # Specific wrap types get priority over generic wrap
-                            if group_name not in best_items:
-                                best_items[group_name] = (food, confidence + 0.1, protein_content)  # Boost confidence
                             else:
-                                # Only replace if the new item is more specific or has higher score
+                                # Only keep generic term if current item is also generic and has lower score
                                 current_best = best_items[group_name]
-                                current_score = current_best[1] + (current_best[2] / 100)
-                                new_score = confidence + (protein_content / 100)
-                                if new_score > current_score:
-                                    best_items[group_name] = (food, confidence, protein_content)
-                        elif food == "wrap" and group_name not in best_items:
-                            # Only add generic wrap if no specific wrap type is detected
-                            best_items[group_name] = (food, confidence, protein_content)
+                                current_food = current_best[0]
+                                if current_food in generic_terms:
+                                    current_score = current_best[1] + (current_best[2] / 100)
+                                    new_score = confidence + (protein_content / 100)
+                                    if new_score > current_score:
+                                        best_items[group_name] = (food, confidence, protein_content)
                         continue
                     else:
-                        # Keep the best item from this group (highest confidence + protein)
+                        # For groups without specific rules, use standard scoring
                         if group_name not in best_items:
                             best_items[group_name] = (food, confidence, protein_content)
                         else:
                             current_best = best_items[group_name]
-                            current_score = current_best[1] + (current_best[2] / 100)  # Weight confidence more than protein
+                            current_score = current_best[1] + (current_best[2] / 100)
                             new_score = confidence + (protein_content / 100)
                             if new_score > current_score:
                                 best_items[group_name] = (food, confidence, protein_content)
