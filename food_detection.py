@@ -454,7 +454,7 @@ class GoogleVisionFoodDetector:
                     "detection_method": "google_vision_api"
                 }
             
-            # Calculate total protein content using the new 120g normalization
+            # Calculate total protein content using the new 250g normalization
             total_protein = self.calculate_protein_content(filtered_foods)
             
             print(f"🎯 Successfully detected {len(filtered_foods)} food items:")
@@ -464,9 +464,9 @@ class GoogleVisionFoodDetector:
                 print(f"   - {food} (confidence: {conf:.3f}, protein: {protein}g/100g)")
             
             if len(filtered_foods) == 1:
-                print(f"📊 Single food item: {filtered_foods[0]}, 120g")
+                print(f"📊 Single food item: {filtered_foods[0]}, 250g")
             else:
-                grams_per_item = 120.0 / len(filtered_foods)
+                grams_per_item = 250.0 / len(filtered_foods)
                 print(f"📊 Multiple food items: {len(filtered_foods)} items, {grams_per_item:.0f}g each")
             print(f"📊 Total protein content: {total_protein:.1f}g")
             
@@ -827,7 +827,7 @@ class GoogleVisionFoodDetector:
         return [food for food, conf, protein in filtered[:4]] if filtered else []
 
     def calculate_protein_content(self, foods: List[str]) -> float:
-        """Calculate total protein content for detected foods normalized to 120g total food weight"""
+        """Calculate total protein content for detected foods normalized to 250g total food weight"""
         if not foods:
             return 0.0
         
@@ -837,15 +837,15 @@ class GoogleVisionFoodDetector:
             protein_per_100g = self.protein_database.get(food, 5.0)  # Default 5g if not found
             raw_protein_per_100g += protein_per_100g
         
-        # For single food item: return protein content for 120g of that food
+        # For single food item: return protein content for 250g of that food
         if len(foods) == 1:
             protein_per_100g = self.protein_database.get(foods[0], 5.0)
-            total_protein = (protein_per_100g * 120.0) / 100.0
+            total_protein = (protein_per_100g * 250.0) / 100.0
             return round(total_protein, 1)
         
-        # For multiple food items: distribute 120g equally among items
-        # Each item gets 120g / num_items, then calculate protein for that portion
-        grams_per_item = 120.0 / len(foods)
+        # For multiple food items: distribute 250g equally among items
+        # Each item gets 250g / num_items, then calculate protein for that portion
+        grams_per_item = 250.0 / len(foods)
         total_protein = 0.0
         
         for food in foods:

@@ -461,6 +461,13 @@
             color: var(--text-secondary);
         }
 
+        .calories-value {
+            font-weight: 600;
+            color: #f59e0b;
+            font-size: 1rem;
+            margin-top: 0.25rem;
+        }
+
         /* Pagination */
         .pagination {
             display: flex;
@@ -996,8 +1003,8 @@
                             </div>
                         </div>
                         <div class="meal-protein">
-                            <div class="protein-value">${meal.total_protein.toFixed(1)}g</div>
-                            <div class="protein-label">protein</div>
+                            <div class="protein-value">${meal.total_protein.toFixed(1)}g protein</div>
+                            <div class="calories-value">${meal.total_calories ? meal.total_calories.toFixed(0) : '0'} cal</div>
                         </div>
                     </div>
                 `;

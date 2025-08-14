@@ -89,6 +89,49 @@ PROTEIN_DATABASE = {
     "ice cream": 4.0, "chocolate": 5.0, "cookies": 5.0, "cake": 4.0
 }
 
+# Enhanced calorie database (values per 100g)
+CALORIE_DATABASE = {
+    # Meats & Poultry
+    "chicken": 165, "chicken breast": 165, "chicken thigh": 209, "chicken wing": 290,
+    "beef": 250, "steak": 250, "ground beef": 250, "beef burger": 250, "burger": 250,
+    "pork": 242, "pork chop": 242, "bacon": 541, "ham": 145, "sausage": 296,
+    "salmon": 208, "tuna": 144, "cod": 105, "tilapia": 96, "fish": 208,
+    "turkey": 189, "duck": 337, "lamb": 294, "shrimp": 99, "prawns": 99,
+    
+    # Dairy & Eggs
+    "egg": 155, "eggs": 155, "milk": 42, "cheese": 402, "cheddar": 402,
+    "yogurt": 59, "greek yogurt": 59, "cottage cheese": 98, "cream cheese": 342,
+    
+    # Nuts & Seeds
+    "peanut butter": 588, "almonds": 579, "walnuts": 654, "cashews": 553,
+    "sunflower seeds": 584, "chia seeds": 486, "pumpkin seeds": 559,
+    
+    # Plant-based Proteins
+    "tofu": 76, "tempeh": 192, "lentils": 116, "beans": 127, "black beans": 127,
+    "kidney beans": 127, "chickpeas": 164, "edamame": 121, "hummus": 166,
+    
+    # Grains & Cereals
+    "quinoa": 120, "rice": 130, "brown rice": 111, "bread": 265, "whole wheat bread": 247,
+    "pasta": 131, "spaghetti": 131, "oatmeal": 68, "oats": 68, "cereal": 378,
+    
+    # Vegetables
+    "broccoli": 34, "spinach": 23, "kale": 49, "asparagus": 20, "brussels sprouts": 43,
+    "cauliflower": 25, "peas": 84, "corn": 86, "potato": 77, "sweet potato": 86,
+    
+    # Fast Food & Common Meals
+    "pizza": 266, "pizza slice": 266, "hamburger": 295, "hot dog": 151,
+    "sandwich": 250, "wrap": 250, "taco": 226, "burrito": 300,
+    "noodles": 138, "ramen": 138, "soup": 50, "salad": 20,
+    
+    # Breakfast Foods
+    "pancakes": 227, "waffles": 291, "french toast": 229, "bagel": 245,
+    "muffin": 265, "croissant": 406, "english muffin": 157,
+    
+    # Snacks & Others
+    "protein bar": 350, "protein shake": 120, "smoothie": 50,
+    "ice cream": 207, "chocolate": 545, "cookies": 502, "cake": 257
+}
+
 # Database setup with optimized settings for multiple users
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./protein_app.db?check_same_thread=False")
 engine = create_engine(
@@ -159,6 +202,7 @@ class User(SQLModel, table=True):
     password_hash: str
     weight_kg: Optional[float] = Field(default=None)
     protein_goal: Optional[float] = Field(default=None)
+    calorie_goal: Optional[float] = Field(default=None)  # Added calorie goal field
     activity_level: Optional[str] = Field(default="moderate")  # Added activity level field
     last_weight_update: Optional[datetime] = Field(default=None)
     email_verified: bool = Field(default=False)
@@ -172,6 +216,7 @@ class Meal(SQLModel, table=True):
     image_path: str
     food_items: str
     total_protein: float
+    total_calories: float
     created_at: datetime = Field(default_factory=datetime.now)
 
 from contextlib import asynccontextmanager
@@ -243,6 +288,24 @@ def calculate_protein_goal(weight_kg: float, activity_level: str = "moderate") -
     multiplier = protein_multipliers.get(activity_level, 1.2)
     return round(weight_kg * multiplier, 1)
 
+def calculate_calorie_goal(weight_kg: float, activity_level: str = "moderate") -> float:
+    """Calculate calorie goal based on weight and activity level"""
+    # Calculate BMR using Mifflin-St Jeor Equation
+    # BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(y) + 5 (for men)
+    # For simplicity, we'll use a simplified calculation based on weight and activity level
+    
+    # Base calorie needs per kg of body weight
+    calorie_multipliers = {
+        'sedentary': 25,      # Little to no exercise
+        'light': 30,          # Light exercise 1-3 days/week
+        'moderate': 35,       # Moderate exercise 3-5 days/week
+        'active': 40,         # Hard exercise 6-7 days/week
+        'athlete': 45         # Very hard exercise, physical job
+    }
+    
+    multiplier = calorie_multipliers.get(activity_level, 35)
+    return round(weight_kg * multiplier, 0)
+
 def is_valid_email(email: str) -> bool:
     """Validate email format"""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -313,7 +376,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         return user
 
 def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]:
-    """Calculate total protein content for detected foods normalized to 120g total food weight"""
+    """Calculate total protein content for detected foods normalized to 250g total food weight"""
     raw_protein = 0.0
     matched_foods = []
     
@@ -342,7 +405,7 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
             raw_protein += estimated_protein
             print(f"   ⚠️  No exact match for '{food_item}' -> {estimated_protein}g protein (estimated)")
     
-    # For single food item: return protein content for 120g of that food
+    # For single food item: return protein content for 250g of that food
     if len(food_items) == 1:
         food_lower = food_items[0].lower().strip()
         protein_per_100g = 0.0
@@ -358,14 +421,14 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
             if protein_per_100g == 0.0:
                 protein_per_100g = _estimate_protein_from_food_name(food_lower)
         
-        total_protein = (protein_per_100g * 120.0) / 100.0
-        print(f"📊 Single food item: {food_items[0]}, 120g")
-        print(f"📊 Protein calculation: {total_protein:.1f}g from 120g of {food_items[0]}")
+        total_protein = (protein_per_100g * 250.0) / 100.0
+        print(f"📊 Single food item: {food_items[0]}, 250g")
+        print(f"📊 Protein calculation: {total_protein:.1f}g from 250g of {food_items[0]}")
         return round(total_protein, 1), matched_foods
     
-    # For multiple food items: distribute 120g equally among items
-    # Each item gets 120g / num_items, then calculate protein for that portion
-    grams_per_item = 120.0 / len(food_items)
+    # For multiple food items: distribute 250g equally among items
+    # Each item gets 250g / num_items, then calculate protein for that portion
+    grams_per_item = 250.0 / len(food_items)
     total_protein = 0.0
     
     for i, food_item in enumerate(food_items):
@@ -387,8 +450,86 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
         total_protein += protein_for_this_item
     
     print(f"📊 Multiple food items: {len(food_items)} items, {grams_per_item:.0f}g each")
-    print(f"📊 Protein calculation: {total_protein:.1f}g from 120g total ({grams_per_item:.0f}g per item)")
+    print(f"📊 Protein calculation: {total_protein:.1f}g from 250g total ({grams_per_item:.0f}g per item)")
     return round(total_protein, 1), matched_foods
+
+def calculate_calories_enhanced(food_items: List[str]) -> tuple[float, List[str]]:
+    """Calculate total calories for detected foods normalized to 250g total food weight"""
+    raw_calories = 0.0
+    matched_foods = []
+    
+    for food_item in food_items:
+        food_lower = food_item.lower().strip()
+        found_match = False
+        
+        if food_lower in CALORIE_DATABASE:
+            calorie_value = CALORIE_DATABASE[food_lower]
+            raw_calories += calorie_value
+            matched_foods.append(food_item)
+            found_match = True
+            print(f"   ✅ Matched '{food_item}' -> {calorie_value} calories")
+        else:
+            for db_item, calorie_value in CALORIE_DATABASE.items():
+                if db_item in food_lower or food_lower in db_item:
+                    raw_calories += calorie_value
+                    matched_foods.append(food_item)
+                    found_match = True
+                    print(f"   ✅ Matched '{food_item}' -> {calorie_value} calories (via '{db_item}')")
+                    break
+        
+        if not found_match:
+            # Try to estimate calories based on food type
+            estimated_calories = _estimate_calories_from_food_name(food_lower)
+            raw_calories += estimated_calories
+            print(f"   ⚠️  No exact match for '{food_item}' -> {estimated_calories} calories (estimated)")
+    
+    # For single food item: return calories for 250g of that food
+    if len(food_items) == 1:
+        food_lower = food_items[0].lower().strip()
+        calories_per_100g = 0.0
+        
+        if food_lower in CALORIE_DATABASE:
+            calories_per_100g = CALORIE_DATABASE[food_lower]
+        else:
+            # Try to find a match
+            for db_item, calorie_value in CALORIE_DATABASE.items():
+                if db_item in food_lower or food_lower in db_item:
+                    calories_per_100g = calorie_value
+                    break
+            if calories_per_100g == 0.0:
+                calories_per_100g = _estimate_calories_from_food_name(food_lower)
+        
+        total_calories = (calories_per_100g * 250.0) / 100.0
+        print(f"📊 Single food item: {food_items[0]}, 250g")
+        print(f"📊 Calorie calculation: {total_calories:.1f} calories from 250g of {food_items[0]}")
+        return round(total_calories, 1), matched_foods
+    
+    # For multiple food items: distribute 250g equally among items
+    # Each item gets 250g / num_items, then calculate calories for that portion
+    grams_per_item = 250.0 / len(food_items)
+    total_calories = 0.0
+    
+    for i, food_item in enumerate(food_items):
+        food_lower = food_item.lower().strip()
+        calories_per_100g = 0.0
+        
+        if food_lower in CALORIE_DATABASE:
+            calories_per_100g = CALORIE_DATABASE[food_lower]
+        else:
+            # Try to find a match
+            for db_item, calorie_value in CALORIE_DATABASE.items():
+                if db_item in food_lower or food_lower in db_item:
+                    calories_per_100g = calorie_value
+                    break
+            if calories_per_100g == 0.0:
+                calories_per_100g = _estimate_calories_from_food_name(food_lower)
+        
+        calories_for_this_item = (calories_per_100g * grams_per_item) / 100.0
+        total_calories += calories_for_this_item
+    
+    print(f"📊 Multiple food items: {len(food_items)} items, {grams_per_item:.0f}g each")
+    print(f"📊 Calorie calculation: {total_calories:.1f} calories from 250g total ({grams_per_item:.0f}g per item)")
+    return round(total_calories, 1), matched_foods
 
 def _estimate_protein_from_food_name(food_name: str) -> float:
     """
@@ -444,6 +585,71 @@ def _estimate_protein_from_food_name(food_name: str) -> float:
     # Default for unknown foods
     else:
         return 8.0  # Reasonable default for mixed/complex foods
+
+def _estimate_calories_from_food_name(food_name: str) -> float:
+    """
+    Estimate calorie content based on food name patterns.
+    Returns reasonable calorie values for common foods not in the database.
+    """
+    food_name = food_name.lower()
+    
+    # Meat and protein-rich foods
+    if any(word in food_name for word in ['meat', 'beef', 'steak', 'burger', 'patty', 'cutlet']):
+        return 250
+    elif any(word in food_name for word in ['chicken', 'poultry', 'breast', 'thigh', 'wing']):
+        return 165
+    elif any(word in food_name for word in ['fish', 'salmon', 'tuna', 'cod', 'seafood']):
+        return 200
+    elif any(word in food_name for word in ['pork', 'bacon', 'ham', 'sausage']):
+        return 250
+    elif any(word in food_name for word in ['egg', 'eggs']):
+        return 155
+    
+    # Dairy products
+    elif any(word in food_name for word in ['milk', 'cheese', 'yogurt', 'cream']):
+        return 100
+    elif any(word in food_name for word in ['butter', 'margarine']):
+        return 717
+    
+    # Grains and cereals
+    elif any(word in food_name for word in ['bread', 'toast', 'sandwich', 'wrap']):
+        return 250
+    elif any(word in food_name for word in ['rice', 'pasta', 'noodles', 'spaghetti']):
+        return 130
+    elif any(word in food_name for word in ['oatmeal', 'oats', 'cereal']):
+        return 100
+    
+    # Vegetables
+    elif any(word in food_name for word in ['broccoli', 'spinach', 'kale', 'lettuce', 'salad']):
+        return 30
+    elif any(word in food_name for word in ['carrot', 'potato', 'sweet potato', 'corn']):
+        return 80
+    elif any(word in food_name for word in ['tomato', 'cucumber', 'pepper', 'onion']):
+        return 20
+    
+    # Fruits
+    elif any(word in food_name for word in ['apple', 'banana', 'orange', 'strawberry', 'berry']):
+        return 50
+    elif any(word in food_name for word in ['grape', 'pineapple', 'mango', 'peach']):
+        return 60
+    
+    # Nuts and seeds
+    elif any(word in food_name for word in ['nut', 'almond', 'walnut', 'cashew', 'seed']):
+        return 600
+    
+    # Fast food and processed foods
+    elif any(word in food_name for word in ['pizza', 'burger', 'hot dog', 'taco', 'burrito']):
+        return 300
+    elif any(word in food_name for word in ['fries', 'chips', 'crackers']):
+        return 500
+    
+    # Desserts and sweets
+    elif any(word in food_name for word in ['cake', 'cookie', 'dessert', 'sweet', 'chocolate']):
+        return 400
+    
+    # Default for unknown foods
+    else:
+        return 150  # Reasonable default for mixed/complex foods
 
 def _calculate_portion_multiplier(num_items: int) -> float:
     """
@@ -574,6 +780,7 @@ async def login_user(username: str = Form(...), password: str = Form(...)):
             "email": user.email,
             "weight_kg": user.weight_kg,
             "protein_goal": round(user.protein_goal, 1) if user.protein_goal else None,
+            "calorie_goal": round(user.calorie_goal, 0) if user.calorie_goal else None,
             "last_weight_update": user.last_weight_update.isoformat() if user.last_weight_update else None,
             "token": str(user.id)  # Simple token for now
         }
@@ -775,10 +982,11 @@ async def update_weight(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Update weight, activity level, and protein goal
+        # Update weight, activity level, protein goal, and calorie goal
         user.weight_kg = weight_kg
         user.activity_level = activity_level
         user.protein_goal = calculate_protein_goal(weight_kg, activity_level)
+        user.calorie_goal = calculate_calorie_goal(weight_kg, activity_level)
         user.last_weight_update = datetime.now()
         
         session.commit()
@@ -789,6 +997,7 @@ async def update_weight(
             "weight_kg": user.weight_kg,
             "activity_level": user.activity_level,
             "protein_goal": round(user.protein_goal, 1) if user.protein_goal else None,
+            "calorie_goal": round(user.calorie_goal, 0) if user.calorie_goal else None,
             "last_weight_update": user.last_weight_update.isoformat()
         }
 
@@ -817,6 +1026,31 @@ async def update_protein_goal(
             "protein_goal": round(user.protein_goal, 1) if user.protein_goal else None
         }
 
+@app.post("/users/update-calorie-goal")
+async def update_calorie_goal(
+    current_user: User = Depends(get_current_user),
+    calorie_goal: float = Form(...)
+):
+    """Update user calorie goal directly"""
+    if calorie_goal <= 0:
+        raise HTTPException(status_code=400, detail="Calorie goal must be greater than 0")
+    
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.id == current_user.id)).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Update calorie goal
+        user.calorie_goal = round(calorie_goal, 0)
+        
+        session.commit()
+        session.refresh(user)
+        
+        return {
+            "message": "Calorie goal updated successfully",
+            "calorie_goal": round(user.calorie_goal, 0) if user.calorie_goal else None
+        }
+
 @app.post("/users/update-activity-level")
 async def update_activity_level(
     current_user: User = Depends(get_current_user),
@@ -832,10 +1066,11 @@ async def update_activity_level(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Update activity level and recalculate protein goal if weight exists
+        # Update activity level and recalculate protein and calorie goals if weight exists
         user.activity_level = activity_level
         if user.weight_kg:
             user.protein_goal = calculate_protein_goal(user.weight_kg, activity_level)
+            user.calorie_goal = calculate_calorie_goal(user.weight_kg, activity_level)
         
         session.commit()
         session.refresh(user)
@@ -843,7 +1078,8 @@ async def update_activity_level(
         return {
             "message": "Activity level updated successfully",
             "activity_level": user.activity_level,
-            "protein_goal": round(user.protein_goal, 1) if user.protein_goal else None
+            "protein_goal": round(user.protein_goal, 1) if user.protein_goal else None,
+            "calorie_goal": round(user.calorie_goal, 0) if user.calorie_goal else None
         }
 
 @app.options("/meals/upload/")
@@ -934,13 +1170,15 @@ async def upload_meal(
             raise HTTPException(status_code=400, detail=error_message)
         
         total_protein, matched_foods = calculate_protein_enhanced(food_list)
+        total_calories, _ = calculate_calories_enhanced(food_list)
         
         with Session(engine) as session:
             meal = Meal(
                 user_id=current_user.id,
                 image_path=file_path,
                 food_items=json.dumps(food_list),
-                total_protein=total_protein
+                total_protein=total_protein,
+                total_calories=total_calories
             )
             session.add(meal)
             session.commit()
@@ -992,6 +1230,7 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
         )).all()
         
         today_protein = round(sum(meal.total_protein for meal in today_meals), 1)
+        today_calories = round(sum(meal.total_calories for meal in today_meals), 1)
         
         all_meals = session.exec(select(Meal).where(Meal.user_id == current_user.id)).all()
         
@@ -1001,6 +1240,7 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
             func.date(Meal.created_at) >= week_ago
         )).all()
         weekly_protein = round(sum(meal.total_protein for meal in weekly_meals), 1)
+        weekly_calories = round(sum(meal.total_calories for meal in weekly_meals), 1)
         
         # Check if user needs weight update (weekly popup)
         needs_weight_update = False
@@ -1016,19 +1256,21 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
                 "username": current_user.username,
                 "weight_kg": current_user.weight_kg,
                 "protein_goal": round(current_user.protein_goal, 1) if current_user.protein_goal else None,
+                "calorie_goal": round(current_user.calorie_goal, 0) if current_user.calorie_goal else None,
                 "last_weight_update": current_user.last_weight_update.isoformat() if current_user.last_weight_update else None,
                 "needs_weight_update": needs_weight_update,
                 "profile_picture_path": current_user.profile_picture_path
             },
             "today": {
                 "total_protein": round(today_protein, 1),
+                "total_calories": round(today_calories, 1),
                 "goal_progress": round((today_protein / current_user.protein_goal) * 100 if current_user.protein_goal else 0, 1),
                 "meals_count": len(today_meals),
                 "remaining_protein": round(max(0, (current_user.protein_goal or 0) - today_protein), 1)
             },
             "weekly": {
-                "total_protein": round(weekly_protein, 1),
-                "average_daily": round(weekly_protein / 7, 1),
+                "total_calories": round(weekly_calories, 1),
+                "average_daily": round(weekly_calories / 7, 1),
                 "meals_count": len(weekly_meals)
             },
             "overall": {

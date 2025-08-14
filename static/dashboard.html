@@ -607,6 +607,13 @@
             font-size: 1.1rem;
         }
 
+        .meal-calories {
+            font-weight: 500;
+            color: #f59e0b;
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+
         /* Result Messages */
         .result {
             padding: 1rem;
@@ -802,13 +809,16 @@
             <div class="stat-card">
                 <div class="stat-header">
                     <div>
-                        <div class="stat-title">This Week</div>
-                        <div class="stat-value" id="weeklyProtein">0g</div>
-                        <div class="stat-subtitle" id="weeklyAverage">0g daily average</div>
+                        <div class="stat-title">Today's Calories</div>
+                        <div class="stat-value" id="todayCalories">0</div>
+                        <div class="stat-subtitle" id="calorieSubtitle">of 2000 goal</div>
                     </div>
                     <div class="stat-icon" style="background: var(--warning-gradient)">
-                        <i class="fas fa-chart-line"></i>
+                        <i class="fas fa-fire"></i>
                     </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="calorieProgress" style="width: 0%"></div>
                 </div>
             </div>
 
@@ -1045,9 +1055,13 @@
             const progress = data.user.protein_goal ? (data.today.total_protein / data.user.protein_goal) * 100 : 0;
             document.getElementById('proteinProgress').style.width = `${Math.min(progress, 100)}%`;
             
-            // Weekly stats
-            document.getElementById('weeklyProtein').textContent = `${data.weekly.total_protein}g`;
-            document.getElementById('weeklyAverage').textContent = `${data.weekly.average_daily}g daily average`;
+            // Today's calories
+            document.getElementById('todayCalories').textContent = `${data.today.total_calories}`;
+            document.getElementById('calorieSubtitle').textContent = `of ${data.user.calorie_goal || 2000} goal`;
+            
+            // Calculate calorie progress (today's total vs daily goal)
+            const calorieProgress = data.user.calorie_goal ? (data.today.total_calories / data.user.calorie_goal) * 100 : 0;
+            document.getElementById('calorieProgress').style.width = `${Math.min(calorieProgress, 100)}%`;
             
             // Meals count
             document.getElementById('todayMeals').textContent = data.today.meals_count;
@@ -1144,7 +1158,8 @@
                             <div class="meal-foods">${foodsText}</div>
                             <div class="meal-meta">${timeAgo}</div>
                         </div>
-                        <div class="meal-protein">${meal.total_protein}g</div>
+                        <div class="meal-protein">${meal.total_protein}g protein</div>
+                <div class="meal-calories">${meal.total_calories ? meal.total_calories.toFixed(0) : '0'} cal</div>
                     </div>
                 `;
             }).join('');
@@ -1338,7 +1353,7 @@
                 const result = await response.json();
                 console.log('Upload result:', result);
 
-                let message = `🎉 Meal logged successfully! <strong>${result.total_protein}g protein</strong> detected.`;
+                let message = `🎉 Meal logged successfully! <strong>${result.total_protein}g protein</strong> and <strong>${result.total_calories ? result.total_calories.toFixed(0) : '0'} calories</strong> detected.`;
                 
                 if (result.detection_status) {
                     const detectionInfo = result.detection_status;
