@@ -1325,6 +1325,7 @@ async def get_user_meals(
                     "id": meal.id,
                     "food_items": json.loads(meal.food_items),
                     "total_protein": meal.total_protein,
+                    "total_calories": meal.total_calories,
                     "created_at": meal.created_at.isoformat()
                 }
                 for meal in meals
@@ -1359,6 +1360,7 @@ async def get_today_meals(current_user: User = Depends(get_current_user)):
                     "id": meal.id,
                     "food_items": json.loads(meal.food_items),
                     "total_protein": meal.total_protein,
+                    "total_calories": meal.total_calories,
                     "created_at": meal.created_at.isoformat()
                 }
                 for meal in today_meals

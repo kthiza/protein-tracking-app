@@ -137,8 +137,8 @@
             font-size: 1.25rem;
             background: var(--primary-gradient);
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
             background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .logo i {
@@ -225,6 +225,7 @@
             margin-bottom: 0.5rem;
             background: var(--primary-gradient);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -985,6 +986,10 @@
                 const timeAgo = getTimeAgo(date);
                 const formattedDate = date.toLocaleDateString();
                 const formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                // Debug logging
+                console.log('History meal data:', meal);
+                console.log('History total calories:', meal.total_calories, 'Type:', typeof meal.total_calories);
 
                 return `
                     <div class="meal-card">

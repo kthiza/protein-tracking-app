@@ -1132,22 +1132,31 @@
         }
 
         function displayMeals(meals) {
-            const mealsGrid = document.getElementById('mealsGrid');
+            const container = document.getElementById('mealsGrid');
             
-            if (meals.length === 0) {
-                mealsGrid.innerHTML = `
-                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                        <i class="fas fa-utensils" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                        <p>No meals logged today. Start by uploading your first meal!</p>
+            if (!meals || meals.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <h3 class="empty-title">No meals today</h3>
+                        <p class="empty-description">Upload your first meal to get started!</p>
                     </div>
                 `;
                 return;
             }
-
-            mealsGrid.innerHTML = meals.map(meal => {
-                const foods = Array.isArray(meal.food_items) ? meal.food_items : JSON.parse(meal.food_items || '[]');
+            
+            const mealsHTML = meals.map(meal => {
+                const foods = meal.food_items || [];
                 const foodsText = foods.join(', ') || 'Mixed foods';
                 const timeAgo = getTimeAgo(new Date(meal.created_at));
+                
+                // Debug logging
+                console.log('Meal data:', meal);
+                console.log('Total calories:', meal.total_calories, 'Type:', typeof meal.total_calories);
+                
+                const caloriesDisplay = meal.total_calories && meal.total_calories > 0 ? Math.round(meal.total_calories) : '0';
                 
                 return `
                     <div class="meal-card">
@@ -1159,10 +1168,12 @@
                             <div class="meal-meta">${timeAgo}</div>
                         </div>
                         <div class="meal-protein">${meal.total_protein}g protein</div>
-                <div class="meal-calories">${meal.total_calories ? meal.total_calories.toFixed(0) : '0'} cal</div>
+                        <div class="meal-calories">${caloriesDisplay} cal</div>
                     </div>
                 `;
             }).join('');
+            
+            container.innerHTML = mealsHTML;
         }
 
                 function getTimeAgo(date) {
