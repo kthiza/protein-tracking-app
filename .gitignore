@@ -54,4 +54,18 @@ Thumbs.db
 
 # Google Cloud Service Account (sensitive credentials)
 service-account-key.json
-*.json 
+*.json
+
+# Environment files
+.env
+.env.local
+.env.backup
+
+# Uploaded files (user data)
+uploads/
+profile_pictures/
+
+# Database files
+*.db
+*.sqlite3
+protein_app.db 
