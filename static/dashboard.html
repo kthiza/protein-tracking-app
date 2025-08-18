@@ -1047,20 +1047,96 @@
             }
         }
 
+        // Gender-based calculation functions (copied from settings.html)
+        function calculateProteinNeeds(weight, height, activityLevel, gender) {
+            if (!weight || !height) return 0;
+            
+            const heightInM = height / 100;
+            const bmi = weight / (heightInM * heightInM);
+            
+            // Calculate protein needs based on activity level and gender (g per kg body weight)
+            let proteinMultiplier;
+            switch(activityLevel) {
+                case 'sedentary': proteinMultiplier = 0.8; break;
+                case 'light': proteinMultiplier = 1.0; break;
+                case 'moderate': proteinMultiplier = 1.2; break;
+                case 'active': proteinMultiplier = 1.6; break;
+                case 'athlete': proteinMultiplier = 2.0; break;
+                default: proteinMultiplier = 1.2;
+            }
+            
+            // Adjust protein needs slightly based on gender (women may need slightly less due to body composition)
+            if (gender === 'female') {
+                proteinMultiplier *= 0.95; // 5% reduction for women
+            }
+            
+            return Math.round(weight * proteinMultiplier);
+        }
+
+        function calculateCalorieNeeds(weight, height, activityLevel, gender) {
+            if (!weight || !height) return 0;
+            
+            // Calculate BMR using Mifflin-St Jeor equation (more accurate than simple multiplier)
+            let bmr;
+            if (gender === 'male') {
+                bmr = (10 * weight) + (6.25 * height) - (5 * 25) + 5; // Assuming age 25, can be made configurable
+            } else {
+                bmr = (10 * weight) + (6.25 * height) - (5 * 25) - 161; // Female adjustment
+            }
+            
+            // Apply activity multiplier to BMR
+            let activityMultiplier;
+            switch(activityLevel) {
+                case 'sedentary': activityMultiplier = 1.2; break; // Little or no exercise
+                case 'light': activityMultiplier = 1.375; break; // Light exercise 1-3 days/week
+                case 'moderate': activityMultiplier = 1.55; break; // Moderate exercise 3-5 days/week
+                case 'active': activityMultiplier = 1.725; break; // Hard exercise 6-7 days/week
+                case 'athlete': activityMultiplier = 1.9; break; // Very hard exercise, physical job
+                default: activityMultiplier = 1.55;
+            }
+            
+            return Math.round(bmr * activityMultiplier);
+        }
+
         function updateDashboardStats(data) {
+            // Get user settings from localStorage for gender-based calculations
+            const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{}');
+            const gender = userSettings.gender || 'male';
+            const height = userSettings.height || 170;
+            const activityLevel = userSettings.activityLevel || 'moderate';
+            
+            // Calculate gender-based goals if we have weight data
+            let proteinGoal = data.user.protein_goal || 120;
+            let calorieGoal = data.user.calorie_goal || 2000;
+            
+            if (data.user.weight_kg) {
+                // Use gender-based calculations for more accurate goals
+                const calculatedProtein = calculateProteinNeeds(data.user.weight_kg, height, activityLevel, gender);
+                const calculatedCalories = calculateCalorieNeeds(data.user.weight_kg, height, activityLevel, gender);
+                
+                // Use calculated values if they're significantly different from stored values
+                // This ensures the dashboard reflects the new gender-based calculations
+                if (Math.abs(calculatedProtein - proteinGoal) > 5) {
+                    proteinGoal = calculatedProtein;
+                }
+                if (Math.abs(calculatedCalories - calorieGoal) > 100) {
+                    calorieGoal = calculatedCalories;
+                }
+            }
+            
             // Today's protein
             document.getElementById('todayProtein').textContent = `${data.today.total_protein}g`;
-            document.getElementById('proteinSubtitle').textContent = `of ${data.user.protein_goal || 120}g goal`;
+            document.getElementById('proteinSubtitle').textContent = `of ${proteinGoal}g goal`;
             
-            const progress = data.user.protein_goal ? (data.today.total_protein / data.user.protein_goal) * 100 : 0;
+            const progress = proteinGoal ? (data.today.total_protein / proteinGoal) * 100 : 0;
             document.getElementById('proteinProgress').style.width = `${Math.min(progress, 100)}%`;
             
             // Today's calories
             document.getElementById('todayCalories').textContent = `${data.today.total_calories}`;
-            document.getElementById('calorieSubtitle').textContent = `of ${data.user.calorie_goal || 2000} goal`;
+            document.getElementById('calorieSubtitle').textContent = `of ${calorieGoal} goal`;
             
             // Calculate calorie progress (today's total vs daily goal)
-            const calorieProgress = data.user.calorie_goal ? (data.today.total_calories / data.user.calorie_goal) * 100 : 0;
+            const calorieProgress = calorieGoal ? (data.today.total_calories / calorieGoal) * 100 : 0;
             document.getElementById('calorieProgress').style.width = `${Math.min(calorieProgress, 100)}%`;
             
             // Meals count
@@ -1364,7 +1440,7 @@
                 const result = await response.json();
                 console.log('Upload result:', result);
 
-                let message = `🎉 Meal logged successfully! <strong>${result.total_protein}g protein</strong> and <strong>${result.total_calories ? result.total_calories.toFixed(0) : '0'} calories</strong> detected.`;
+                let message = `🎉 Meal logged successfully! <strong>${result.total_protein}g protein</strong> and <strong>${result.total_calories ? Math.round(result.total_calories) : 0} calories</strong> detected.`;
                 
                 if (result.detection_status) {
                     const detectionInfo = result.detection_status;

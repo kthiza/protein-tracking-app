@@ -996,7 +996,6 @@
                             <select id="gender" style="width: 100%; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary);" onchange="calculateProteinNeeds(); calculateCalorieNeeds(); autoSaveSettings();">
                                 <option value="male">Male</option>
                                 <option value="female">Female</option>
-                                <option value="other">Other</option>
                             </select>
                         </div>
                     </div>
@@ -1465,7 +1464,7 @@
             const heightInM = height / 100;
             const bmi = weight / (heightInM * heightInM);
             
-            // Calculate protein needs based on activity level (g per kg body weight)
+            // Calculate protein needs based on activity level and gender (g per kg body weight)
             let proteinMultiplier;
             switch(activityLevel) {
                 case 'sedentary': proteinMultiplier = 0.8; break;
@@ -1474,6 +1473,11 @@
                 case 'active': proteinMultiplier = 1.6; break;
                 case 'athlete': proteinMultiplier = 2.0; break;
                 default: proteinMultiplier = 1.2;
+            }
+            
+            // Adjust protein needs slightly based on gender (women may need slightly less due to body composition)
+            if (gender === 'female') {
+                proteinMultiplier *= 0.95; // 5% reduction for women
             }
             
             const recommendedProtein = Math.round(weight * proteinMultiplier);
@@ -1487,7 +1491,7 @@
             
                         // Update protein recommendation
             document.getElementById('proteinRecommendation').innerHTML = 
-                `<i class="fas fa-lightbulb"></i> Recommended: ${recommendedProtein}g for ${activityLevel} lifestyle`;
+                `<i class="fas fa-lightbulb"></i> Recommended: ${recommendedProtein}g for ${gender} with ${activityLevel} lifestyle`;
                 
             // Auto-update protein goal if it's default, empty, or if we have weight data (to reflect activity level changes)
             const currentGoal = parseInt(document.getElementById('proteinGoal').value);
@@ -1501,19 +1505,28 @@
 
         function updateCalculationSummary(weight, height, bmi, bmiCategory, recommendedProtein) {
             const activityLevel = document.getElementById('activityLevel').value;
+            const gender = document.getElementById('gender').value;
             
-            // Calculate calorie needs based on activity level (calories per kg body weight)
-            let calorieMultiplier;
-            switch(activityLevel) {
-                case 'sedentary': calorieMultiplier = 25; break;
-                case 'light': calorieMultiplier = 30; break;
-                case 'moderate': calorieMultiplier = 35; break;
-                case 'active': calorieMultiplier = 40; break;
-                case 'athlete': calorieMultiplier = 45; break;
-                default: calorieMultiplier = 35;
+            // Calculate BMR using Mifflin-St Jeor equation (more accurate than simple multiplier)
+            let bmr;
+            if (gender === 'male') {
+                bmr = (10 * weight) + (6.25 * height) - (5 * 25) + 5; // Assuming age 25, can be made configurable
+            } else {
+                bmr = (10 * weight) + (6.25 * height) - (5 * 25) - 161; // Female adjustment
             }
             
-            const recommendedCalories = Math.round(weight * calorieMultiplier);
+            // Apply activity multiplier to BMR
+            let activityMultiplier;
+            switch(activityLevel) {
+                case 'sedentary': activityMultiplier = 1.2; break; // Little or no exercise
+                case 'light': activityMultiplier = 1.375; break; // Light exercise 1-3 days/week
+                case 'moderate': activityMultiplier = 1.55; break; // Moderate exercise 3-5 days/week
+                case 'active': activityMultiplier = 1.725; break; // Hard exercise 6-7 days/week
+                case 'athlete': activityMultiplier = 1.9; break; // Very hard exercise, physical job
+                default: activityMultiplier = 1.55;
+            }
+            
+            const recommendedCalories = Math.round(bmr * activityMultiplier);
             
             // Update display
             document.getElementById('proteinCalculation').innerHTML = `
@@ -1544,29 +1557,39 @@
 
         function calculateCalorieNeeds() {
             const weight = parseFloat(document.getElementById('currentWeight').value);
+            const height = parseInt(document.getElementById('height').value);
+            const gender = document.getElementById('gender').value;
             const activityLevel = document.getElementById('activityLevel').value;
             
-            if (!weight) {
+            if (!weight || !height) {
                 document.getElementById('calorieRecommendation').textContent = '';
                 return;
             }
             
-            // Calculate calorie needs based on activity level (calories per kg body weight)
-            let calorieMultiplier;
-            switch(activityLevel) {
-                case 'sedentary': calorieMultiplier = 25; break;
-                case 'light': calorieMultiplier = 30; break;
-                case 'moderate': calorieMultiplier = 35; break;
-                case 'active': calorieMultiplier = 40; break;
-                case 'athlete': calorieMultiplier = 45; break;
-                default: calorieMultiplier = 35;
+            // Calculate BMR using Mifflin-St Jeor equation (more accurate than simple multiplier)
+            let bmr;
+            if (gender === 'male') {
+                bmr = (10 * weight) + (6.25 * height) - (5 * 25) + 5; // Assuming age 25, can be made configurable
+            } else {
+                bmr = (10 * weight) + (6.25 * height) - (5 * 25) - 161; // Female adjustment
             }
             
-            const recommendedCalories = Math.round(weight * calorieMultiplier);
+            // Apply activity multiplier to BMR
+            let activityMultiplier;
+            switch(activityLevel) {
+                case 'sedentary': activityMultiplier = 1.2; break; // Little or no exercise
+                case 'light': activityMultiplier = 1.375; break; // Light exercise 1-3 days/week
+                case 'moderate': activityMultiplier = 1.55; break; // Moderate exercise 3-5 days/week
+                case 'active': activityMultiplier = 1.725; break; // Hard exercise 6-7 days/week
+                case 'athlete': activityMultiplier = 1.9; break; // Very hard exercise, physical job
+                default: activityMultiplier = 1.55;
+            }
+            
+            const recommendedCalories = Math.round(bmr * activityMultiplier);
             
             // Update calorie goal suggestion
             document.getElementById('calorieRecommendation').innerHTML = 
-                `<i class="fas fa-lightbulb"></i> Recommended: ${recommendedCalories} cal for ${activityLevel} lifestyle`;
+                `<i class="fas fa-lightbulb"></i> Recommended: ${recommendedCalories} cal for ${gender} with ${activityLevel} lifestyle`;
                 
             // Auto-update calorie goal if it's default, empty, or if we have weight data (to reflect activity level changes)
             const currentCalorieGoal = parseInt(document.getElementById('calorieGoal').value);
@@ -1757,6 +1780,36 @@
                        } else {
                            console.error('Failed to update protein goal:', response.status, await response.text());
                        }
+                }
+                
+                // Save calorie goal to backend if it exists
+                const calorieGoal = parseFloat(document.getElementById('calorieGoal').value);
+                if (calorieGoal && calorieGoal > 0) {
+                    const formData = new FormData();
+                    formData.append('calorie_goal', calorieGoal);
+                    
+                    const response = await fetch(`${API_BASE}/users/update-calorie-goal`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${currentUser.token}`
+                        },
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        // Update currentUser object with new calorie goal for immediate dashboard mirroring
+                        if (currentUser) {
+                            currentUser.calorie_goal = calorieGoal;
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        }
+                    } else if (response.status === 401) {
+                        console.error('Authentication failed during calorie goal update. Token may be invalid or expired.');
+                        localStorage.removeItem('currentUser');
+                        window.location.href = 'login.html';
+                        return;
+                    } else {
+                        console.error('Failed to update calorie goal:', response.status, await response.text());
+                    }
                 }
                 
                 // Save local settings

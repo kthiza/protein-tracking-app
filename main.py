@@ -1194,6 +1194,7 @@ async def upload_meal(
             "food_items": food_list,
             "matched_foods": matched_foods,
             "total_protein": total_protein,
+            "total_calories": total_calories,
             "user_protein_goal": current_user.protein_goal,
             "ai_detection_used": use_ai_detection,
             "google_vision_available": GOOGLE_VISION_AVAILABLE,

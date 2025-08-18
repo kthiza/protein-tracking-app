@@ -1009,7 +1009,7 @@
                         </div>
                         <div class="meal-protein">
                             <div class="protein-value">${meal.total_protein.toFixed(1)}g protein</div>
-                            <div class="calories-value">${meal.total_calories ? meal.total_calories.toFixed(0) : '0'} cal</div>
+                            <div class="calories-value">${meal.total_calories ? Math.round(meal.total_calories) : 0} cal</div>
                         </div>
                     </div>
                 `;
