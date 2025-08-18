@@ -56,6 +56,11 @@ Thumbs.db
 service-account-key.json
 *.json
 
+# Test files that might contain secrets
+test_*.py
+*_test.py
+test_detection.py
+
 # Environment files
 .env
 .env.local
