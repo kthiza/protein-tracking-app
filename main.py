@@ -76,9 +76,9 @@ PROTEIN_DATABASE = {
     "cauliflower": 1.9, "peas": 5.4, "corn": 3.2, "potato": 2.0, "sweet potato": 1.6,
     
     # Fast Food & Common Meals (adjusted for typical serving sizes)
-    "pizza": 25.0, "pizza slice": 12.0, "hamburger": 35.0, "hot dog": 15.0,
-    "sandwich": 20.0, "wrap": 20.0, "taco": 18.0, "burrito": 25.0,
-    "noodles": 20.0, "ramen": 20.0, "soup": 12.0, "salad": 8.0,
+    "pizza": 10.0, "pizza slice": 10.0, "hamburger": 18.0, "hot dog": 12.0,
+    "sandwich": 12.0, "wrap": 12.0, "taco": 12.0, "burrito": 15.0,
+    "noodles": 8.0, "ramen": 8.0, "soup": 8.0, "salad": 8.0,
     
     # Breakfast Foods
     "pancakes": 6.0, "waffles": 6.0, "french toast": 8.0, "bagel": 10.0,
@@ -558,11 +558,11 @@ def _estimate_protein_from_food_name(food_name: str) -> float:
     elif any(word in food_name for word in ['bread', 'toast', 'sandwich', 'wrap']):
         return 10.0
     elif any(word in food_name for word in ['pasta', 'noodles', 'spaghetti', 'macaroni']):
-        return 13.0
+        return 8.0
     elif any(word in food_name for word in ['rice', 'quinoa', 'oatmeal', 'cereal']):
         return 8.0
     elif any(word in food_name for word in ['pizza', 'slice']):
-        return 20.0
+        return 10.0
     
     # Vegetables
     elif any(word in food_name for word in ['salad', 'vegetable', 'broccoli', 'spinach', 'kale']):
@@ -574,7 +574,7 @@ def _estimate_protein_from_food_name(food_name: str) -> float:
     
     # Fast food and processed foods
     elif any(word in food_name for word in ['burger', 'hot dog', 'taco', 'burrito']):
-        return 25.0
+        return 12.0
     elif any(word in food_name for word in ['fries', 'chips', 'snack']):
         return 5.0
     
