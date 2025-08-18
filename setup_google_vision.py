@@ -42,7 +42,7 @@ def print_warning(message: str):
 
 def check_service_account_file() -> bool:
     """Check if service account key file exists"""
-    service_account_path = "service-account-key.json"
+    service_account_path = os.getenv("GOOGLE_VISION_SERVICE_ACCOUNT_PATH", "service-account-key.json")
     if os.path.exists(service_account_path):
         try:
             with open(service_account_path, 'r') as f:
@@ -69,7 +69,7 @@ def test_vision_api_with_service_account() -> bool:
         from google.cloud import vision
         from google.oauth2 import service_account
         
-        service_account_path = "service-account-key.json"
+        service_account_path = os.getenv("GOOGLE_VISION_SERVICE_ACCOUNT_PATH", "service-account-key.json")
         if not os.path.exists(service_account_path):
             print_error("Service account file not found")
             return False
@@ -249,7 +249,7 @@ def check_api_quotas():
         from google.cloud import vision
         from google.oauth2 import service_account
         
-        service_account_path = "service-account-key.json"
+        service_account_path = os.getenv("GOOGLE_VISION_SERVICE_ACCOUNT_PATH", "service-account-key.json")
         if not os.path.exists(service_account_path):
             print_error("Service account file not found")
             return

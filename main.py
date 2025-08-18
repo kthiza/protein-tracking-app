@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Que
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from sqlmodel import SQLModel, create_engine, Session, select, Field, func
 from sqlalchemy import text
 from typing import List, Optional
@@ -20,25 +20,32 @@ import re
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    import os
+    # Check if .env file exists before loading
+    if os.path.exists('.env'):
+        load_dotenv()
+        print("✅ Loaded environment variables from .env file")
+    else:
+        print("ℹ️  No .env file found. Using default environment variables.")
 except ImportError:
     print("Warning: python-dotenv not installed. Install with: pip install python-dotenv")
 
 # Configure email settings (you'll need to set these environment variables)
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_USERNAME = os.getenv("SMTP_USERNAME")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 APP_BASE_URL = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000")
 
 # Import Google Vision food detection (REST via requests; no heavy client required)
 try:
     from food_detection import identify_food_with_google_vision, identify_food_local
-    GOOGLE_VISION_AVAILABLE = bool(os.getenv("GOOGLE_VISION_API_KEY"))
+    GOOGLE_VISION_SERVICE_ACCOUNT_PATH = os.getenv("GOOGLE_VISION_SERVICE_ACCOUNT_PATH")
+    GOOGLE_VISION_AVAILABLE = bool(GOOGLE_VISION_SERVICE_ACCOUNT_PATH and os.path.exists(GOOGLE_VISION_SERVICE_ACCOUNT_PATH))
     if GOOGLE_VISION_AVAILABLE:
-        print("✅ Google Vision API configured (env var GOOGLE_VISION_API_KEY found)")
+        print(f"✅ Google Vision API configured (service account: {GOOGLE_VISION_SERVICE_ACCOUNT_PATH})")
     else:
-        print("ℹ️  Google Vision API is required for high-quality food detection.")
+        print("ℹ️  Google Vision API service account not found. Please check GOOGLE_VISION_SERVICE_ACCOUNT_PATH in .env file.")
 except ImportError:
     GOOGLE_VISION_AVAILABLE = False
     print("Warning: food_detection module not importable. Ensure the file exists.")
@@ -46,89 +53,89 @@ except ImportError:
 # For backward compatibility
 LOCAL_AI_AVAILABLE = GOOGLE_VISION_AVAILABLE
 
-# Enhanced protein database (values per 100g); harmonized with detection module
+# Enhanced protein database (values per 100g); optimized for realistic 250g portions
 PROTEIN_DATABASE = {
-    # Meats & Poultry
+    # Meats & Poultry (realistic values for typical servings)
     "chicken": 31.0, "chicken breast": 31.0, "chicken thigh": 28.0, "chicken wing": 30.0,
     "beef": 26.0, "steak": 26.0, "ground beef": 26.0, "beef burger": 26.0, "burger": 26.0,
     "pork": 25.0, "pork chop": 25.0, "bacon": 37.0, "ham": 22.0, "sausage": 18.0,
     "salmon": 20.0, "tuna": 30.0, "cod": 18.0, "tilapia": 26.0, "fish": 20.0,
     "turkey": 29.0, "duck": 23.0, "lamb": 25.0, "shrimp": 24.0, "prawns": 24.0,
     
-    # Dairy & Eggs
+    # Dairy & Eggs (adjusted for realistic portions)
     "egg": 13.0, "eggs": 13.0, "milk": 3.4, "cheese": 25.0, "cheddar": 25.0,
     "yogurt": 10.0, "greek yogurt": 10.0, "cottage cheese": 11.0, "cream cheese": 6.0,
     
-    # Nuts & Seeds
+    # Nuts & Seeds (high density foods - realistic for smaller portions)
     "peanut butter": 25.0, "almonds": 21.0, "walnuts": 15.0, "cashews": 18.0,
     "sunflower seeds": 21.0, "chia seeds": 17.0, "pumpkin seeds": 19.0,
     
     # Plant-based Proteins
-    "tofu": 8.0, "tempeh": 20.0, "lentils": 9.0, "beans": 21.0, "black beans": 21.0,
-    "kidney beans": 24.0, "chickpeas": 19.0, "edamame": 11.0, "hummus": 8.0,
+    "tofu": 8.0, "tempeh": 20.0, "lentils": 9.0, "beans": 9.0, "black beans": 9.0,
+    "kidney beans": 9.0, "chickpeas": 9.0, "edamame": 11.0, "hummus": 8.0,
     
-    # Grains & Cereals
+    # Grains & Cereals (adjusted for realistic portions)
     "quinoa": 14.0, "rice": 2.7, "brown rice": 2.7, "bread": 9.0, "whole wheat bread": 13.0,
-    "pasta": 13.0, "spaghetti": 13.0, "oatmeal": 13.0, "oats": 13.0, "cereal": 10.0,
+    "pasta": 5.5, "spaghetti": 5.5, "oatmeal": 6.0, "oats": 6.0, "cereal": 10.0,
     
-    # Vegetables
+    # Vegetables (low density - realistic for larger portions)
     "broccoli": 2.8, "spinach": 2.9, "kale": 4.3, "asparagus": 2.2, "brussels sprouts": 3.4,
     "cauliflower": 1.9, "peas": 5.4, "corn": 3.2, "potato": 2.0, "sweet potato": 1.6,
     
-    # Fast Food & Common Meals (adjusted for typical serving sizes)
+    # Fast Food & Common Meals (adjusted for realistic serving sizes)
     "pizza": 10.0, "pizza slice": 10.0, "hamburger": 18.0, "hot dog": 12.0,
     "sandwich": 12.0, "wrap": 12.0, "taco": 12.0, "burrito": 15.0,
-    "noodles": 8.0, "ramen": 8.0, "soup": 8.0, "salad": 8.0,
+    "noodles": 5.5, "ramen": 5.5, "soup": 2.0, "salad": 2.0,
     
     # Breakfast Foods
     "pancakes": 6.0, "waffles": 6.0, "french toast": 8.0, "bagel": 10.0,
     "muffin": 5.0, "croissant": 8.0, "english muffin": 8.0,
     
-    # Snacks & Others
-    "protein bar": 20.0, "protein shake": 25.0, "smoothie": 8.0,
+    # Snacks & Others (adjusted for realistic portions)
+    "protein bar": 20.0, "protein shake": 7.0, "smoothie": 2.0,
     "ice cream": 4.0, "chocolate": 5.0, "cookies": 5.0, "cake": 4.0
 }
 
-# Enhanced calorie database (values per 100g)
+# Enhanced calorie database (values per 100g); optimized for realistic 250g portions
 CALORIE_DATABASE = {
-    # Meats & Poultry
+    # Meats & Poultry (realistic values for typical servings)
     "chicken": 165, "chicken breast": 165, "chicken thigh": 209, "chicken wing": 290,
     "beef": 250, "steak": 250, "ground beef": 250, "beef burger": 250, "burger": 250,
     "pork": 242, "pork chop": 242, "bacon": 541, "ham": 145, "sausage": 296,
     "salmon": 208, "tuna": 144, "cod": 105, "tilapia": 96, "fish": 208,
     "turkey": 189, "duck": 337, "lamb": 294, "shrimp": 99, "prawns": 99,
     
-    # Dairy & Eggs
+    # Dairy & Eggs (realistic values)
     "egg": 155, "eggs": 155, "milk": 42, "cheese": 402, "cheddar": 402,
     "yogurt": 59, "greek yogurt": 59, "cottage cheese": 98, "cream cheese": 342,
     
-    # Nuts & Seeds
+    # Nuts & Seeds (high density - realistic for smaller portions)
     "peanut butter": 588, "almonds": 579, "walnuts": 654, "cashews": 553,
     "sunflower seeds": 584, "chia seeds": 486, "pumpkin seeds": 559,
     
     # Plant-based Proteins
-    "tofu": 76, "tempeh": 192, "lentils": 116, "beans": 127, "black beans": 127,
-    "kidney beans": 127, "chickpeas": 164, "edamame": 121, "hummus": 166,
+    "tofu": 76, "tempeh": 192, "lentils": 116, "beans": 116, "black beans": 116,
+    "kidney beans": 116, "chickpeas": 164, "edamame": 121, "hummus": 166,
     
-    # Grains & Cereals
+    # Grains & Cereals (adjusted for realistic portions)
     "quinoa": 120, "rice": 130, "brown rice": 111, "bread": 265, "whole wheat bread": 247,
-    "pasta": 131, "spaghetti": 131, "oatmeal": 68, "oats": 68, "cereal": 378,
+    "pasta": 158, "spaghetti": 158, "oatmeal": 68, "oats": 68, "cereal": 378,
     
-    # Vegetables
+    # Vegetables (low density - realistic for larger portions)
     "broccoli": 34, "spinach": 23, "kale": 49, "asparagus": 20, "brussels sprouts": 43,
     "cauliflower": 25, "peas": 84, "corn": 86, "potato": 77, "sweet potato": 86,
     
-    # Fast Food & Common Meals
+    # Fast Food & Common Meals (adjusted for realistic serving sizes)
     "pizza": 266, "pizza slice": 266, "hamburger": 295, "hot dog": 151,
     "sandwich": 250, "wrap": 250, "taco": 226, "burrito": 300,
-    "noodles": 138, "ramen": 138, "soup": 50, "salad": 20,
+    "noodles": 158, "ramen": 158, "soup": 35, "salad": 25,
     
     # Breakfast Foods
     "pancakes": 227, "waffles": 291, "french toast": 229, "bagel": 245,
     "muffin": 265, "croissant": 406, "english muffin": 157,
     
-    # Snacks & Others
-    "protein bar": 350, "protein shake": 120, "smoothie": 50,
+    # Snacks & Others (adjusted for realistic portions)
+    "protein bar": 350, "protein shake": 80, "smoothie": 40,
     "ice cream": 207, "chocolate": 545, "cookies": 502, "cake": 257
 }
 
@@ -312,7 +319,7 @@ def is_valid_email(email: str) -> bool:
     return re.match(pattern, email) is not None
 
 def send_verification_email(email: str, username: str, token: str):
-    """Send verification email"""
+    """Send verification email with professional HTML template"""
     if not SMTP_USERNAME or not SMTP_PASSWORD:
         print(f"⚠️  Email verification not configured!")
         print(f"   For user {username} ({email}), verification token: {token}")
@@ -320,26 +327,180 @@ def send_verification_email(email: str, username: str, token: str):
         return False
     
     try:
-        msg = MIMEMultipart()
-        msg['From'] = SMTP_USERNAME
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"Protein Tracker <{SMTP_USERNAME}>"
         msg['To'] = email
-        msg['Subject'] = "Verify your Protein Tracker account"
+        msg['Subject'] = "Welcome to Protein Tracker - Verify Your Account"
         
         verification_url = f"{APP_BASE_URL.rstrip('/')}/auth/verify/{token}"
-        body = f"""
-        Hello {username}!
         
-        Welcome to Protein Tracker! Please verify your email address by clicking the link below:
-        
-        {verification_url}
-        
-        If you didn't create this account, please ignore this email.
-        
-        Best regards,
-        Protein Tracker Team
+        # Plain text version
+        text_body = f"""
+Hello {username}!
+
+Welcome to Protein Tracker! 🎉
+
+Please verify your email address by clicking the link below:
+
+{verification_url}
+
+This verification link will expire in 24 hours.
+
+If you didn't create this account, please ignore this email.
+
+Best regards,
+The Protein Tracker Team
+
+---
+Protein Tracker - Your Personal Nutrition Assistant
         """
         
-        msg.attach(MIMEText(body, 'plain'))
+        # HTML version with professional styling and button
+        html_body = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Protein Tracker Account</title>
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }}
+        .email-container {{
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }}
+        .header {{
+            text-align: center;
+            margin-bottom: 30px;
+        }}
+        .logo {{
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }}
+        .subtitle {{
+            color: #7f8c8d;
+            font-size: 16px;
+        }}
+        .welcome-text {{
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 25px;
+        }}
+        .verification-section {{
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+            text-align: center;
+        }}
+        .verify-button {{
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 16px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }}
+        .verify-button:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }}
+        .fallback-link {{
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            word-break: break-all;
+        }}
+        .footer {{
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 14px;
+        }}
+        .warning {{
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+        }}
+        .emoji {{
+            font-size: 20px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">🍗 Protein Tracker</div>
+            <div class="subtitle">Your Personal Nutrition Assistant</div>
+        </div>
+        
+        <div class="welcome-text">
+            Hello <strong>{username}</strong>! <span class="emoji">👋</span>
+        </div>
+        
+        <p>Welcome to Protein Tracker! We're excited to have you on board. <span class="emoji">🎉</span></p>
+        
+        <p>To get started and access all the amazing features of your personal nutrition assistant, please verify your email address by clicking the button below:</p>
+        
+        <div class="verification-section">
+            <a href="{verification_url}" class="verify-button">
+                ✅ Verify My Account
+            </a>
+            
+            <p style="margin-top: 20px; font-size: 14px; color: #7f8c8d;">
+                If the button doesn't work, copy and paste this link into your browser:
+            </p>
+            <a href="{verification_url}" class="fallback-link">{verification_url}</a>
+        </div>
+        
+        <div class="warning">
+            <strong>⚠️ Important:</strong> This verification link will expire in 24 hours for your security.
+        </div>
+        
+        <div class="warning" style="background-color: #e3f2fd; border-color: #2196f3; color: #1565c0;">
+            <strong>💻 Development Note:</strong> This is a local development server. Make sure the Protein Tracker app is running on your computer before clicking the verification link.
+        </div>
+        
+        <p>If you didn't create this account, please ignore this email. Your email address will not be used for any other purpose.</p>
+        
+        <div class="footer">
+            <p>Best regards,<br>
+            <strong>The Protein Tracker Team</strong></p>
+            
+            <p style="margin-top: 20px;">
+                🍗 Protein Tracker - Track your nutrition, achieve your goals
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+        """
+        
+        # Attach both plain text and HTML versions
+        msg.attach(MIMEText(text_body, 'plain'))
+        msg.attach(MIMEText(html_body, 'html'))
         
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
             server.starttls()
@@ -376,159 +537,165 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         return user
 
 def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]:
-    """Calculate total protein content for detected foods normalized to 250g total food weight"""
-    raw_protein = 0.0
+    """Calculate total protein content for detected foods with realistic portion sizing"""
     matched_foods = []
     
-    for food_item in food_items:
-        food_lower = food_item.lower().strip()
-        found_match = False
-        
-        if food_lower in PROTEIN_DATABASE:
-            protein_value = PROTEIN_DATABASE[food_lower]
-            raw_protein += protein_value
-            matched_foods.append(food_item)
-            found_match = True
-            print(f"   ✅ Matched '{food_item}' -> {protein_value}g protein")
-        else:
-            for db_item, protein_value in PROTEIN_DATABASE.items():
-                if db_item in food_lower or food_lower in db_item:
-                    raw_protein += protein_value
-                    matched_foods.append(food_item)
-                    found_match = True
-                    print(f"   ✅ Matched '{food_item}' -> {protein_value}g protein (via '{db_item}')")
-                    break
-        
-        if not found_match:
-            # Try to estimate protein based on food type
-            estimated_protein = _estimate_protein_from_food_name(food_lower)
-            raw_protein += estimated_protein
-            print(f"   ⚠️  No exact match for '{food_item}' -> {estimated_protein}g protein (estimated)")
-    
-    # For single food item: return protein content for 250g of that food
+    # For single food item: use realistic portion sizing
     if len(food_items) == 1:
         food_lower = food_items[0].lower().strip()
         protein_per_100g = 0.0
         
         if food_lower in PROTEIN_DATABASE:
             protein_per_100g = PROTEIN_DATABASE[food_lower]
+            matched_foods.append(food_items[0])
+            print(f"   ✅ Matched '{food_items[0]}' -> {protein_per_100g}g protein/100g")
         else:
             # Try to find a match
             for db_item, protein_value in PROTEIN_DATABASE.items():
                 if db_item in food_lower or food_lower in db_item:
                     protein_per_100g = protein_value
+                    matched_foods.append(food_items[0])
+                    print(f"   ✅ Matched '{food_items[0]}' -> {protein_value}g protein/100g (via '{db_item}')")
                     break
             if protein_per_100g == 0.0:
                 protein_per_100g = _estimate_protein_from_food_name(food_lower)
+                print(f"   ⚠️  No exact match for '{food_items[0]}' -> {protein_per_100g}g protein/100g (estimated)")
         
-        total_protein = (protein_per_100g * 250.0) / 100.0
-        print(f"📊 Single food item: {food_items[0]}, 250g")
-        print(f"📊 Protein calculation: {total_protein:.1f}g from 250g of {food_items[0]}")
+        # Calculate realistic portion size based on food density
+        realistic_portion = _get_realistic_portion_size(food_lower)
+        total_protein = (protein_per_100g * realistic_portion) / 100.0
+        
+        print(f"📊 Single food item: {food_items[0]}, {realistic_portion}g (realistic portion)")
+        print(f"📊 Protein calculation: {total_protein:.1f}g from {realistic_portion}g of {food_items[0]}")
         return round(total_protein, 1), matched_foods
     
-    # For multiple food items: distribute 250g equally among items
-    # Each item gets 250g / num_items, then calculate protein for that portion
-    grams_per_item = 250.0 / len(food_items)
+    # For multiple food items: use weighted distribution based on food density
+    total_weight = 0.0
+    food_weights = {}
+    
+    # Calculate appropriate weights for each food item
+    for food_item in food_items:
+        food_lower = food_item.lower().strip()
+        realistic_portion = _get_realistic_portion_size(food_lower)
+        food_weights[food_item] = realistic_portion
+        total_weight += realistic_portion
+    
+    # Normalize to 350g total
+    if total_weight > 0:
+        scale_factor = 350.0 / total_weight
+        for food_item in food_weights:
+            food_weights[food_item] *= scale_factor
+    
     total_protein = 0.0
     
-    for i, food_item in enumerate(food_items):
+    for food_item in food_items:
         food_lower = food_item.lower().strip()
         protein_per_100g = 0.0
+        portion_weight = food_weights.get(food_item, 250.0 / len(food_items))
         
         if food_lower in PROTEIN_DATABASE:
             protein_per_100g = PROTEIN_DATABASE[food_lower]
+            matched_foods.append(food_item)
+            print(f"   ✅ Matched '{food_item}' -> {protein_per_100g}g protein/100g")
         else:
             # Try to find a match
             for db_item, protein_value in PROTEIN_DATABASE.items():
                 if db_item in food_lower or food_lower in db_item:
                     protein_per_100g = protein_value
+                    matched_foods.append(food_item)
+                    print(f"   ✅ Matched '{food_item}' -> {protein_value}g protein/100g (via '{db_item}')")
                     break
             if protein_per_100g == 0.0:
                 protein_per_100g = _estimate_protein_from_food_name(food_lower)
+                print(f"   ⚠️  No exact match for '{food_item}' -> {protein_per_100g}g protein/100g (estimated)")
         
-        protein_for_this_item = (protein_per_100g * grams_per_item) / 100.0
+        protein_for_this_item = (protein_per_100g * portion_weight) / 100.0
         total_protein += protein_for_this_item
+        print(f"   📊 {food_item}: {portion_weight:.0f}g → {protein_for_this_item:.1f}g protein")
     
-    print(f"📊 Multiple food items: {len(food_items)} items, {grams_per_item:.0f}g each")
-    print(f"📊 Protein calculation: {total_protein:.1f}g from 250g total ({grams_per_item:.0f}g per item)")
+    print(f"📊 Multiple food items: {len(food_items)} items, {total_weight:.0f}g total → 350g normalized")
+    print(f"📊 Protein calculation: {total_protein:.1f}g from 350g total")
     return round(total_protein, 1), matched_foods
 
 def calculate_calories_enhanced(food_items: List[str]) -> tuple[float, List[str]]:
-    """Calculate total calories for detected foods normalized to 250g total food weight"""
-    raw_calories = 0.0
+    """Calculate total calories for detected foods with realistic portion sizing"""
     matched_foods = []
     
-    for food_item in food_items:
-        food_lower = food_item.lower().strip()
-        found_match = False
-        
-        if food_lower in CALORIE_DATABASE:
-            calorie_value = CALORIE_DATABASE[food_lower]
-            raw_calories += calorie_value
-            matched_foods.append(food_item)
-            found_match = True
-            print(f"   ✅ Matched '{food_item}' -> {calorie_value} calories")
-        else:
-            for db_item, calorie_value in CALORIE_DATABASE.items():
-                if db_item in food_lower or food_lower in db_item:
-                    raw_calories += calorie_value
-                    matched_foods.append(food_item)
-                    found_match = True
-                    print(f"   ✅ Matched '{food_item}' -> {calorie_value} calories (via '{db_item}')")
-                    break
-        
-        if not found_match:
-            # Try to estimate calories based on food type
-            estimated_calories = _estimate_calories_from_food_name(food_lower)
-            raw_calories += estimated_calories
-            print(f"   ⚠️  No exact match for '{food_item}' -> {estimated_calories} calories (estimated)")
-    
-    # For single food item: return calories for 250g of that food
+    # For single food item: use realistic portion sizing
     if len(food_items) == 1:
         food_lower = food_items[0].lower().strip()
         calories_per_100g = 0.0
         
         if food_lower in CALORIE_DATABASE:
             calories_per_100g = CALORIE_DATABASE[food_lower]
+            matched_foods.append(food_items[0])
+            print(f"   ✅ Matched '{food_items[0]}' -> {calories_per_100g} calories/100g")
         else:
             # Try to find a match
             for db_item, calorie_value in CALORIE_DATABASE.items():
                 if db_item in food_lower or food_lower in db_item:
                     calories_per_100g = calorie_value
+                    matched_foods.append(food_items[0])
+                    print(f"   ✅ Matched '{food_items[0]}' -> {calorie_value} calories/100g (via '{db_item}')")
                     break
             if calories_per_100g == 0.0:
                 calories_per_100g = _estimate_calories_from_food_name(food_lower)
+                print(f"   ⚠️  No exact match for '{food_items[0]}' -> {calories_per_100g} calories/100g (estimated)")
         
-        total_calories = (calories_per_100g * 250.0) / 100.0
-        print(f"📊 Single food item: {food_items[0]}, 250g")
-        print(f"📊 Calorie calculation: {total_calories:.1f} calories from 250g of {food_items[0]}")
+        # Calculate realistic portion size based on food density
+        realistic_portion = _get_realistic_portion_size(food_lower)
+        total_calories = (calories_per_100g * realistic_portion) / 100.0
+        
+        print(f"📊 Single food item: {food_items[0]}, {realistic_portion}g (realistic portion)")
+        print(f"📊 Calorie calculation: {total_calories:.1f} calories from {realistic_portion}g of {food_items[0]}")
         return round(total_calories, 1), matched_foods
     
-    # For multiple food items: distribute 250g equally among items
-    # Each item gets 250g / num_items, then calculate calories for that portion
-    grams_per_item = 250.0 / len(food_items)
+    # For multiple food items: use weighted distribution based on food density
+    total_weight = 0.0
+    food_weights = {}
+    
+    # Calculate appropriate weights for each food item
+    for food_item in food_items:
+        food_lower = food_item.lower().strip()
+        realistic_portion = _get_realistic_portion_size(food_lower)
+        food_weights[food_item] = realistic_portion
+        total_weight += realistic_portion
+    
+    # Normalize to 350g total
+    if total_weight > 0:
+        scale_factor = 350.0 / total_weight
+        for food_item in food_weights:
+            food_weights[food_item] *= scale_factor
+    
     total_calories = 0.0
     
-    for i, food_item in enumerate(food_items):
+    for food_item in food_items:
         food_lower = food_item.lower().strip()
         calories_per_100g = 0.0
+        portion_weight = food_weights.get(food_item, 250.0 / len(food_items))
         
         if food_lower in CALORIE_DATABASE:
             calories_per_100g = CALORIE_DATABASE[food_lower]
+            matched_foods.append(food_item)
+            print(f"   ✅ Matched '{food_item}' -> {calories_per_100g} calories/100g")
         else:
             # Try to find a match
             for db_item, calorie_value in CALORIE_DATABASE.items():
                 if db_item in food_lower or food_lower in db_item:
                     calories_per_100g = calorie_value
+                    matched_foods.append(food_item)
+                    print(f"   ✅ Matched '{food_item}' -> {calorie_value} calories/100g (via '{db_item}')")
                     break
             if calories_per_100g == 0.0:
                 calories_per_100g = _estimate_calories_from_food_name(food_lower)
+                print(f"   ⚠️  No exact match for '{food_item}' -> {calories_per_100g} calories/100g (estimated)")
         
-        calories_for_this_item = (calories_per_100g * grams_per_item) / 100.0
+        calories_for_this_item = (calories_per_100g * portion_weight) / 100.0
         total_calories += calories_for_this_item
+        print(f"   📊 {food_item}: {portion_weight:.0f}g → {calories_for_this_item:.1f} calories")
     
-    print(f"📊 Multiple food items: {len(food_items)} items, {grams_per_item:.0f}g each")
-    print(f"📊 Calorie calculation: {total_calories:.1f} calories from 250g total ({grams_per_item:.0f}g per item)")
+    print(f"📊 Multiple food items: {len(food_items)} items, {total_weight:.0f}g total → 350g normalized")
+    print(f"📊 Calorie calculation: {total_calories:.1f} calories from 350g total")
     return round(total_calories, 1), matched_foods
 
 def _estimate_protein_from_food_name(food_name: str) -> float:
@@ -558,7 +725,7 @@ def _estimate_protein_from_food_name(food_name: str) -> float:
     elif any(word in food_name for word in ['bread', 'toast', 'sandwich', 'wrap']):
         return 10.0
     elif any(word in food_name for word in ['pasta', 'noodles', 'spaghetti', 'macaroni']):
-        return 8.0
+        return 5.5
     elif any(word in food_name for word in ['rice', 'quinoa', 'oatmeal', 'cereal']):
         return 8.0
     elif any(word in food_name for word in ['pizza', 'slice']):
@@ -566,7 +733,7 @@ def _estimate_protein_from_food_name(food_name: str) -> float:
     
     # Vegetables
     elif any(word in food_name for word in ['salad', 'vegetable', 'broccoli', 'spinach', 'kale']):
-        return 3.0
+        return 2.0
     
     # Nuts and seeds
     elif any(word in food_name for word in ['nut', 'seed', 'almond', 'peanut']):
@@ -615,13 +782,13 @@ def _estimate_calories_from_food_name(food_name: str) -> float:
     elif any(word in food_name for word in ['bread', 'toast', 'sandwich', 'wrap']):
         return 250
     elif any(word in food_name for word in ['rice', 'pasta', 'noodles', 'spaghetti']):
-        return 130
+        return 160
     elif any(word in food_name for word in ['oatmeal', 'oats', 'cereal']):
         return 100
     
     # Vegetables
     elif any(word in food_name for word in ['broccoli', 'spinach', 'kale', 'lettuce', 'salad']):
-        return 30
+        return 25
     elif any(word in food_name for word in ['carrot', 'potato', 'sweet potato', 'corn']):
         return 80
     elif any(word in food_name for word in ['tomato', 'cucumber', 'pepper', 'onion']):
@@ -650,6 +817,53 @@ def _estimate_calories_from_food_name(food_name: str) -> float:
     # Default for unknown foods
     else:
         return 150  # Reasonable default for mixed/complex foods
+
+def _get_realistic_portion_size(food_name: str) -> float:
+    """
+    Returns realistic portion sizes in grams based on food density and typical serving sizes.
+    This ensures that high-density foods (like nuts) get smaller portions and 
+    low-density foods (like vegetables) get larger portions for a 250g total meal.
+    """
+    food_name = food_name.lower()
+    
+    # High-density foods (nuts, seeds, oils, etc.) - smaller portions
+    if any(word in food_name for word in ['almond', 'walnut', 'cashew', 'peanut', 'nut', 'seed', 'chia', 'pumpkin', 'sunflower']):
+        return 30.0  # 30g for nuts/seeds is a realistic serving
+    
+    # Very high-density foods (oils, butter, etc.)
+    elif any(word in food_name for word in ['oil', 'butter', 'margarine']):
+        return 15.0  # 15g for oils/fats
+    
+    # Medium-high density foods (cheese, bacon, etc.)
+    elif any(word in food_name for word in ['cheese', 'cheddar', 'bacon', 'cream cheese']):
+        return 50.0  # 50g for cheese
+    
+    # Steak gets a larger single-item portion
+    elif 'steak' in food_name:
+        return 250.0  # 250g for steak
+    # Protein-rich foods (meats, fish, eggs) - moderate portions
+    elif any(word in food_name for word in ['chicken', 'beef', 'pork', 'turkey', 'lamb', 'duck', 'salmon', 'tuna', 'fish', 'shrimp', 'prawn', 'egg']):
+        return 150.0  # 150g for protein foods
+    
+    # Grains and carbs (pasta, rice, bread) - moderate portions
+    elif any(word in food_name for word in ['pasta', 'spaghetti', 'rice', 'bread', 'quinoa', 'oatmeal', 'oats', 'cereal']):
+        return 200.0  # 200g for grains
+    
+    # Fast food and mixed dishes - moderate portions
+    elif any(word in food_name for word in ['pizza', 'burger', 'sandwich', 'wrap', 'taco', 'burrito', 'hot dog']):
+        return 250.0  # 250g for complete meals
+    
+    # Low-density foods (vegetables, fruits) - larger portions
+    elif any(word in food_name for word in ['broccoli', 'spinach', 'kale', 'asparagus', 'cauliflower', 'salad', 'vegetable', 'fruit', 'apple', 'banana']):
+        return 300.0  # 300g for vegetables
+    
+    # Very low-density foods (soups, smoothies) - larger portions
+    elif any(word in food_name for word in ['soup', 'smoothie']):
+        return 400.0  # 400g for liquids
+    
+    # Default for unknown foods
+    else:
+        return 200.0  # 200g default
 
 def _calculate_portion_multiplier(num_items: int) -> float:
     """
@@ -687,8 +901,9 @@ def identify_food_with_vision(image_path: str) -> List[str]:
 
 @app.get("/")
 async def root():
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/static/login.html")
+    """Serve the professional landing page"""
+    from fastapi.responses import FileResponse
+    return FileResponse("static/index.html")
 
 @app.get("/api/health")
 async def health_check():
@@ -727,7 +942,7 @@ async def register_user(
         # Check if email verification is configured
         email_configured = bool(SMTP_USERNAME and SMTP_PASSWORD)
         
-        # Local testing: allow auto-verify when email not configured
+        # Enforce email verification when configured
         if not email_configured:
             print("ℹ️  Email not configured; accounts will be auto-verified.")
         
@@ -736,7 +951,7 @@ async def register_user(
             email=email,
             password_hash=password_hash,
             verification_token=verification_token,
-            email_verified=email_configured or True
+            email_verified=not email_configured  # Only auto-verify if email not configured
         )
         
         session.add(user)
@@ -758,7 +973,8 @@ async def register_user(
             "username": user.username,
             "email": user.email,
             "email_verified": user.email_verified,
-            "email_configured": email_configured
+            "email_configured": email_configured,
+            "email_sent": email_sent
         }
 
 @app.post("/auth/login")
@@ -769,9 +985,9 @@ async def login_user(username: str = Form(...), password: str = Form(...)):
         if not user or not verify_password(password, user.password_hash):
             raise HTTPException(status_code=401, detail="Invalid username or password")
         
-        # Optionally enforce verification if email is configured
-        # if SMTP_USERNAME and SMTP_PASSWORD and not user.email_verified:
-        #     raise HTTPException(status_code=401, detail="Please verify your email before logging in")
+        # Enforce verification if email is configured
+        if SMTP_USERNAME and SMTP_PASSWORD and not user.email_verified:
+            raise HTTPException(status_code=401, detail="Please verify your email before logging in")
         
         return {
             "message": "Login successful",
@@ -791,16 +1007,112 @@ async def verify_email(token: str):
         user = session.exec(select(User).where(User.verification_token == token)).first()
         
         if not user:
-            raise HTTPException(status_code=404, detail="Invalid verification token")
+            # Return HTML error page
+            error_html = """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Invalid Verification Link</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+                    .container { background: rgba(255,255,255,0.1); padding: 40px; border-radius: 15px; backdrop-filter: blur(10px); }
+                    .error-icon { font-size: 60px; margin-bottom: 20px; }
+                    .btn { background: white; color: #667eea; padding: 12px 24px; text-decoration: none; border-radius: 25px; display: inline-block; margin-top: 20px; font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="error-icon">❌</div>
+                    <h1>Invalid Verification Link</h1>
+                    <p>This verification link is invalid or has expired.</p>
+                    <a href="/login.html" class="btn">Go to Login</a>
+                </div>
+            </body>
+            </html>
+            """
+            return HTMLResponse(content=error_html, status_code=404)
         
         user.email_verified = True
         user.verification_token = None
         session.commit()
         
-        return {
-            "message": "Email verified successfully! You can now log in.",
-            "username": user.username
-        }
+        # Return HTML success page
+        success_html = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Email Verified Successfully</title>
+            <style>
+                body {{ 
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                    text-align: center; 
+                    padding: 50px; 
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    color: white; 
+                    margin: 0;
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }}
+                .container {{ 
+                    background: rgba(255,255,255,0.1); 
+                    padding: 40px; 
+                    border-radius: 15px; 
+                    backdrop-filter: blur(10px);
+                    max-width: 500px;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+                }}
+                .success-icon {{ font-size: 60px; margin-bottom: 20px; animation: bounce 2s infinite; }}
+                @keyframes bounce {{ 0%, 20%, 50%, 80%, 100% {{ transform: translateY(0); }} 40% {{ transform: translateY(-10px); }} 60% {{ transform: translateY(-5px); }} }}
+                .btn {{ 
+                    background: white; 
+                    color: #667eea; 
+                    padding: 15px 30px; 
+                    text-decoration: none; 
+                    border-radius: 25px; 
+                    display: inline-block; 
+                    margin-top: 20px; 
+                    font-weight: bold;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                }}
+                .btn:hover {{ 
+                    transform: translateY(-2px); 
+                    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+                }}
+                .username {{ font-weight: bold; color: #ffd700; }}
+                .note {{ 
+                    background: rgba(255,255,255,0.1); 
+                    padding: 15px; 
+                    border-radius: 8px; 
+                    margin: 20px 0; 
+                    font-size: 14px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="success-icon">✅</div>
+                <h1>Email Verified Successfully!</h1>
+                <p>Welcome to Protein Tracker, <span class="username">{user.username}</span>! 🎉</p>
+                <p>Your account has been verified and you can now log in to start tracking your nutrition.</p>
+                
+                <div class="note">
+                    <strong>💡 Note:</strong> If you're accessing this from a different device or browser, 
+                    you may need to open the app in your browser first.
+                </div>
+                
+                <a href="/login.html" class="btn">🚀 Start Using Protein Tracker</a>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=success_html)
 
 @app.get("/auth/email-status")
 async def get_email_status():
@@ -992,6 +1304,10 @@ async def update_weight(
         session.commit()
         session.refresh(user)
         
+        # Invalidate dashboard cache for this user
+        cache_key = f"dashboard_{user.id}_{datetime.now().date()}"
+        cache.set(cache_key, None, ttl=1)  # Invalidate immediately
+        
         return {
             "message": "Weight updated successfully",
             "weight_kg": user.weight_kg,
@@ -1021,6 +1337,10 @@ async def update_protein_goal(
         session.commit()
         session.refresh(user)
         
+        # Invalidate dashboard cache for this user
+        cache_key = f"dashboard_{user.id}_{datetime.now().date()}"
+        cache.set(cache_key, None, ttl=1)  # Invalidate immediately
+        
         return {
             "message": "Protein goal updated successfully",
             "protein_goal": round(user.protein_goal, 1) if user.protein_goal else None
@@ -1045,6 +1365,10 @@ async def update_calorie_goal(
         
         session.commit()
         session.refresh(user)
+        
+        # Invalidate dashboard cache for this user
+        cache_key = f"dashboard_{user.id}_{datetime.now().date()}"
+        cache.set(cache_key, None, ttl=1)  # Invalidate immediately
         
         return {
             "message": "Calorie goal updated successfully",
@@ -1074,6 +1398,10 @@ async def update_activity_level(
         
         session.commit()
         session.refresh(user)
+        
+        # Invalidate dashboard cache for this user
+        cache_key = f"dashboard_{user.id}_{datetime.now().date()}"
+        cache.set(cache_key, None, ttl=1)  # Invalidate immediately
         
         return {
             "message": "Activity level updated successfully",
@@ -1224,20 +1552,25 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
         return cached_data['value']
     
     with Session(engine) as session:
+        # Fetch fresh user data from database to get latest goals
+        fresh_user = session.exec(select(User).where(User.id == current_user.id)).first()
+        if not fresh_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
         today = datetime.now().date()
         today_meals = session.exec(select(Meal).where(
-            Meal.user_id == current_user.id,
+            Meal.user_id == fresh_user.id,
             func.date(Meal.created_at) == today
         )).all()
         
         today_protein = round(sum(meal.total_protein for meal in today_meals), 1)
         today_calories = round(sum(meal.total_calories for meal in today_meals), 1)
         
-        all_meals = session.exec(select(Meal).where(Meal.user_id == current_user.id)).all()
+        all_meals = session.exec(select(Meal).where(Meal.user_id == fresh_user.id)).all()
         
         week_ago = datetime.now().date() - timedelta(days=7)
         weekly_meals = session.exec(select(Meal).where(
-            Meal.user_id == current_user.id,
+            Meal.user_id == fresh_user.id,
             func.date(Meal.created_at) >= week_ago
         )).all()
         weekly_protein = round(sum(meal.total_protein for meal in weekly_meals), 1)
@@ -1245,29 +1578,29 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
         
         # Check if user needs weight update (weekly popup)
         needs_weight_update = False
-        if current_user.last_weight_update:
-            days_since_update = (datetime.now() - current_user.last_weight_update).days
+        if fresh_user.last_weight_update:
+            days_since_update = (datetime.now() - fresh_user.last_weight_update).days
             needs_weight_update = days_since_update >= 7
         else:
             needs_weight_update = True  # First time user
         
         result = {
             "user": {
-                "id": current_user.id,
-                "username": current_user.username,
-                "weight_kg": current_user.weight_kg,
-                "protein_goal": round(current_user.protein_goal, 1) if current_user.protein_goal else None,
-                "calorie_goal": round(current_user.calorie_goal, 0) if current_user.calorie_goal else None,
-                "last_weight_update": current_user.last_weight_update.isoformat() if current_user.last_weight_update else None,
+                "id": fresh_user.id,
+                "username": fresh_user.username,
+                "weight_kg": fresh_user.weight_kg,
+                "protein_goal": round(fresh_user.protein_goal, 1) if fresh_user.protein_goal else None,
+                "calorie_goal": round(fresh_user.calorie_goal, 0) if fresh_user.calorie_goal else None,
+                "last_weight_update": fresh_user.last_weight_update.isoformat() if fresh_user.last_weight_update else None,
                 "needs_weight_update": needs_weight_update,
-                "profile_picture_path": current_user.profile_picture_path
+                "profile_picture_path": fresh_user.profile_picture_path
             },
             "today": {
                 "total_protein": round(today_protein, 1),
                 "total_calories": round(today_calories, 1),
-                "goal_progress": round((today_protein / current_user.protein_goal) * 100 if current_user.protein_goal else 0, 1),
+                "goal_progress": round((today_protein / fresh_user.protein_goal) * 100 if fresh_user.protein_goal else 0, 1),
                 "meals_count": len(today_meals),
-                "remaining_protein": round(max(0, (current_user.protein_goal or 0) - today_protein), 1)
+                "remaining_protein": round(max(0, (fresh_user.protein_goal or 0) - today_protein), 1)
             },
             "weekly": {
                 "total_calories": round(weekly_calories, 1),
@@ -1386,6 +1719,50 @@ async def get_food_suggestions():
         "categories": categories,
         "protein_values": PROTEIN_DATABASE
     }
+
+@app.delete("/users/delete-account")
+async def delete_user_account(current_user: User = Depends(get_current_user)):
+    """Delete user account and all associated data"""
+    try:
+        with Session(engine) as session:
+            # Get the user with all related data
+            user = session.get(User, current_user.id)
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Delete all meals for this user
+            user_meals = session.exec(
+                select(Meal).where(Meal.user_id == current_user.id)
+            ).all()
+            
+            # Delete meal images and records
+            for meal in user_meals:
+                if meal.image_path and os.path.exists(meal.image_path):
+                    try:
+                        os.remove(meal.image_path)
+                    except Exception as e:
+                        print(f"Failed to delete image {meal.image_path}: {e}")
+                session.delete(meal)
+            
+            # Delete profile picture if exists
+            if user.profile_picture_path and os.path.exists(user.profile_picture_path):
+                try:
+                    os.remove(user.profile_picture_path)
+                except Exception as e:
+                    print(f"Failed to delete profile picture {user.profile_picture_path}: {e}")
+            
+            # Delete the user
+            session.delete(user)
+            session.commit()
+            
+            return {
+                "message": "Account deleted successfully",
+                "deleted_meals": len(user_meals),
+                "user_id": current_user.id
+            }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete account: {str(e)}")
 
 @app.post("/admin/cleanup")
 async def manual_cleanup():

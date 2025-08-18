@@ -11,7 +11,9 @@ except Exception:
     pass
 
 class GoogleVisionFoodDetector:
-    def __init__(self, service_account_path: str = "service-account-key.json"):
+    def __init__(self, service_account_path: str = None):
+        if service_account_path is None:
+            service_account_path = os.getenv("GOOGLE_VISION_SERVICE_ACCOUNT_PATH", "service-account-key.json")
         """Initialize Google Vision API client with service account authentication.
         
         Args:
