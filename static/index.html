@@ -48,6 +48,62 @@
             background: var(--bg-primary);
             overflow-x: hidden;
             transition: background-color 0.3s ease, color 0.3s ease;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        body.loaded {
+            opacity: 1;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+            padding: 0.25rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-md);
+        }
+
+        .theme-toggle-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            width: 2rem;
+            height: 2rem;
+        }
+
+        .theme-toggle-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .theme-toggle-btn.active {
+            background: var(--primary-gradient);
+            color: white;
         }
 
         /* Header */
@@ -77,6 +133,7 @@
             max-width: 1200px;
             margin: 0 auto;
             gap: 2rem;
+            position: relative;
         }
 
         .logo {
@@ -94,7 +151,7 @@
 
         .logo i {
             background: var(--primary-gradient);
-            -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             font-size: 2rem;
         }
@@ -121,7 +178,7 @@
         .nav-links {
             display: flex;
             align-items: center;
-            gap: 2.5rem;
+            gap: 1.5rem;
         }
 
         .nav-link {
@@ -130,10 +187,14 @@
             font-weight: 500;
             transition: all 0.3s ease;
             position: relative;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            white-space: nowrap;
         }
 
         .nav-link:hover {
             color: var(--text-primary);
+            background: var(--bg-tertiary);
             transform: translateY(-1px);
         }
 
@@ -153,7 +214,7 @@
         }
 
         .cta-button {
-            padding: 0.75rem 1.5rem;
+            padding: 0.75rem 1.25rem;
             background: var(--primary-gradient);
             color: white;
             text-decoration: none;
@@ -163,6 +224,7 @@
             box-shadow: var(--shadow-md);
             position: relative;
             overflow: hidden;
+            white-space: nowrap;
         }
 
         .cta-button::before {
@@ -806,6 +868,31 @@
         }
 
         /* Responsive Design */
+        @media (max-width: 1024px) {
+            .header-content {
+                padding: 1rem 1.5rem;
+            }
+
+            .nav-links {
+                gap: 1.5rem;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 1.5rem;
+            }
+
+            .demo-container {
+                grid-template-columns: 1fr 300px;
+                gap: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2rem;
+            }
+        }
+
         @media (max-width: 768px) {
             .header-content {
                 padding: 1rem;
@@ -815,23 +902,57 @@
                 display: none;
             }
 
+            .nav-link {
+                font-size: 0.875rem;
+            }
+
+            .cta-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+            }
+
+            .theme-toggle {
+                margin-left: 0;
+            }
+
             .hero {
-                padding: 6rem 1rem 3rem;
+                padding: 8rem 1rem 3rem;
+                min-height: 80vh;
+            }
+
+            .hero-title {
+                font-size: clamp(2rem, 6vw, 3rem);
+            }
+
+            .hero-subtitle {
+                font-size: clamp(1rem, 3vw, 1.125rem);
             }
 
             .hero-buttons {
                 flex-direction: column;
                 align-items: center;
+                gap: 1rem;
             }
 
             .hero-button {
                 width: 100%;
-                max-width: 300px;
+                max-width: 280px;
                 justify-content: center;
+                padding: 0.875rem 1.5rem;
+                font-size: 0.875rem;
             }
 
             .features {
                 padding: 4rem 1rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .feature-card {
+                padding: 2rem;
             }
 
             .demo {
@@ -849,17 +970,346 @@
                 margin: 0 auto;
             }
 
+            .demo-step {
+                padding: 1.5rem;
+            }
+
             .stats {
                 padding: 4rem 1rem;
             }
 
             .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: 1fr;
                 gap: 1.5rem;
+            }
+
+            .stat-item {
+                padding: 1.5rem;
+            }
+
+            .stat-number {
+                font-size: 2.5rem;
             }
 
             .cta-section {
                 padding: 4rem 1rem;
+            }
+
+            .cta-title {
+                font-size: clamp(1.75rem, 5vw, 2.5rem);
+            }
+
+            .cta-description {
+                font-size: 1rem;
+            }
+
+            .cta-content {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .cta-content .hero-button {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+                margin: 0 auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-content {
+                padding: 0.75rem;
+            }
+
+            .logo {
+                font-size: 1.25rem;
+            }
+
+            .logo i {
+                font-size: 1.5rem;
+            }
+
+            .theme-toggle {
+                padding: 0.2rem;
+            }
+
+            .theme-toggle-btn {
+                width: 1.75rem;
+                height: 1.75rem;
+                font-size: 0.875rem;
+            }
+
+            .hero {
+                padding: 6rem 0.75rem 2rem;
+            }
+
+            .hero-title {
+                font-size: clamp(1.75rem, 7vw, 2.5rem);
+                margin-bottom: 1rem;
+            }
+
+            .hero-subtitle {
+                font-size: clamp(0.9rem, 4vw, 1rem);
+                margin-bottom: 2rem;
+            }
+
+            .hero-button {
+                max-width: 250px;
+                padding: 0.75rem 1.25rem;
+                font-size: 0.8rem;
+            }
+
+            .features {
+                padding: 3rem 0.75rem;
+            }
+
+            .feature-card {
+                padding: 1.5rem;
+            }
+
+            .feature-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .feature-title {
+                font-size: 1.25rem;
+            }
+
+            .demo {
+                padding: 3rem 0.75rem;
+            }
+
+            .demo-step {
+                padding: 1.25rem;
+            }
+
+            .demo-step-number {
+                width: 35px;
+                height: 35px;
+                font-size: 0.875rem;
+            }
+
+            .demo-step-title {
+                font-size: 1rem;
+            }
+
+            .demo-step-desc {
+                font-size: 0.8rem;
+            }
+
+            .stats {
+                padding: 3rem 0.75rem;
+            }
+
+            .stat-item {
+                padding: 1.25rem;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+
+            .stat-label {
+                font-size: 1rem;
+            }
+
+            .cta-section {
+                padding: 3rem 0.75rem;
+            }
+
+            .cta-title {
+                font-size: clamp(1.5rem, 6vw, 2rem);
+            }
+
+            .cta-description {
+                font-size: 0.9rem;
+            }
+
+            .cta-content {
+                padding: 0 0.5rem;
+            }
+
+            .cta-content .hero-button {
+                max-width: 280px;
+                padding: 0.75rem 1.5rem;
+                font-size: 0.875rem;
+            }
+
+            .footer {
+                padding: 3rem 0.75rem 1.5rem;
+            }
+        }
+
+        /* Touch-friendly interactions */
+        @media (hover: none) and (pointer: coarse) {
+            .nav-link:hover::after {
+                width: 0;
+            }
+
+            .feature-card:hover {
+                transform: none;
+            }
+
+            .hero-button:hover,
+            .cta-button:hover {
+                transform: none;
+            }
+
+            .demo-step:hover {
+                transform: none;
+            }
+
+            .stat-item:hover {
+                transform: none;
+            }
+
+            .theme-toggle:hover {
+                transform: none;
+            }
+
+            /* Add active states for touch devices */
+            .nav-link:active {
+                color: var(--text-primary);
+            }
+
+            .feature-card:active {
+                transform: scale(0.98);
+            }
+
+            .hero-button:active,
+            .cta-button:active {
+                transform: scale(0.98);
+            }
+
+            .demo-step:active {
+                transform: scale(0.98);
+            }
+
+            .stat-item:active {
+                transform: scale(0.98);
+            }
+
+            .theme-toggle:active {
+                transform: scale(0.95);
+            }
+        }
+
+        /* Landscape orientation adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .hero {
+                min-height: 100vh;
+                padding: 4rem 2rem 2rem;
+            }
+
+            .hero-title {
+                font-size: clamp(1.5rem, 4vw, 2.5rem);
+                margin-bottom: 1rem;
+            }
+
+            .hero-subtitle {
+                font-size: clamp(0.9rem, 2vw, 1rem);
+                margin-bottom: 1.5rem;
+            }
+
+            .hero-buttons {
+                flex-direction: row;
+                gap: 1rem;
+            }
+
+            .hero-button {
+                max-width: 200px;
+            }
+        }
+
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .hero::before,
+            .stats::before,
+            .cta-section::before {
+                background-size: 50px 50px;
+            }
+        }
+
+        /* Reduced motion preferences */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+
+            .floating {
+                animation: none;
+            }
+        }
+
+        /* Performance optimizations */
+        .feature-card,
+        .hero-button,
+        .cta-button,
+        .demo-step,
+        .stat-item {
+            will-change: transform;
+        }
+
+        /* Better touch targets */
+        .nav-link,
+        .hero-button,
+        .cta-button,
+        .theme-toggle-btn {
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Smooth scrolling for the whole page */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Better focus states for accessibility */
+        .nav-link:focus,
+        .hero-button:focus,
+        .cta-button:focus,
+        .theme-toggle-btn:focus {
+            outline: 2px solid var(--primary-gradient);
+            outline-offset: 2px;
+        }
+
+        /* Loading states */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        /* Enhanced mobile menu */
+        @media (max-width: 768px) {
+            .mobile-menu-toggle:focus {
+                outline: 2px solid var(--primary-gradient);
+                outline-offset: 2px;
+            }
+
+            .nav-links.active {
+                animation: slideDown 0.3s ease-out;
+            }
+
+            @keyframes slideDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
             }
         }
 
@@ -933,6 +1383,7 @@
     </style>
 </head>
 <body>
+
     <!-- Header -->
     <header class="header">
         <div class="header-content">
@@ -945,6 +1396,14 @@
                 <a href="#demo" class="nav-link">Demo</a>
                 <a href="#stats" class="nav-link">Stats</a>
                 <a href="/static/login.html" class="cta-button">Get Started</a>
+                <div class="theme-toggle">
+                    <button id="lightMode" class="theme-toggle-btn" onclick="setTheme('light')">
+                        <i class="fas fa-sun"></i>
+                    </button>
+                    <button id="darkMode" class="theme-toggle-btn" onclick="setTheme('dark')">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
             </nav>
         </div>
     </header>
@@ -1268,12 +1727,8 @@
             document.getElementById(`demo-step-${step}`).classList.add('active');
         }
 
-        // Auto-cycle demo every 4 seconds
+        // Initialize demo step variable
         let demoStep = 1;
-        setInterval(() => {
-            demoStep = demoStep >= 4 ? 1 : demoStep + 1;
-            showDemoStep(demoStep);
-        }, 4000);
 
                  // Check if user is already logged in
          const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
@@ -1287,40 +1742,296 @@
              });
          }
 
-        // Add some interactive effects
+        // Theme Management
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('preferred-theme', theme);
+            
+            // Update toggle buttons
+            document.querySelectorAll('.theme-toggle-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(theme + 'Mode').classList.add('active');
+        }
+
+        // Initialize theme
+        function initTheme() {
+            const savedTheme = localStorage.getItem('preferred-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+            setTheme(theme);
+        }
+
+        // Initialize theme on load
+        initTheme();
+
+        // Enhanced interactive effects
         document.addEventListener('DOMContentLoaded', function() {
-            // Add hover effects to feature cards
+            // Add reactive hover effects to feature cards
             document.querySelectorAll('.feature-card').forEach(card => {
                 card.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-8px) scale(1.02)';
+                    if (window.innerWidth > 768) {
+                        this.style.transform = 'translateY(-8px) scale(1.02)';
+                    }
                 });
                 
                 card.addEventListener('mouseleave', function() {
                     this.style.transform = 'translateY(0) scale(1)';
                 });
+
+                // Add touch feedback
+                card.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+
+                card.addEventListener('touchend', function() {
+                    this.style.transform = 'scale(1)';
+                });
             });
 
-            // Add click effects to buttons
-            document.querySelectorAll('.hero-button, .cta-button').forEach(button => {
+            // Enhanced button interactions
+            document.querySelectorAll('.hero-button, .cta-button, .nav-link').forEach(button => {
+                // Ripple effect for click
                 button.addEventListener('click', function(e) {
-                    // Create ripple effect
+                    if (this.classList.contains('nav-link')) return; // Skip for nav links
+                    
                     const ripple = document.createElement('span');
                     const rect = this.getBoundingClientRect();
                     const size = Math.max(rect.width, rect.height);
                     const x = e.clientX - rect.left - size / 2;
                     const y = e.clientY - rect.top - size / 2;
                     
-                    ripple.style.width = ripple.style.height = size + 'px';
-                    ripple.style.left = x + 'px';
-                    ripple.style.top = y + 'px';
-                    ripple.classList.add('ripple');
+                    ripple.style.cssText = `
+                        position: absolute;
+                        width: ${size}px;
+                        height: ${size}px;
+                        left: ${x}px;
+                        top: ${y}px;
+                        background: rgba(255, 255, 255, 0.3);
+                        border-radius: 50%;
+                        transform: scale(0);
+                        animation: ripple 0.6s ease-out;
+                        pointer-events: none;
+                    `;
                     
+                    this.style.position = 'relative';
+                    this.style.overflow = 'hidden';
                     this.appendChild(ripple);
                     
                     setTimeout(() => {
                         ripple.remove();
                     }, 600);
                 });
+
+                // Touch feedback
+                button.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.95)';
+                });
+
+                button.addEventListener('touchend', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            });
+
+            // Add ripple animation CSS
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes ripple {
+                    to {
+                        transform: scale(4);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Enhanced scroll animations
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        
+                        // Add staggered animation for feature cards
+                        if (entry.target.classList.contains('feature-card')) {
+                            const cards = document.querySelectorAll('.feature-card');
+                            const index = Array.from(cards).indexOf(entry.target);
+                            entry.target.style.animationDelay = `${index * 0.1}s`;
+                        }
+                    }
+                });
+            }, observerOptions);
+
+            // Observe all elements with animate-on-scroll class
+            document.querySelectorAll('.animate-on-scroll').forEach(el => {
+                observer.observe(el);
+            });
+
+            // Enhanced header scroll effect
+            let lastScrollY = window.scrollY;
+            const header = document.querySelector('.header');
+            
+            window.addEventListener('scroll', () => {
+                const currentScrollY = window.scrollY;
+                
+                if (currentScrollY > 100) {
+                    header.classList.add('scrolled');
+                } else {
+                    header.classList.remove('scrolled');
+                }
+
+                // Hide/show header on scroll
+                if (currentScrollY > lastScrollY && currentScrollY > 200) {
+                    header.style.transform = 'translateY(-100%)';
+                } else {
+                    header.style.transform = 'translateY(0)';
+                }
+                
+                lastScrollY = currentScrollY;
+            });
+
+            // Add smooth scrolling with offset for fixed header
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        const headerHeight = document.querySelector('.header').offsetHeight;
+                        const targetPosition = target.offsetTop - headerHeight - 20;
+                        
+                        window.scrollTo({
+                            top: targetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+
+            // Enhanced demo interactions
+            let isDemoAutoPlaying = true;
+            let demoInterval;
+
+            function startDemoAutoPlay() {
+                if (isDemoAutoPlaying && !demoInterval) {
+                    demoInterval = setInterval(() => {
+                        demoStep = demoStep >= 4 ? 1 : demoStep + 1;
+                        showDemoStep(demoStep);
+                    }, 4000);
+                }
+            }
+
+            function stopDemoAutoPlay() {
+                if (demoInterval) {
+                    clearInterval(demoInterval);
+                    demoInterval = null;
+                }
+            }
+
+            // Pause auto-play on demo interaction
+            document.querySelectorAll('.demo-step').forEach(step => {
+                step.addEventListener('mouseenter', stopDemoAutoPlay);
+                step.addEventListener('mouseleave', startDemoAutoPlay);
+                step.addEventListener('touchstart', stopDemoAutoPlay);
+            });
+
+            // Resume auto-play after 5 seconds of no interaction
+            let demoTimeout;
+            document.querySelectorAll('.demo-step').forEach(step => {
+                step.addEventListener('click', () => {
+                    stopDemoAutoPlay();
+                    clearTimeout(demoTimeout);
+                    demoTimeout = setTimeout(startDemoAutoPlay, 5000);
+                });
+            });
+
+            // Start auto-play after a short delay
+            setTimeout(startDemoAutoPlay, 2000);
+
+            // Add responsive navigation toggle for mobile
+            const navLinks = document.querySelector('.nav-links');
+            const headerContent = document.querySelector('.header-content');
+            
+            // Create mobile menu toggle
+            const mobileToggle = document.createElement('button');
+            mobileToggle.innerHTML = '<i class="fas fa-bars"></i>';
+            mobileToggle.className = 'mobile-menu-toggle';
+            mobileToggle.style.cssText = `
+                display: none;
+                background: none;
+                border: none;
+                color: var(--text-primary);
+                font-size: 1.5rem;
+                cursor: pointer;
+                padding: 0.5rem;
+                border-radius: 8px;
+                transition: all 0.3s ease;
+            `;
+
+                         // Add mobile toggle styles
+             const mobileStyles = document.createElement('style');
+             mobileStyles.textContent = `
+                 @media (max-width: 768px) {
+                     .mobile-menu-toggle {
+                         display: block !important;
+                     }
+                     
+                     .nav-links {
+                         display: none;
+                         position: absolute;
+                         top: 100%;
+                         left: 0;
+                         right: 0;
+                         background: var(--bg-primary);
+                         border-top: 1px solid var(--border-color);
+                         padding: 1rem;
+                         box-shadow: var(--shadow-lg);
+                         flex-direction: column;
+                         gap: 1rem;
+                         align-items: center;
+                     }
+                     
+                     .nav-links.active {
+                         display: flex;
+                     }
+                     
+                     .header-content {
+                         position: relative;
+                     }
+                     
+                     .theme-toggle {
+                         margin: 0.5rem 0;
+                     }
+                 }
+             `;
+            document.head.appendChild(mobileStyles);
+
+            // Insert mobile toggle
+            headerContent.insertBefore(mobileToggle, navLinks);
+
+            // Toggle mobile menu
+            mobileToggle.addEventListener('click', () => {
+                navLinks.classList.toggle('active');
+                const icon = mobileToggle.querySelector('i');
+                if (navLinks.classList.contains('active')) {
+                    icon.className = 'fas fa-times';
+                } else {
+                    icon.className = 'fas fa-bars';
+                }
+            });
+
+            // Close mobile menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!headerContent.contains(e.target) && navLinks.classList.contains('active')) {
+                    navLinks.classList.remove('active');
+                    mobileToggle.querySelector('i').className = 'fas fa-bars';
+                }
+            });
+
+            // Add loading animation
+            window.addEventListener('load', () => {
+                document.body.classList.add('loaded');
             });
         });
     </script>

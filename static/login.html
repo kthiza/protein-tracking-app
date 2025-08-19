@@ -124,7 +124,7 @@
 
         .logo i {
             background: var(--primary-gradient);
-            -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             font-size: 2rem;
         }
@@ -193,6 +193,29 @@
 
         .input-icon .form-input {
             padding-left: 2.75rem;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .password-toggle:hover {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .password-input {
+            padding-right: 3rem !important;
         }
 
         .form-button {
@@ -360,7 +383,17 @@
     </style>
 </head>
 <body>
-    <!-- Theme toggle moved to settings page -->
+    <!-- Theme Toggle -->
+    <div class="theme-toggle">
+        <button id="lightMode" class="theme-toggle-btn" onclick="setTheme('light')">
+            <i class="fas fa-sun"></i>
+            <span>Light</span>
+        </button>
+        <button id="darkMode" class="theme-toggle-btn" onclick="setTheme('dark')">
+            <i class="fas fa-moon"></i>
+            <span>Dark</span>
+        </button>
+    </div>
 
     <div class="login-container">
         <!-- Header -->
@@ -400,7 +433,10 @@
                 <label class="form-label" for="password">Password</label>
                 <div class="input-icon">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+                    <input type="password" id="password" class="form-input password-input" placeholder="Enter your password" required>
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password')">
+                        <i class="fas fa-eye"></i>
+                    </button>
                 </div>
             </div>
 
@@ -409,7 +445,10 @@
                 <label class="form-label" for="confirmPassword">Confirm Password</label>
                 <div class="input-icon">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="confirmPassword" class="form-input" placeholder="Confirm your password">
+                    <input type="password" id="confirmPassword" class="form-input password-input" placeholder="Confirm your password">
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirmPassword')">
+                        <i class="fas fa-eye"></i>
+                    </button>
                 </div>
             </div>
 
@@ -681,8 +720,22 @@
         setTheme(theme);
     }
 
-    // Initialize theme on load
-    initTheme();
+
+
+    // Password visibility toggle
+    function togglePasswordVisibility(inputId) {
+        const input = document.getElementById(inputId);
+        const toggle = input.nextElementSibling;
+        const icon = toggle.querySelector('i');
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'fas fa-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'fas fa-eye';
+        }
+    }
     </script>
 </body>
 </html>
