@@ -328,9 +328,9 @@ def send_verification_email(email: str, username: str, token: str):
     
     try:
         msg = MIMEMultipart('alternative')
-        msg['From'] = f"Protein Tracker <{SMTP_USERNAME}>"
+        msg['From'] = f"KthizaTrack <{SMTP_USERNAME}>"
         msg['To'] = email
-        msg['Subject'] = "Welcome to Protein Tracker - Verify Your Account"
+        msg['Subject'] = "Welcome to KthizaTrack - Verify Your Account"
         
         verification_url = f"{APP_BASE_URL.rstrip('/')}/auth/verify/{token}"
         
@@ -338,7 +338,7 @@ def send_verification_email(email: str, username: str, token: str):
         text_body = f"""
 Hello {username}!
 
-Welcome to Protein Tracker! 🎉
+Welcome to KthizaTrack! 🎉
 
 Please verify your email address by clicking the link below:
 
@@ -349,10 +349,10 @@ This verification link will expire in 24 hours.
 If you didn't create this account, please ignore this email.
 
 Best regards,
-The Protein Tracker Team
+The KthizaTrack Team
 
 ---
-Protein Tracker - Your Personal Nutrition Assistant
+KthizaTrack - Your Personal Nutrition Assistant
         """
         
         # HTML version with professional styling and button
@@ -362,7 +362,7 @@ Protein Tracker - Your Personal Nutrition Assistant
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify Your Protein Tracker Account</title>
+    <title>Verify Your KthizaTrack Account</title>
     <style>
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -452,7 +452,7 @@ Protein Tracker - Your Personal Nutrition Assistant
 <body>
     <div class="email-container">
         <div class="header">
-            <div class="logo">🍗 Protein Tracker</div>
+            <div class="logo">🍗 KthizaTrack</div>
             <div class="subtitle">Your Personal Nutrition Assistant</div>
         </div>
         
@@ -460,7 +460,7 @@ Protein Tracker - Your Personal Nutrition Assistant
             Hello <strong>{username}</strong>! <span class="emoji">👋</span>
         </div>
         
-        <p>Welcome to Protein Tracker! We're excited to have you on board. <span class="emoji">🎉</span></p>
+        <p>Welcome to KthizaTrack! We're excited to have you on board. <span class="emoji">🎉</span></p>
         
         <p>To get started and access all the amazing features of your personal nutrition assistant, please verify your email address by clicking the button below:</p>
         
@@ -480,18 +480,18 @@ Protein Tracker - Your Personal Nutrition Assistant
         </div>
         
         <div class="warning" style="background-color: #e3f2fd; border-color: #2196f3; color: #1565c0;">
-            <strong>💻 Development Note:</strong> This is a local development server. Make sure the Protein Tracker app is running on your computer before clicking the verification link.
+            <strong>💻 Development Note:</strong> This is a local development server. Make sure the KthizaTrack app is running on your computer before clicking the verification link.
         </div>
         
         <p>If you didn't create this account, please ignore this email. Your email address will not be used for any other purpose.</p>
         
         <div class="footer">
-            <p>Best regards,<br>
-            <strong>The Protein Tracker Team</strong></p>
-            
-            <p style="margin-top: 20px;">
-                🍗 Protein Tracker - Track your nutrition, achieve your goals
-            </p>
+                    <p>Best regards,<br>
+        <strong>The KthizaTrack Team</strong></p>
+        
+        <p style="margin-top: 20px;">
+            🍗 KthizaTrack - Track your nutrition, achieve your goals
+        </p>
         </div>
     </div>
 </body>
@@ -1099,7 +1099,7 @@ async def verify_email(token: str):
             <div class="container">
                 <div class="success-icon">✅</div>
                 <h1>Email Verified Successfully!</h1>
-                <p>Welcome to Protein Tracker, <span class="username">{user.username}</span>! 🎉</p>
+                <p>Welcome to KthizaTrack, <span class="username">{user.username}</span>! 🎉</p>
                 <p>Your account has been verified and you can now log in to start tracking your nutrition.</p>
                 
                 <div class="note">
@@ -1107,7 +1107,7 @@ async def verify_email(token: str):
                     you may need to open the app in your browser first.
                 </div>
                 
-                <a href="/login.html" class="btn">🚀 Start Using Protein Tracker</a>
+                <a href="/login.html" class="btn">🚀 Start Using KthizaTrack</a>
             </div>
         </body>
         </html>
@@ -1802,7 +1802,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Starting Protein Tracker Server...")
+    print("🚀 Starting KthizaTrack Server...")
     print("📍 Server will be available at:")
     print("   • http://127.0.0.1:8000")
     print("   • http://localhost:8000")

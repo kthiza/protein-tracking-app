@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Kthiza Protein Tracker - Login</title>
+    <title>KthizaTrack - Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -171,6 +171,24 @@
 
         .password-input {
             padding-right: 3.5rem !important;
+        }
+
+        /* Hide browser's default password toggle */
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear {
+            display: none;
+        }
+
+        input[type="password"]::-webkit-contacts-auto-fill-button,
+        input[type="password"]::-webkit-credentials-auto-fill-button {
+            display: none;
+        }
+
+        /* Hide Chrome's password toggle */
+        input[type="password"]::-webkit-outer-spin-button,
+        input[type="password"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
 
         .form-button {
@@ -345,7 +363,7 @@
         <div class="login-header">
                     <div class="logo">
             <i class="fas fa-dumbbell"></i>
-            <span>Kthiza Protein Tracker</span>
+                            <span>KthizaTrack</span>
         </div>
             <h1 class="login-title" id="formTitle">Welcome Back</h1>
             <p class="login-subtitle" id="formSubtitle">Sign in to track your protein goals</p>
@@ -474,6 +492,21 @@
                     '⚠️ Cannot reach server. Please ensure the backend is running.',
                     'warning'
                 );
+            }
+        }
+
+        // Password visibility toggle
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const toggle = input.nextElementSibling;
+            const icon = toggle.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
             }
         }
 
@@ -651,20 +684,7 @@
 
 
 
-    // Password visibility toggle
-    function togglePasswordVisibility(inputId) {
-        const input = document.getElementById(inputId);
-        const toggle = input.nextElementSibling;
-        const icon = toggle.querySelector('i');
-        
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.className = 'fas fa-eye-slash';
-        } else {
-            input.type = 'password';
-            icon.className = 'fas fa-eye';
-        }
-    }
+
     </script>
 </body>
 </html>

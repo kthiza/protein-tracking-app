@@ -143,7 +143,7 @@ def setup_service_account():
     print()
     print("7. Rename and move the file:")
     print("   - Rename the downloaded file to 'service-account-key.json'")
-    print("   - Move it to your Protein App directory")
+    print("   - Move it to your KthizaTrack directory")
     print()
     
     input("Press Enter when you have downloaded the service account key file...")
@@ -309,7 +309,7 @@ Run the setup script to test detection accuracy with these images.
 
 def main():
     """Main setup function"""
-    print_header("Protein Tracker - Google Vision API Setup (99% Accuracy)")
+    print_header("KthizaTrack - Google Vision API Setup (99% Accuracy)")
     print("This setup configures Google Cloud Vision API with service account")
     print("authentication for maximum food detection accuracy.")
     print()
@@ -360,7 +360,7 @@ def main():
             if setup_service_account():
                 print()
                 print("🎉 Setup completed successfully!")
-                print("Your Protein Tracker app now has 99% accurate food detection!")
+                print("Your KthizaTrack app now has 99% accurate food detection!")
     print()
                 print("Next steps:")
                 print("1. Start the app: python main.py")

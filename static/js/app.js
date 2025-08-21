@@ -1,4 +1,4 @@
-// Protein Tracker Pro - Enhanced Mobile App Framework
+// KthizaTrack Pro - Enhanced Mobile App Framework
 (function () {
   'use strict';
   

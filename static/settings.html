@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Settings - Kthiza Protein Tracker</title>
+    <title>Settings - KthizaTrack</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -808,6 +808,24 @@
             padding-right: 3rem !important;
         }
 
+        /* Hide browser's default password toggle */
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear {
+            display: none;
+        }
+
+        input[type="password"]::-webkit-contacts-auto-fill-button,
+        input[type="password"]::-webkit-credentials-auto-fill-button {
+            display: none;
+        }
+
+        /* Hide Chrome's password toggle */
+        input[type="password"]::-webkit-outer-spin-button,
+        input[type="password"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
         .password-container {
             position: relative;
         }
@@ -874,7 +892,7 @@
         <div class="header-content">
             <div class="logo">
                 <i class="fas fa-dumbbell"></i>
-                <span>Kthiza Protein Tracker</span>
+                <span>KthizaTrack</span>
             </div>
             <div class="nav-actions">
                 <div class="profile-btn" onclick="showProfileMenu()">
@@ -917,7 +935,7 @@
                         <input type="file" id="profilePictureInput" accept="image/*" style="display: none;" onchange="handleProfilePictureChange(event)">
                     </div>
                     <div style="flex: 1;">
-                        <div style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem;" id="profileName">Kthiza</div>
+                        <div style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem;" id="profileName">KthizaTrack</div>
                         <div style="color: var(--text-secondary); margin-bottom: 0.5rem;" id="profileEmail">user@example.com</div>
                         <div style="color: var(--text-tertiary); font-size: 0.875rem;">Member since <span id="memberSince">Today</span></div>
                     </div>

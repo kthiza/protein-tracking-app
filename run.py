@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🍗 Protein Tracker - Server Runner
+🍗 KthizaTrack - Server Runner
 Simple script to start the backend server
 """
 
@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 
 def print_header():
-    print("🍗 Protein Tracker")
+    print("🍗 KthizaTrack")
     print("=" * 40)
     print("Starting server...")
     print()
@@ -93,7 +93,7 @@ def main():
     # Check if we're in the right directory
     if not Path("main.py").exists():
         print("❌ main.py not found!")
-        print("   Please run this script from the Protein App directory")
+        print("   Please run this script from the KthizaTrack directory")
         sys.exit(1)
     
     # Check dependencies

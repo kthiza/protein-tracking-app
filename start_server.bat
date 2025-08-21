@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo    PROTEIN TRACKER SERVER LAUNCHER
+echo    KTHIZATRACK SERVER LAUNCHER
 echo ========================================
 echo.
 echo Starting server...

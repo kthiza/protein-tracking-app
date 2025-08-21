@@ -1,4 +1,4 @@
-# Protein Tracker App
+# KthizaTrack App
 
 An AI-powered nutrition tracking application that helps you monitor your protein intake using image recognition and manual food entry. **Optimized for 100+ active users and hundreds of meal posts.**
 
@@ -167,7 +167,7 @@ To check email verification status, visit: `http://127.0.0.1:8000/auth/email-sta
 ## 📁 Project Structure
 
 ```
-Protein App/
+KthizaTrack/
 ├── main.py                 # FastAPI application (optimized)
 ├── setup_env.py            # Environment configuration
 ├── setup_google_vision.py  # Google Vision API setup
