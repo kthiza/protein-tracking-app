@@ -804,59 +804,66 @@
                  justify-content: center;
              }
              
-             /* Even smaller screens */
-             .upload-section .grid {
-                 grid-template-columns: 1fr !important;
-                 gap: 0.75rem;
+             /* Enhanced mobile optimizations for extra small screens */
+             .header-content {
+                 padding: 0.75rem;
              }
              
-             .upload-section .grid > div {
-                 min-width: 0;
+             .logo span {
+                 font-size: 1.25rem;
              }
              
-             /* Make title smaller on very small screens */
-             h1 {
-                 font-size: 2rem !important;
+             .profile-btn {
+                 padding: 0.5rem 0.75rem;
              }
              
-             .upload-title {
-                 font-size: 1.25rem !important;
+             .profile-avatar {
+                 width: 32px;
+                 height: 32px;
+                 font-size: 0.875rem;
              }
              
-             /* Extra small screen optimizations */
-             .upload-section > div {
-                 padding: 0.75rem !important;
-             }
-             
-             /* Profile picture mobile */
+             /* Profile section mobile improvements */
              .upload-section > div > div:first-child > div:first-child {
                  width: 80px !important;
                  height: 80px !important;
              }
              
-             /* Input fields mobile */
-             input, select, textarea {
-                 font-size: 16px !important; /* Prevents zoom on iOS */
+             .upload-section > div > div:first-child > div:first-child > div {
+                 width: 80px !important;
+                 height: 80px !important;
+                 font-size: 2rem !important;
+             }
+             
+             /* Settings title mobile */
+             .upload-section + div h1 {
+                 font-size: 2rem !important;
+             }
+             
+             .upload-section + div p {
+                 font-size: 1rem !important;
+             }
+             
+             /* Goal inputs mobile */
+             .upload-section input[type="number"] {
+                 font-size: 16px !important;
+                 padding: 0.875rem !important;
+             }
+             
+             .upload-section select {
+                 font-size: 16px !important;
                  padding: 0.875rem !important;
              }
              
              /* Button mobile */
-             button {
-                 padding: 0.875rem 1.25rem !important;
-                 font-size: 1rem !important;
+             .upload-section button {
+                 font-size: 16px !important;
+                 padding: 0.875rem 1rem !important;
              }
              
-             /* Header mobile */
-             .header-content {
-                 padding: 0.75rem !important;
-             }
-             
-             .logo {
-                 font-size: 1.25rem !important;
-             }
-             
-             .profile-btn {
-                 padding: 0.5rem 0.75rem !important;
+             /* Prevent iOS zoom on input focus */
+             input[type="text"], input[type="email"], input[type="number"], select, textarea {
+                 font-size: 16px;
              }
          }
 

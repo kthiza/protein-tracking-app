@@ -629,6 +629,58 @@
                 padding: 1rem;
                 border-radius: var(--radius-lg);
             }
+            
+            /* Enhanced mobile optimizations for extra small screens */
+            .header-content {
+                padding: 0.75rem;
+            }
+            
+            .logo span {
+                font-size: 1.25rem;
+            }
+            
+            .profile-btn {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .profile-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 0.875rem;
+            }
+            
+            .page-title {
+                font-size: 1.75rem;
+            }
+            
+            .page-subtitle {
+                font-size: 0.875rem;
+            }
+            
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            
+            .stat-label {
+                font-size: 0.75rem;
+            }
+            
+            .meal-card {
+                padding: 1rem;
+            }
+            
+            .meal-title {
+                font-size: 1rem;
+            }
+            
+            .meal-date {
+                font-size: 0.75rem;
+            }
+            
+            /* Prevent iOS zoom on input focus */
+            input[type="text"], input[type="email"], input[type="number"], select, textarea {
+                font-size: 16px;
+            }
         }
     </style>
 </head>
@@ -802,34 +854,19 @@
             const profileAvatar = document.getElementById('profileAvatar');
             const usernameDisplay = document.getElementById('usernameDisplay');
             
-            // Load profile picture from backend
+            // Load profile picture from backend using AppAPI
             try {
-                const response = await fetch(`${API_BASE}/users/profile-picture/${currentUser.id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${currentUser.token}`
-                    }
-                });
+                const imageUrl = `${AppAPI.baseURL}/users/profile-picture/${currentUser.id}`;
                 
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const imageUrl = URL.createObjectURL(blob);
-                    
-                    // Create or update profile image
-                    let profileImg = profileAvatar.querySelector('img');
-                    if (!profileImg) {
-                        profileImg = document.createElement('img');
-                        profileImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;';
-                        profileAvatar.appendChild(profileImg);
-                    }
-                    profileImg.src = imageUrl;
-                    profileAvatar.style.fontSize = '0'; // Hide text when image is shown
-                } else {
-                    // No profile picture found, show initials
-                    const existingImg = profileAvatar.querySelector('img');
-                    if (existingImg) existingImg.remove();
-                    profileAvatar.style.fontSize = '0.875rem';
-                    profileAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+                // Create or update profile image
+                let profileImg = profileAvatar.querySelector('img');
+                if (!profileImg) {
+                    profileImg = document.createElement('img');
+                    profileImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;';
+                    profileAvatar.appendChild(profileImg);
                 }
+                profileImg.src = imageUrl;
+                profileAvatar.style.fontSize = '0'; // Hide text when image is shown
             } catch (error) {
                 console.error('Error loading profile picture:', error);
                 // Show initials on error
