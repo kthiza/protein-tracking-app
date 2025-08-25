@@ -1092,9 +1092,9 @@ async def verify_email(token: str):
                     <div class="container">
                         <div class="error-icon">❌</div>
                         <h1>Invalid Verification Link</h1>
-                        <p>This verification link is invalid or has expired.</p>
-                        <p>Please try registering again or contact support.</p>
-                        <a href="/login.html" class="btn">Go to Login</a>
+                                         <p>This verification link is invalid or has expired.</p>
+                 <p>Please try registering again or contact support.</p>
+                 <a href="/static/login.html" class="btn">Go to Login</a>
                     </div>
                 </body>
                 </html>
@@ -1159,7 +1159,7 @@ async def verify_email(token: str):
                         <h1>Already Verified!</h1>
                         <p>Hello <span class="username">{user.username}</span>! 🎉</p>
                         <p>Your email has already been verified. You can log in to your account.</p>
-                        <a href="/login.html" class="btn">🚀 Go to Login</a>
+                                                 <a href="/static/login.html" class="btn">🚀 Go to Login</a>
                     </div>
                 </body>
                 </html>
@@ -1242,7 +1242,7 @@ async def verify_email(token: str):
                         <strong>💡 Note:</strong> You can now log in to your account and start using KthizaTrack!
                     </div>
                     
-                    <a href="/login.html" class="btn">🚀 Start Using KthizaTrack</a>
+                                         <a href="/static/login.html" class="btn">🚀 Start Using KthizaTrack</a>
                 </div>
             </body>
             </html>
@@ -1270,9 +1270,9 @@ async def verify_email(token: str):
             <div class="container">
                 <div class="error-icon">⚠️</div>
                 <h1>Verification Error</h1>
-                <p>An error occurred during email verification.</p>
-                <p>Please try again or contact support.</p>
-                <a href="/login.html" class="btn">Go to Login</a>
+                                 <p>An error occurred during email verification.</p>
+                 <p>Please try again or contact support.</p>
+                 <a href="/static/login.html" class="btn">Go to Login</a>
             </div>
         </body>
         </html>
@@ -1381,8 +1381,13 @@ async def upload_profile_picture(
     profile_picture: UploadFile = File(...)
 ):
     """Upload and save user profile picture"""
+    print(f"📸 Profile picture upload request for user: {current_user.username} (ID: {current_user.id})")
+    print(f"📸 File name: {profile_picture.filename}")
+    print(f"📸 Content type: {profile_picture.content_type}")
+    
     # Validate file type
     if not profile_picture.content_type.startswith('image/'):
+        print(f"❌ Invalid file type: {profile_picture.content_type}")
         raise HTTPException(status_code=400, detail="File must be an image")
     
     # Create profile pictures directory
@@ -1405,29 +1410,35 @@ async def upload_profile_picture(
         with Session(engine) as session:
             user = session.exec(select(User).where(User.id == current_user.id)).first()
             if not user:
+                print(f"❌ User not found in database: {current_user.id}")
                 raise HTTPException(status_code=404, detail="User not found")
             
             # Delete old profile picture if it exists
             if user.profile_picture_path and os.path.exists(user.profile_picture_path):
                 try:
                     os.remove(user.profile_picture_path)
+                    print(f"🗑️  Deleted old profile picture: {user.profile_picture_path}")
                 except Exception as e:
-                    print(f"Failed to delete old profile picture: {e}")
+                    print(f"⚠️  Failed to delete old profile picture: {e}")
             
             # Update profile picture path
             user.profile_picture_path = file_path
             session.commit()
             session.refresh(user)
+            print(f"✅ Profile picture path updated in database: {file_path}")
         
+        print(f"✅ Profile picture upload completed successfully")
         return {
             "message": "Profile picture uploaded successfully",
             "profile_picture_path": file_path
         }
         
     except Exception as e:
+        print(f"❌ Profile picture upload failed: {e}")
         # Clean up file if database update fails
         if os.path.exists(file_path):
             os.remove(file_path)
+            print(f"🗑️  Cleaned up failed upload file: {file_path}")
         raise HTTPException(status_code=500, detail=f"Failed to upload profile picture: {str(e)}")
 
 @app.get("/users/profile-picture/{user_id}")
@@ -1472,7 +1483,7 @@ async def update_weight(
         session.refresh(user)
         
         # Invalidate dashboard cache for this user
-        cache_key = f"dashboard_{user.id}_{datetime.now().date()}"
+        cache_key = f"dashboard_meals_{user.id}_{datetime.now().date()}"
         cache.set(cache_key, None, ttl=1)  # Invalidate immediately
         
         return {
@@ -1505,7 +1516,7 @@ async def update_protein_goal(
         session.refresh(user)
         
         # Invalidate dashboard cache for this user
-        cache_key = f"dashboard_{user.id}_{datetime.now().date()}"
+        cache_key = f"dashboard_meals_{user.id}_{datetime.now().date()}"
         cache.set(cache_key, None, ttl=1)  # Invalidate immediately
         
         return {
@@ -1534,7 +1545,7 @@ async def update_calorie_goal(
         session.refresh(user)
         
         # Invalidate dashboard cache for this user
-        cache_key = f"dashboard_{user.id}_{datetime.now().date()}"
+        cache_key = f"dashboard_meals_{user.id}_{datetime.now().date()}"
         cache.set(cache_key, None, ttl=1)  # Invalidate immediately
         
         return {
@@ -1567,7 +1578,7 @@ async def update_activity_level(
         session.refresh(user)
         
         # Invalidate dashboard cache for this user
-        cache_key = f"dashboard_{user.id}_{datetime.now().date()}"
+        cache_key = f"dashboard_meals_{user.id}_{datetime.now().date()}"
         cache.set(cache_key, None, ttl=1)  # Invalidate immediately
         
         return {
@@ -1682,7 +1693,7 @@ async def upload_meal(
             session.refresh(meal)
         
         # Invalidate cache for this user
-        cache_key = f"dashboard_{current_user.id}_{datetime.now().date()}"
+        cache_key = f"dashboard_meals_{current_user.id}_{datetime.now().date()}"
         cache.set(cache_key, None, ttl=1)  # Invalidate immediately
         
         return {
@@ -1714,36 +1725,57 @@ async def upload_meal(
 
 @app.get("/dashboard")
 async def get_dashboard_data(current_user: User = Depends(get_current_user)):
-    # Check cache first
-    cache_key = f"dashboard_{current_user.id}_{datetime.now().date()}"
-    cached_data = cache.get(cache_key)
-    if cached_data and cached_data['expires_at'] > time.time():
-        return cached_data['value']
+    # Always get fresh data for goals - don't cache user goals
+    # Only cache meal calculations which don't change frequently
+    cache_key = f"dashboard_meals_{current_user.id}_{datetime.now().date()}"
+    cached_meals = cache.get(cache_key)
     
     with Session(engine) as session:
-        # Fetch fresh user data from database to get latest goals
+        # Always fetch fresh user data from database to get latest goals
         fresh_user = session.exec(select(User).where(User.id == current_user.id)).first()
         if not fresh_user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        today = datetime.now().date()
-        today_meals = session.exec(select(Meal).where(
-            Meal.user_id == fresh_user.id,
-            func.date(Meal.created_at) == today
-        )).all()
-        
-        today_protein = round(sum(meal.total_protein for meal in today_meals), 1)
-        today_calories = round(sum(meal.total_calories for meal in today_meals), 1)
-        
-        all_meals = session.exec(select(Meal).where(Meal.user_id == fresh_user.id)).all()
-        
-        week_ago = datetime.now().date() - timedelta(days=7)
-        weekly_meals = session.exec(select(Meal).where(
-            Meal.user_id == fresh_user.id,
-            func.date(Meal.created_at) >= week_ago
-        )).all()
-        weekly_protein = round(sum(meal.total_protein for meal in weekly_meals), 1)
-        weekly_calories = round(sum(meal.total_calories for meal in weekly_meals), 1)
+        # Use cached meal data if available, otherwise fetch from database
+        if cached_meals and cached_meals['expires_at'] > time.time():
+            print(f"📊 Using cached meal data for user {current_user.id}")
+            today_protein = cached_meals['value']['today_protein']
+            today_calories = cached_meals['value']['today_calories']
+            weekly_protein = cached_meals['value']['weekly_protein']
+            weekly_calories = cached_meals['value']['weekly_calories']
+            today_meals_count = cached_meals['value']['today_meals_count']
+            weekly_meals_count = cached_meals['value']['weekly_meals_count']
+            all_meals_count = cached_meals['value']['all_meals_count']
+            overall_stats = cached_meals['value']['overall_stats']
+        else:
+            print(f"📊 Fetching fresh meal data for user {current_user.id}")
+            today = datetime.now().date()
+            today_meals = session.exec(select(Meal).where(
+                Meal.user_id == fresh_user.id,
+                func.date(Meal.created_at) == today
+            )).all()
+            
+            today_protein = round(sum(meal.total_protein for meal in today_meals), 1)
+            today_calories = round(sum(meal.total_calories for meal in today_meals), 1)
+            
+            all_meals = session.exec(select(Meal).where(Meal.user_id == fresh_user.id)).all()
+            
+            week_ago = datetime.now().date() - timedelta(days=7)
+            weekly_meals = session.exec(select(Meal).where(
+                Meal.user_id == fresh_user.id,
+                func.date(Meal.created_at) >= week_ago
+            )).all()
+            weekly_protein = round(sum(meal.total_protein for meal in weekly_meals), 1)
+            weekly_calories = round(sum(meal.total_calories for meal in weekly_meals), 1)
+            
+            today_meals_count = len(today_meals)
+            weekly_meals_count = len(weekly_meals)
+            all_meals_count = len(all_meals)
+            overall_stats = {
+                "total_meals": len(all_meals),
+                "average_protein_per_meal": round(sum(m.total_protein for m in all_meals) / len(all_meals) if all_meals else 0, 1),
+                "total_protein_tracked": round(sum(m.total_protein for m in all_meals), 1)
+            }
         
         # Check if user needs weight update (weekly popup)
         needs_weight_update = False
@@ -1768,23 +1800,34 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
                 "total_protein": round(today_protein, 1),
                 "total_calories": round(today_calories, 1),
                 "goal_progress": round((today_protein / fresh_user.protein_goal) * 100 if fresh_user.protein_goal else 0, 1),
-                "meals_count": len(today_meals),
+                "meals_count": today_meals_count,
                 "remaining_protein": round(max(0, (fresh_user.protein_goal or 0) - today_protein), 1)
             },
             "weekly": {
                 "total_calories": round(weekly_calories, 1),
                 "average_daily": round(weekly_calories / 7, 1),
-                "meals_count": len(weekly_meals)
+                "meals_count": weekly_meals_count
             },
-            "overall": {
+            "overall": overall_stats
+        }
+        
+        # Cache only meal calculations, not user goals
+        meal_cache_data = {
+            "today_protein": today_protein,
+            "today_calories": today_calories,
+            "weekly_protein": weekly_protein,
+            "weekly_calories": weekly_calories,
+            "today_meals_count": len(today_meals),
+            "weekly_meals_count": len(weekly_meals),
+            "all_meals_count": len(all_meals),
+            "overall_stats": {
                 "total_meals": len(all_meals),
                 "average_protein_per_meal": round(sum(m.total_protein for m in all_meals) / len(all_meals) if all_meals else 0, 1),
                 "total_protein_tracked": round(sum(m.total_protein for m in all_meals), 1)
             }
         }
+        cache.set(cache_key, meal_cache_data, ttl=120)
         
-        # Cache the result for 2 minutes
-        cache.set(cache_key, result, ttl=120)
         return result
 
 @app.get("/meals")
