@@ -1032,18 +1032,17 @@
 
         async function loadDashboardData() {
             try {
-                const response = await fetch(`${API_BASE}/dashboard`, {
-                    headers: {
-                        'Authorization': `Bearer ${currentUser.token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    updateDashboardStats(data);
-                }
+                // Use the proper fetchJSON helper with authentication
+                const data = await AppAPI.fetchJSON('/dashboard', {}, { requireAuth: true });
+                updateDashboardStats(data);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
+                if (error.message === 'Unauthenticated') {
+                    showNotification('Please log in again', 'error');
+                    window.location.href = 'login.html';
+                } else {
+                    showNotification('Failed to load dashboard data', 'error');
+                }
             }
         }
 
@@ -1099,30 +1098,9 @@
         }
 
         function updateDashboardStats(data) {
-            // Get user settings from localStorage for gender-based calculations
-            const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{}');
-            const gender = userSettings.gender || 'male';
-            const height = userSettings.height || 170;
-            const activityLevel = userSettings.activityLevel || 'moderate';
-            
-            // Calculate gender-based goals if we have weight data
-            let proteinGoal = data.user.protein_goal || 120;
-            let calorieGoal = data.user.calorie_goal || 2000;
-            
-            if (data.user.weight_kg) {
-                // Use gender-based calculations for more accurate goals
-                const calculatedProtein = calculateProteinNeeds(data.user.weight_kg, height, activityLevel, gender);
-                const calculatedCalories = calculateCalorieNeeds(data.user.weight_kg, height, activityLevel, gender);
-                
-                // Use calculated values if they're significantly different from stored values
-                // This ensures the dashboard reflects the new gender-based calculations
-                if (Math.abs(calculatedProtein - proteinGoal) > 5) {
-                    proteinGoal = calculatedProtein;
-                }
-                if (Math.abs(calculatedCalories - calorieGoal) > 100) {
-                    calorieGoal = calculatedCalories;
-                }
-            }
+            // Use fresh data from backend instead of cached localStorage
+            const proteinGoal = data.user.protein_goal || 120;
+            const calorieGoal = data.user.calorie_goal || 2000;
             
             // Today's protein
             document.getElementById('todayProtein').textContent = `${data.today.total_protein}g`;

@@ -831,36 +831,24 @@
         async function loadMealHistory() {
             try {
                 console.log('Loading meal history for user:', currentUser);
-                const response = await fetch(`${API_BASE}/meals?page=1&limit=100`, {
-                    headers: {
-                        'Authorization': `Bearer ${currentUser.token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                console.log('Response status:', response.status);
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Meal data received:', data);
-                    allMeals = data.meals || [];
-                    filteredMeals = [...allMeals];
-                    
-                    updateSummaryStats();
-                    applyFilters();
-                } else {
-                    const errorText = await response.text();
-                    console.error('Failed to load meals:', response.status, errorText);
-                    if (response.status === 401) {
-                        showError('Authentication failed. Please log in again.');
-                        // Remove automatic redirect - let user decide
-                    } else {
-                        showError('Failed to load meal history');
-                    }
-                }
+                // Use the proper fetchJSON helper with authentication
+                const data = await AppAPI.fetchJSON('/meals?page=1&limit=100', {}, { requireAuth: true });
+                
+                console.log('Meal data received:', data);
+                allMeals = data.meals || [];
+                filteredMeals = [...allMeals];
+                
+                updateSummaryStats();
+                applyFilters();
+                
             } catch (error) {
                 console.error('Error loading meals:', error);
-                showError('Unable to connect to server');
+                if (error.message === 'Unauthenticated') {
+                    showError('Authentication failed. Please log in again.');
+                } else {
+                    showError('Failed to load meal history');
+                }
             }
         }
 
