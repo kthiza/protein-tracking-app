@@ -64,13 +64,13 @@ APP_BASE_URL=https://your-app-name.onrender.com
 3. **Environment Variables**
    Add these in the Environment tab:
    ```
-   DATABASE_URL: postgresql://postgres:password@localhost:5432/protein_app
+   DATABASE_URL: (Render will auto-generate this - leave empty for SQLite)
    APP_BASE_URL: https://kthiza-track.onrender.com
    SMTP_SERVER: smtp.gmail.com
    SMTP_PORT: 587
    SMTP_USERNAME: your-email@gmail.com
    SMTP_PASSWORD: your-app-password
-   GOOGLE_VISION_SERVICE_ACCOUNT_PATH: /opt/render/project/src/service-account.json
+   GOOGLE_SERVICE_ACCOUNT: {"type":"service_account","project_id":"your-project",...}
    ```
 
 4. **Deploy**
@@ -119,7 +119,7 @@ Should show the KthizaTrack landing page.
 | `SMTP_PORT` | No | Email server port | `587` |
 | `SMTP_USERNAME` | No | Email username | `your-email@gmail.com` |
 | `SMTP_PASSWORD` | No | Email app password | `your-app-password` |
-| `GOOGLE_VISION_SERVICE_ACCOUNT_PATH` | No | Google Vision API key path | `/opt/render/project/src/service-account.json` |
+| `GOOGLE_SERVICE_ACCOUNT` | No | Google Vision API JSON credentials | `{"type":"service_account",...}` |
 
 ## 🗄️ Database Configuration
 
@@ -159,11 +159,17 @@ Update the SMTP settings according to your provider:
 4. Create a service account
 5. Download the JSON key file
 
-### 2. Upload to Render
-1. In your Render service dashboard
-2. Go to Environment tab
-3. Add the service account JSON as a file
-4. Set `GOOGLE_VISION_SERVICE_ACCOUNT_PATH` to the file path
+### 2. Setup for Render (Recommended)
+1. Open your service account JSON file
+2. Copy the entire JSON content
+3. In your Render service dashboard, go to Environment tab
+4. Add environment variable `GOOGLE_SERVICE_ACCOUNT`
+5. Paste the entire JSON content as the value
+
+**Example:**
+```
+GOOGLE_SERVICE_ACCOUNT={"type":"service_account","project_id":"my-project","private_key_id":"abc123",...}
+```
 
 ## 🔄 Continuous Deployment
 

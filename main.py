@@ -40,12 +40,28 @@ APP_BASE_URL = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000")
 # Import Google Vision food detection (REST via requests; no heavy client required)
 try:
     from food_detection import identify_food_with_google_vision, identify_food_local
+    
+    # Check for Google Vision credentials in environment variables (Render-friendly)
+    GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT")
     GOOGLE_VISION_SERVICE_ACCOUNT_PATH = os.getenv("GOOGLE_VISION_SERVICE_ACCOUNT_PATH")
-    GOOGLE_VISION_AVAILABLE = bool(GOOGLE_VISION_SERVICE_ACCOUNT_PATH and os.path.exists(GOOGLE_VISION_SERVICE_ACCOUNT_PATH))
-    if GOOGLE_VISION_AVAILABLE:
-        print(f"✅ Google Vision API configured (service account: {GOOGLE_VISION_SERVICE_ACCOUNT_PATH})")
+    
+    # Try environment variable first (recommended for Render), then file path
+    if GOOGLE_SERVICE_ACCOUNT_JSON:
+        try:
+            import json
+            service_account_info = json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
+            GOOGLE_VISION_AVAILABLE = True
+            print("✅ Google Vision API configured (environment variable)")
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"❌ Invalid Google Vision service account JSON: {e}")
+            GOOGLE_VISION_AVAILABLE = False
+    elif GOOGLE_VISION_SERVICE_ACCOUNT_PATH and os.path.exists(GOOGLE_VISION_SERVICE_ACCOUNT_PATH):
+        GOOGLE_VISION_AVAILABLE = True
+        print(f"✅ Google Vision API configured (service account file: {GOOGLE_VISION_SERVICE_ACCOUNT_PATH})")
     else:
-        print("ℹ️  Google Vision API service account not found. Please check GOOGLE_VISION_SERVICE_ACCOUNT_PATH in .env file.")
+        GOOGLE_VISION_AVAILABLE = False
+        print("ℹ️  Google Vision API not configured. Set GOOGLE_SERVICE_ACCOUNT environment variable or GOOGLE_VISION_SERVICE_ACCOUNT_PATH file path.")
+        
 except ImportError:
     GOOGLE_VISION_AVAILABLE = False
     print("Warning: food_detection module not importable. Ensure the file exists.")
