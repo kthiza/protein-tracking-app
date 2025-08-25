@@ -1802,9 +1802,13 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 if __name__ == "__main__":
     import uvicorn
+    import os
+    
+    # Get port from environment variable (Render requirement)
+    port = int(os.environ.get("PORT", 8000))
+    host = os.environ.get("HOST", "0.0.0.0")
+    
     print("🚀 Starting KthizaTrack Server...")
-    print("📍 Server will be available at:")
-    print("   • http://127.0.0.1:8000")
-    print("   • http://localhost:8000")
+    print(f"📍 Server will be available at: http://{host}:{port}")
     print("🔧 Press Ctrl+C to stop the server")
-    uvicorn.run(app, host="127.0.0.1", port=8000, reload=False) 
+    uvicorn.run(app, host=host, port=port, reload=False) 
