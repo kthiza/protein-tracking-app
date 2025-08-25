@@ -50,6 +50,7 @@ SMTP_SERVER: smtp.gmail.com
 SMTP_PORT: 587
 SMTP_USERNAME: your-email@gmail.com
 SMTP_PASSWORD: your-app-password
+GOOGLE_SERVICE_ACCOUNT: (optional - for AI food detection)
 ```
 
 ### Step 4: Deploy

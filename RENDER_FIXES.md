@@ -36,9 +36,10 @@ GOOGLE_SERVICE_ACCOUNT: {"type":"service_account","project_id":"your-project",..
 
 1. **Go to your Render service dashboard**
 2. **Click "Environment" tab**
-3. **Update these variables**:
-   - Remove or leave empty `DATABASE_URL`
-   - Add `GOOGLE_SERVICE_ACCOUNT` with your JSON content
+3. **Set these variables**:
+   - `DATABASE_URL`: `sqlite:///./protein_app.db`
+   - `APP_BASE_URL`: `https://kthiza-track.onrender.com`
+   - `GOOGLE_SERVICE_ACCOUNT`: (optional - paste your JSON content for AI food detection)
 4. **Click "Save Changes"**
 5. **Redeploy** (Render will auto-redeploy)
 
