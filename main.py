@@ -970,6 +970,11 @@ async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
+@app.get("/api/test")
+async def test_api():
+    """Test endpoint to verify API is working"""
+    return {"message": "API is working!", "timestamp": datetime.now().isoformat()}
+
 @app.post("/auth/register")
 async def register_user(
     username: str = Form(...),

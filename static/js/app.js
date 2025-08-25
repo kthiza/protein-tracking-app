@@ -5,6 +5,9 @@
   const detectedOrigin = window.location.origin || '';
   const defaultBase = 'http://127.0.0.1:8000';
   const storageKey = 'apiBase';
+  
+  // For Render deployment, use the same origin for API calls
+  const isRender = detectedOrigin.includes('onrender.com');
 
   // Enhanced configuration
   const CONFIG = {
@@ -18,6 +21,13 @@
   function readBaseURL() {
     const manual = localStorage.getItem(storageKey);
     if (manual && /^https?:\/\//i.test(manual)) return stripTrailingSlash(manual);
+    
+    // For Render deployment, always use the same origin
+    if (isRender) {
+      console.log('🚀 Render deployment detected, using same origin for API calls');
+      return stripTrailingSlash(detectedOrigin);
+    }
+    
     if (detectedOrigin && detectedOrigin.startsWith('http')) return stripTrailingSlash(detectedOrigin);
     return defaultBase;
   }
@@ -44,10 +54,13 @@
   async function fetchJSON(path, options = {}, opts = {}) {
     const { requireAuth = false, timeoutMs = 10000 } = opts;
     const url = path.startsWith('http') ? path : `${AppAPI.baseURL}${path}`;
+    
+    console.log('🔗 API Call:', { path, url, baseURL: AppAPI.baseURL, requireAuth });
 
     const headers = new Headers(options.headers || {});
     if (requireAuth) {
       const user = getCurrentUser();
+      console.log('🔐 Auth check:', { hasUser: !!user, hasToken: !!(user && user.token) });
       if (!user || !user.token) {
         showToast('Please log in again.', 'error');
         window.location.href = 'login.html';
@@ -59,14 +72,24 @@
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
     try {
+      console.log('📡 Making request to:', url);
       const res = await fetch(url, { ...options, headers, signal: controller.signal });
+      console.log('📡 Response status:', res.status, res.statusText);
+      
       const contentType = res.headers.get('content-type') || '';
       const body = contentType.includes('application/json') ? await res.json() : await res.text();
+      
       if (!res.ok) {
+        console.error('❌ API Error:', { status: res.status, body });
         const message = (body && (body.detail || body.message)) || `HTTP ${res.status}`;
         throw new Error(message);
       }
+      
+      console.log('✅ API Success:', { status: res.status, bodyType: typeof body });
       return body;
+    } catch (error) {
+      console.error('❌ Fetch error:', error);
+      throw error;
     } finally {
       clearTimeout(id);
     }
