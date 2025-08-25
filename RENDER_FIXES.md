@@ -21,14 +21,16 @@
 ## ✅ **Correct Environment Variables for Render**
 
 ```
-DATABASE_URL: (leave empty - Render auto-generates)
-APP_BASE_URL: https://your-app-name.onrender.com
+DATABASE_URL: sqlite:///./protein_app.db
+APP_BASE_URL: https://kthiza-track.onrender.com
 SMTP_SERVER: smtp.gmail.com
 SMTP_PORT: 587
 SMTP_USERNAME: your-email@gmail.com
 SMTP_PASSWORD: your-app-password
 GOOGLE_SERVICE_ACCOUNT: {"type":"service_account","project_id":"your-project",...}
 ```
+
+**⚠️ Important Note**: SQLite on Render free tier is ephemeral - data will be lost on restarts. For production, consider using PostgreSQL or an external database service.
 
 ## 🔧 **Steps to Fix in Render Dashboard**
 

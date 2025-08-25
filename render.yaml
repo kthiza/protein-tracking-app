@@ -9,7 +9,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.9.16
       - key: DATABASE_URL
-        generateValue: true
+        value: sqlite:///./protein_app.db
       - key: APP_BASE_URL
         value: https://kthiza-track.onrender.com
     healthCheckPath: /api/health

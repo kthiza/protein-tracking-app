@@ -44,7 +44,7 @@
 ### Step 3: Environment Variables
 Add these in Environment tab:
 ```
-DATABASE_URL: (Render will auto-generate this - leave empty for SQLite)
+DATABASE_URL: sqlite:///./protein_app.db
 APP_BASE_URL: https://kthiza-track.onrender.com
 SMTP_SERVER: smtp.gmail.com
 SMTP_PORT: 587

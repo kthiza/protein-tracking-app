@@ -125,14 +125,39 @@ Should show the KthizaTrack landing page.
 
 ### SQLite (Default - Free Tier)
 - Render will automatically create a SQLite database
-- Data persists between deployments
-- Good for development and small apps
+- **⚠️ IMPORTANT**: SQLite data is ephemeral on Render's free tier
+- Data will be lost when the app restarts or redeploys
+- Good for development and testing only
+- For production, use PostgreSQL (see below)
 
 ### PostgreSQL (Recommended for Production)
 1. Create a PostgreSQL database in Render
 2. Get the connection string
 3. Set `DATABASE_URL` environment variable
 4. Update your app to use PostgreSQL
+
+### Database Persistence Options
+
+#### Option 1: SQLite (Free Tier - Ephemeral)
+```env
+DATABASE_URL=sqlite:///./protein_app.db
+```
+- ✅ Free and simple
+- ❌ Data lost on restarts/redeploys
+- ❌ Not suitable for production
+
+#### Option 2: PostgreSQL (Paid - Persistent)
+```env
+DATABASE_URL=postgresql://user:password@host:port/database
+```
+- ✅ Data persists permanently
+- ✅ Suitable for production
+- ❌ Requires paid plan ($7/month)
+
+#### Option 3: External Database
+- Use external PostgreSQL service (Railway, Supabase, etc.)
+- Set `DATABASE_URL` to external connection string
+- ✅ Data persists, ✅ Can be free tier
 
 ## 📧 Email Configuration
 
