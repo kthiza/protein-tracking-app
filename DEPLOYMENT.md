@@ -57,8 +57,8 @@ APP_BASE_URL=https://your-app-name.onrender.com
    Branch: main (or your default branch)
    Root Directory: (leave empty if code is in root)
    Runtime: Python 3
-   Build Command: pip install -r requirements.txt
-   Start Command: gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+       Build Command: pip install -r requirements.txt
+    Start Command: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4
    ```
 
 3. **Environment Variables**

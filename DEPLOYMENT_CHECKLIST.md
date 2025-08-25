@@ -37,8 +37,8 @@
    Name: protein-tracker
    Region: Choose closest to you
    Branch: main
-   Build Command: pip install -r requirements.txt
-   Start Command: gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+       Build Command: pip install -r requirements.txt
+    Start Command: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4
    ```
 
 ### Step 3: Environment Variables
