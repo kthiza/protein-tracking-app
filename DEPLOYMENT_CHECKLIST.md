@@ -38,7 +38,7 @@
    Region: Choose closest to you
    Branch: main
        Build Command: pip install -r requirements.txt
-    Start Command: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4
+    Start Command: uvicorn main:app --host 0.0.0.0 --port $PORT
    ```
 
 ### Step 3: Environment Variables
