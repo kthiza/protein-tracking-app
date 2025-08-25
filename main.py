@@ -350,8 +350,15 @@ def send_verification_email(email: str, username: str, token: str):
         msg['Subject'] = "Welcome to KthizaTrack - Verify Your Account"
         
         # Use the correct base URL for verification links
+        # Fix for malformed URLs - ensure we have a proper base URL
         base_url = APP_BASE_URL.rstrip('/')
+        if not base_url or base_url == "http://127.0.0.1:8000":
+            # Fallback to a reasonable default for production
+            base_url = "https://kthiza-track.onrender.com"
+            print(f"⚠️  APP_BASE_URL not set properly, using fallback: {base_url}")
+        
         verification_url = f"{base_url}/auth/verify/{token}"
+        print(f"🔗 Generated verification URL: {verification_url}")
         
         # Plain text version
         text_body = f"""
@@ -1281,6 +1288,8 @@ async def get_email_status():
         "email_configured": email_configured,
         "smtp_server": SMTP_SERVER if email_configured else None,
         "smtp_port": SMTP_PORT if email_configured else None,
+        "app_base_url": APP_BASE_URL,
+        "app_base_url_fixed": "https://kthiza-track.onrender.com" if not APP_BASE_URL or APP_BASE_URL == "http://127.0.0.1:8000" else APP_BASE_URL,
         "setup_instructions": "Run 'python setup_env.py' to configure email verification" if not email_configured else None
     }
 
