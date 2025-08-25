@@ -865,6 +865,32 @@
              input[type="text"], input[type="email"], input[type="number"], select, textarea {
                  font-size: 16px;
              }
+             
+             /* Data & Privacy section mobile optimizations */
+             .upload-section > div > div[style*="display: flex; justify-content: space-between"] {
+                 flex-direction: column !important;
+                 gap: 1rem;
+                 align-items: flex-start !important;
+             }
+             
+             .upload-section > div > div[style*="display: flex; justify-content: space-between"] > div:first-child {
+                 width: 100%;
+             }
+             
+             .upload-section > div > div[style*="display: flex; justify-content: space-between"] > div:first-child > div:first-child {
+                 font-size: 1rem !important;
+                 font-weight: 600 !important;
+             }
+             
+             .upload-section > div > div[style*="display: flex; justify-content: space-between"] > div:first-child > div:last-child {
+                 font-size: 0.875rem !important;
+             }
+             
+             .upload-section > div > div[style*="display: flex; justify-content: space-between"] button {
+                 width: 100%;
+                 justify-content: center;
+                 padding: 0.75rem 1rem !important;
+             }
          }
 
         /* Loading Animation */
@@ -1510,9 +1536,22 @@
                 const imageUrl = `${AppAPI.baseURL}/users/profile-picture/${currentUser.id}`;
                 
                 // Update the profile image display
-                document.getElementById('profileImage').src = imageUrl;
-                document.getElementById('profileImage').style.display = 'block';
-                document.getElementById('profileInitial').style.display = 'none';
+                const profileImage = document.getElementById('profileImage');
+                const profileInitial = document.getElementById('profileInitial');
+                
+                // Set up image load and error handlers for profile section
+                profileImage.onload = function() {
+                    profileImage.style.display = 'block';
+                    profileInitial.style.display = 'none';
+                };
+                
+                profileImage.onerror = function() {
+                    console.log('Profile image failed to load, showing initials');
+                    profileImage.style.display = 'none';
+                    profileInitial.style.display = 'block';
+                };
+                
+                profileImage.src = imageUrl;
                 
                 // Update navigation avatar as well
                 updateNavigationAvatar(imageUrl);
@@ -1526,8 +1565,21 @@
                         headerImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;';
                         headerAvatar.appendChild(headerImg);
                     }
+                    
+                    // Set up image load and error handlers for header avatar
+                    headerImg.onload = function() {
+                        headerAvatar.style.fontSize = '0';
+                    };
+                    
+                    headerImg.onerror = function() {
+                        console.log('Header avatar failed to load, showing initials');
+                        const existingImg = headerAvatar.querySelector('img');
+                        if (existingImg) existingImg.remove();
+                        headerAvatar.style.fontSize = '0.875rem';
+                        headerAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+                    };
+                    
                     headerImg.src = imageUrl;
-                    headerAvatar.style.fontSize = '0';
                 }
             } catch (error) {
                 console.error('Error loading profile picture:', error);
@@ -1551,8 +1603,21 @@
                     profileImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;';
                     navAvatar.appendChild(profileImg);
                 }
+                
+                // Set up image load and error handlers
+                profileImg.onload = function() {
+                    navAvatar.style.fontSize = '0';
+                };
+                
+                profileImg.onerror = function() {
+                    console.log('Navigation avatar failed to load, showing initials');
+                    const existingImg = navAvatar.querySelector('img');
+                    if (existingImg) existingImg.remove();
+                    navAvatar.style.fontSize = '0.875rem';
+                    navAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+                };
+                
                 profileImg.src = imageUrl;
-                navAvatar.style.fontSize = '0';
             } else {
                 const existingImg = navAvatar.querySelector('img');
                 if (existingImg) existingImg.remove();

@@ -865,8 +865,22 @@
                     profileImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;';
                     profileAvatar.appendChild(profileImg);
                 }
+                
+                // Set up image load and error handlers
+                profileImg.onload = function() {
+                    profileAvatar.style.fontSize = '0'; // Hide text when image is shown
+                };
+                
+                profileImg.onerror = function() {
+                    console.log('Profile image failed to load, showing initials');
+                    const existingImg = profileAvatar.querySelector('img');
+                    if (existingImg) existingImg.remove();
+                    profileAvatar.style.fontSize = '0.875rem';
+                    profileAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+                };
+                
                 profileImg.src = imageUrl;
-                profileAvatar.style.fontSize = '0'; // Hide text when image is shown
+                
             } catch (error) {
                 console.error('Error loading profile picture:', error);
                 // Show initials on error
