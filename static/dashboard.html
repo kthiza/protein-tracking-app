@@ -984,6 +984,10 @@
             console.log('Dashboard page loaded');
             console.log('localStorage currentUser:', localStorage.getItem('currentUser'));
             
+            // Test localStorage functionality
+            testLocalStorage();
+            
+            // Always refresh currentUser from localStorage to get latest data
             currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
             if (!currentUser) {
                 console.log('No currentUser found, redirecting to login');
@@ -1007,6 +1011,31 @@
             
                     // Weekly weigh-in popup removed as requested by user
         });
+
+        // Test localStorage functionality
+        function testLocalStorage() {
+            try {
+                console.log('Testing localStorage functionality...');
+                
+                // Test basic localStorage operations
+                const testKey = 'test_localStorage_' + Date.now();
+                const testValue = { test: 'data', timestamp: Date.now() };
+                
+                localStorage.setItem(testKey, JSON.stringify(testValue));
+                console.log('localStorage.setItem successful');
+                
+                const retrieved = JSON.parse(localStorage.getItem(testKey));
+                console.log('localStorage.getItem successful:', retrieved);
+                
+                localStorage.removeItem(testKey);
+                console.log('localStorage.removeItem successful');
+                
+                console.log('localStorage test PASSED - localStorage is working correctly');
+            } catch (error) {
+                console.error('localStorage test FAILED:', error);
+                alert('localStorage is not working: ' + error.message);
+            }
+        }
 
         async function initializeApp() {
             await updateUserDisplay();
@@ -1087,16 +1116,50 @@
 
         async function loadDashboardData() {
             try {
+                console.log('Loading dashboard data from API...');
+                console.log('AppAPI.baseURL:', AppAPI.baseURL);
+                console.log('Current user token:', currentUser.token ? 'Present' : 'Missing');
+                
                 // Use the proper fetchJSON helper with authentication
                 const data = await AppAPI.fetchJSON('/dashboard', {}, { requireAuth: true });
+                console.log('Dashboard API response:', data);
                 updateDashboardStats(data);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    currentUser: currentUser ? 'Present' : 'Missing',
+                    token: currentUser?.token ? 'Present' : 'Missing'
+                });
+                
                 if (error.message === 'Unauthenticated') {
                     showNotification('Please log in again', 'error');
                     window.location.href = 'login.html';
                 } else {
                     showNotification('Failed to load dashboard data', 'error');
+                    // Fallback to localStorage data if backend fails
+                    if (currentUser) {
+                        console.log('Using localStorage data as fallback');
+                        console.log('localStorage currentUser:', localStorage.getItem('currentUser'));
+                        
+                        const fallbackData = {
+                            user: {
+                                protein_goal: currentUser.protein_goal || 120,
+                                calorie_goal: currentUser.calorie_goal || 2000
+                            },
+                            today: {
+                                total_protein: 0,
+                                total_calories: 0,
+                                meals_count: 0
+                            }
+                        };
+                        console.log('Fallback data:', fallbackData);
+                        updateDashboardStats(fallbackData);
+                    } else {
+                        console.error('No currentUser available for fallback');
+                        showNotification('Unable to load user data', 'error');
+                    }
                 }
             }
         }
@@ -1175,6 +1238,16 @@
             calorieGoal = calorieGoal || 2000;
             
             console.log('Final goals to display:', { protein: proteinGoal, calorie: calorieGoal });
+            
+            // Update currentUser in localStorage with the goals we're using
+            if (currentUser) {
+                currentUser.protein_goal = proteinGoal;
+                currentUser.calorie_goal = calorieGoal;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                console.log('Updated currentUser in localStorage:', currentUser);
+            } else {
+                console.warn('No currentUser available to update in localStorage');
+            }
             
             // Today's protein
             document.getElementById('todayProtein').textContent = `${data.today.total_protein}g`;

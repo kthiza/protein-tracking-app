@@ -878,18 +878,51 @@
              }
              
              .upload-section > div > div[style*="display: flex; justify-content: space-between"] > div:first-child > div:first-child {
-                 font-size: 1rem !important;
-                 font-weight: 600 !important;
+                 font-size: 0.875rem !important;
+                 font-weight: 500 !important;
+                 margin-bottom: 0.25rem !important;
              }
              
              .upload-section > div > div[style*="display: flex; justify-content: space-between"] > div:first-child > div:last-child {
                  font-size: 0.875rem !important;
+                 color: var(--text-secondary) !important;
              }
              
              .upload-section > div > div[style*="display: flex; justify-content: space-between"] button {
                  width: 100%;
                  justify-content: center;
                  padding: 0.75rem 1rem !important;
+                 font-size: 0.875rem !important;
+             }
+             
+             /* Specific targeting for Data & Privacy section */
+             .upload-section > div[style*="background: var(--bg-secondary)"] > div[style*="display: flex; justify-content: space-between"] {
+                 flex-direction: column !important;
+                 gap: 1rem;
+                 align-items: flex-start !important;
+                 padding: 1rem 0 !important;
+             }
+             
+             .upload-section > div[style*="background: var(--bg-secondary)"] > div[style*="display: flex; justify-content: space-between"] > div:first-child {
+                 width: 100%;
+             }
+             
+             .upload-section > div[style*="background: var(--bg-secondary)"] > div[style*="display: flex; justify-content: space-between"] > div:first-child > div:first-child {
+                 font-size: 0.875rem !important;
+                 font-weight: 500 !important;
+                 margin-bottom: 0.25rem !important;
+             }
+             
+             .upload-section > div[style*="background: var(--bg-secondary)"] > div[style*="display: flex; justify-content: space-between"] > div:first-child > div:last-child {
+                 font-size: 0.875rem !important;
+                 color: var(--text-secondary) !important;
+             }
+             
+             .upload-section > div[style*="background: var(--bg-secondary)"] > div[style*="display: flex; justify-content: space-between"] button {
+                 width: 100%;
+                 justify-content: center;
+                 padding: 0.75rem 1rem !important;
+                 font-size: 0.875rem !important;
              }
          }
 
@@ -1360,6 +1393,12 @@
             console.log('Settings page loaded');
             console.log('localStorage currentUser:', localStorage.getItem('currentUser'));
             
+            // Test localStorage functionality
+            testLocalStorage();
+            
+            // Always refresh currentUser from localStorage to get latest data
+            currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            
             if (!currentUser) {
                 console.log('No currentUser found, redirecting to login');
                 window.location.href = 'login.html';
@@ -1385,6 +1424,11 @@
             // Initialize theme
             initTheme();
             
+            // Ensure profile picture loads after everything else
+            setTimeout(() => {
+                loadProfilePicture();
+            }, 100);
+            
             // Refresh settings when page becomes visible (user switches back to tab)
             document.addEventListener('visibilitychange', function() {
                 if (!document.hidden) {
@@ -1401,6 +1445,31 @@
             
                     // Weekly weigh-in popup removed as requested by user
         });
+
+        // Test localStorage functionality
+        function testLocalStorage() {
+            try {
+                console.log('Testing localStorage functionality...');
+                
+                // Test basic localStorage operations
+                const testKey = 'test_localStorage_' + Date.now();
+                const testValue = { test: 'data', timestamp: Date.now() };
+                
+                localStorage.setItem(testKey, JSON.stringify(testValue));
+                console.log('localStorage.setItem successful');
+                
+                const retrieved = JSON.parse(localStorage.getItem(testKey));
+                console.log('localStorage.getItem successful:', retrieved);
+                
+                localStorage.removeItem(testKey);
+                console.log('localStorage.removeItem successful');
+                
+                console.log('localStorage test PASSED - localStorage is working correctly');
+            } catch (error) {
+                console.error('localStorage test FAILED:', error);
+                alert('localStorage is not working: ' + error.message);
+            }
+        }
 
         function loadProfile() {
             const settings = JSON.parse(localStorage.getItem('userProfile') || '{}');
@@ -1673,16 +1742,42 @@
         }
 
         async function loadSettings() {
+            console.log('Loading settings from backend...');
+            console.log('AppAPI.baseURL:', AppAPI.baseURL);
+            console.log('Current user token:', currentUser.token ? 'Present' : 'Missing');
+            
             // Load from backend first
             try {
                 const response = await AppAPI.fetchJSON('/users/profile', {}, { requireAuth: true });
+                console.log('Settings API response:', response);
                 
                 // Set backend data
                 if (response.weight_kg) document.getElementById('currentWeight').value = response.weight_kg;
                 if (response.protein_goal) document.getElementById('proteinGoal').value = response.protein_goal;
                 if (response.activity_level) document.getElementById('activityLevel').value = response.activity_level;
+                
+                // Update currentUser in localStorage with backend data
+                if (currentUser) {
+                    if (response.protein_goal) currentUser.protein_goal = response.protein_goal;
+                    if (response.calorie_goal) currentUser.calorie_goal = response.calorie_goal;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    console.log('Updated currentUser with backend data:', currentUser);
+                }
             } catch (error) {
                 console.error('Error loading profile from backend:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    currentUser: currentUser ? 'Present' : 'Missing',
+                    token: currentUser?.token ? 'Present' : 'Missing'
+                });
+                
+                // Fallback to localStorage data if backend fails
+                if (currentUser) {
+                    console.log('Using localStorage data as fallback for settings');
+                    if (currentUser.protein_goal) document.getElementById('proteinGoal').value = currentUser.protein_goal;
+                    if (currentUser.calorie_goal) document.getElementById('calorieGoal').value = currentUser.calorie_goal;
+                }
             }
             
             // Load local settings (fallback for settings not stored in backend)
