@@ -204,6 +204,11 @@ class SimpleCache:
                 'expires_at': time.time() + ttl
             }
     
+    def delete(self, key):
+        """Delete a specific key from cache"""
+        with self.lock:
+            self.cache.pop(key, None)
+    
     def cleanup(self):
         """Remove expired entries"""
         with self.lock:
@@ -1489,7 +1494,7 @@ async def update_weight(
         
         # Invalidate dashboard cache for this user
         cache_key = f"dashboard_meals_{user.id}_{datetime.now().date()}"
-        cache.set(cache_key, None, ttl=1)  # Invalidate immediately
+        cache.delete(cache_key)  # Properly delete the cache entry
         
         return {
             "message": "Weight updated successfully",
@@ -1522,7 +1527,7 @@ async def update_protein_goal(
         
         # Invalidate dashboard cache for this user
         cache_key = f"dashboard_meals_{user.id}_{datetime.now().date()}"
-        cache.set(cache_key, None, ttl=1)  # Invalidate immediately
+        cache.delete(cache_key)  # Properly delete the cache entry
         
         return {
             "message": "Protein goal updated successfully",
@@ -1551,7 +1556,7 @@ async def update_calorie_goal(
         
         # Invalidate dashboard cache for this user
         cache_key = f"dashboard_meals_{user.id}_{datetime.now().date()}"
-        cache.set(cache_key, None, ttl=1)  # Invalidate immediately
+        cache.delete(cache_key)  # Properly delete the cache entry
         
         return {
             "message": "Calorie goal updated successfully",
@@ -1584,7 +1589,7 @@ async def update_activity_level(
         
         # Invalidate dashboard cache for this user
         cache_key = f"dashboard_meals_{user.id}_{datetime.now().date()}"
-        cache.set(cache_key, None, ttl=1)  # Invalidate immediately
+        cache.delete(cache_key)  # Properly delete the cache entry
         
         return {
             "message": "Activity level updated successfully",
@@ -1699,7 +1704,7 @@ async def upload_meal(
         
         # Invalidate cache for this user
         cache_key = f"dashboard_meals_{current_user.id}_{datetime.now().date()}"
-        cache.set(cache_key, None, ttl=1)  # Invalidate immediately
+        cache.delete(cache_key)  # Properly delete the cache entry
         
         return {
             "message": "Meal processed successfully",
@@ -1742,7 +1747,7 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
             raise HTTPException(status_code=404, detail="User not found")
         
         # Use cached meal data if available, otherwise fetch from database
-        if cached_meals and cached_meals['expires_at'] > time.time():
+        if cached_meals and cached_meals.get('value') and cached_meals['expires_at'] > time.time():
             print(f"📊 Using cached meal data for user {current_user.id}")
             today_protein = cached_meals['value']['today_protein']
             today_calories = cached_meals['value']['today_calories']
@@ -1822,14 +1827,10 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
             "today_calories": today_calories,
             "weekly_protein": weekly_protein,
             "weekly_calories": weekly_calories,
-            "today_meals_count": len(today_meals),
-            "weekly_meals_count": len(weekly_meals),
-            "all_meals_count": len(all_meals),
-            "overall_stats": {
-                "total_meals": len(all_meals),
-                "average_protein_per_meal": round(sum(m.total_protein for m in all_meals) / len(all_meals) if all_meals else 0, 1),
-                "total_protein_tracked": round(sum(m.total_protein for m in all_meals), 1)
-            }
+            "today_meals_count": today_meals_count,
+            "weekly_meals_count": weekly_meals_count,
+            "all_meals_count": all_meals_count,
+            "overall_stats": overall_stats
         }
         cache.set(cache_key, meal_cache_data, ttl=120)
         
