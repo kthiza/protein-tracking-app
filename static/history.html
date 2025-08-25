@@ -782,6 +782,20 @@
             
             initTheme();
             loadMealHistory();
+            
+            // Refresh data when page becomes visible (user switches back to tab)
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    console.log('Page became visible, refreshing meal history');
+                    loadMealHistory();
+                }
+            });
+            
+            // Also refresh when window gains focus (alternative method)
+            window.addEventListener('focus', function() {
+                console.log('Window gained focus, refreshing meal history');
+                loadMealHistory();
+            });
         });
 
         async function updateUserDisplay() {

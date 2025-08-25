@@ -718,6 +718,58 @@
              .upload-section select {
                  width: 100% !important;
              }
+             
+             /* Enhanced mobile settings layout */
+             .upload-section .grid {
+                 grid-template-columns: 1fr !important;
+                 gap: 1rem;
+             }
+             
+             /* Profile section mobile improvements */
+             .upload-section > div > div:first-child {
+                 flex-direction: column !important;
+                 text-align: center;
+                 gap: 1rem !important;
+             }
+             
+             /* Theme buttons mobile layout */
+             .upload-section .grid[style*="grid-template-columns: 1fr 1fr"] {
+                 grid-template-columns: 1fr !important;
+                 gap: 1rem;
+             }
+             
+             /* Goal inputs mobile layout */
+             .upload-section > div > div[style*="display: flex; justify-content: space-between"] {
+                 flex-direction: column !important;
+                 gap: 1rem;
+                 align-items: stretch !important;
+             }
+             
+             .upload-section > div > div[style*="display: flex; justify-content: space-between"] > div:last-child {
+                 display: flex;
+                 justify-content: center;
+             }
+             
+             /* Profile edit form mobile */
+             .upload-section > div > div[id="profileEditForm"] .grid {
+                 grid-template-columns: 1fr !important;
+             }
+             
+             /* Password form mobile */
+             .upload-section > div > div[id="passwordChangeForm"] .grid {
+                 grid-template-columns: 1fr !important;
+             }
+             
+             /* Button groups mobile */
+             .upload-section > div > div[style*="display: flex; gap: 1rem"] {
+                 flex-direction: column !important;
+                 gap: 0.75rem;
+             }
+             
+             .upload-section > div > div[style*="display: flex; gap: 1rem"] button {
+                 width: 100%;
+                 justify-content: center;
+             }
          }
          
          @media (max-width: 480px) {
@@ -769,6 +821,42 @@
              
              .upload-title {
                  font-size: 1.25rem !important;
+             }
+             
+             /* Extra small screen optimizations */
+             .upload-section > div {
+                 padding: 0.75rem !important;
+             }
+             
+             /* Profile picture mobile */
+             .upload-section > div > div:first-child > div:first-child {
+                 width: 80px !important;
+                 height: 80px !important;
+             }
+             
+             /* Input fields mobile */
+             input, select, textarea {
+                 font-size: 16px !important; /* Prevents zoom on iOS */
+                 padding: 0.875rem !important;
+             }
+             
+             /* Button mobile */
+             button {
+                 padding: 0.875rem 1.25rem !important;
+                 font-size: 1rem !important;
+             }
+             
+             /* Header mobile */
+             .header-content {
+                 padding: 0.75rem !important;
+             }
+             
+             .logo {
+                 font-size: 1.25rem !important;
+             }
+             
+             .profile-btn {
+                 padding: 0.5rem 0.75rem !important;
              }
          }
 
@@ -1264,6 +1352,20 @@
             // Initialize theme
             initTheme();
             
+            // Refresh settings when page becomes visible (user switches back to tab)
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    console.log('Page became visible, refreshing settings');
+                    loadSettings();
+                }
+            });
+            
+            // Also refresh when window gains focus (alternative method)
+            window.addEventListener('focus', function() {
+                console.log('Window gained focus, refreshing settings');
+                loadSettings();
+            });
+            
                     // Weekly weigh-in popup removed as requested by user
         });
 
@@ -1407,6 +1509,19 @@
                 
                 // Update navigation avatar as well
                 updateNavigationAvatar(imageUrl);
+                
+                // Also update the header profile avatar
+                const headerAvatar = document.querySelector('.profile-btn .profile-avatar');
+                if (headerAvatar) {
+                    let headerImg = headerAvatar.querySelector('img');
+                    if (!headerImg) {
+                        headerImg = document.createElement('img');
+                        headerImg.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 50%;';
+                        headerAvatar.appendChild(headerImg);
+                    }
+                    headerImg.src = imageUrl;
+                    headerAvatar.style.fontSize = '0';
+                }
             } catch (error) {
                 console.error('Error loading profile picture:', error);
                 // Show initial on error
@@ -1417,7 +1532,10 @@
         }
 
         function updateNavigationAvatar(imageUrl = null) {
-            const navAvatar = document.getElementById('profileAvatar');
+            // Find the navigation avatar (not the profile section avatar)
+            const navAvatar = document.querySelector('.profile-btn .profile-avatar');
+            
+            if (!navAvatar) return;
             
             if (imageUrl) {
                 let profileImg = navAvatar.querySelector('img');

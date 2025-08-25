@@ -984,6 +984,22 @@
             dropZone.addEventListener('dragover', handleDragOver);
             dropZone.addEventListener('dragleave', handleDragLeave);
             dropZone.addEventListener('drop', handleDrop);
+            
+            // Refresh dashboard data when page becomes visible (user switches back to tab)
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    console.log('Page became visible, refreshing dashboard data');
+                    loadDashboardData();
+                    loadRecentMeals();
+                }
+            });
+            
+            // Also refresh when window gains focus (alternative method)
+            window.addEventListener('focus', function() {
+                console.log('Window gained focus, refreshing dashboard data');
+                loadDashboardData();
+                loadRecentMeals();
+            });
         }
 
         async function updateUserDisplay() {
