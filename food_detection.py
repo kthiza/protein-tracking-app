@@ -1009,8 +1009,8 @@ class GoogleVisionFoodDetector:
                 ("bread", "meat"), ("bread", "chicken"), ("bread", "beef"), ("bread", "pork"),
                 ("wrap", "meat"), ("wrap", "chicken"), ("wrap", "beef"), ("wrap", "pork"),
                 
-                # Pizza patterns (clear pizza structure)
-                ("pizza", "cheese"), ("pizza", "pepperoni"), ("pizza", "meat"),
+                # Pizza patterns (clear pizza structure) - REMOVED cheese since it's a component
+                ("pizza", "pepperoni"), ("pizza", "meat"),
             ]
             
             # Check if the two items form a legitimate complex dish
@@ -1024,14 +1024,18 @@ class GoogleVisionFoodDetector:
             if not is_complex_dish:
                 final_filtered = [final_filtered[0]]
         
-        # Additional filtering: Remove non-food items
+        # Additional filtering: Remove non-food items and dish components
         non_food_items = [
             "salt", "pepper", "black pepper", "white pepper", "salt and pepper",
             "sugar", "honey", "syrup", "oil", "olive oil", "vegetable oil",
             "vinegar", "lemon juice", "lime juice", "soy sauce", "hot sauce",
             "ketchup", "mustard", "mayonnaise", "butter", "margarine",
             "flour", "baking powder", "baking soda", "yeast", "breadcrumbs",
-            "water", "ice", "steam", "smoke", "air", "dust", "dirt"
+            "water", "ice", "steam", "smoke", "air", "dust", "dirt",
+            # Dish components that shouldn't be detected separately
+            "cheese", "mozzarella", "cheddar", "parmesan", "gouda", "swiss", "provolone",
+            "cream cheese", "cottage cheese", "ricotta", "feta", "blue cheese",
+            "sauce", "gravy", "dressing", "marinade", "seasoning", "herbs", "spices"
         ]
         
         final_filtered = [(food, conf, protein) for food, conf, protein in final_filtered 

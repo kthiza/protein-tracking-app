@@ -879,11 +879,11 @@ def _get_realistic_portion_size(food_name: str) -> float:
         return 250.0  # 250g for steak
     # Protein-rich foods (meats, fish, eggs) - moderate portions
     elif any(word in food_name for word in ['chicken', 'beef', 'pork', 'turkey', 'lamb', 'duck', 'salmon', 'tuna', 'fish', 'shrimp', 'prawn', 'egg']):
-        return 150.0  # 150g for protein foods
+        return 120.0  # 120g for protein foods (more realistic)
     
     # Grains and carbs (pasta, rice, bread) - moderate portions
     elif any(word in food_name for word in ['pasta', 'spaghetti', 'rice', 'bread', 'quinoa', 'oatmeal', 'oats', 'cereal']):
-        return 200.0  # 200g for grains
+        return 150.0  # 150g for grains (more realistic)
     
     # Fast food and mixed dishes - moderate portions
     elif any(word in food_name for word in ['pizza', 'burger', 'sandwich', 'wrap', 'taco', 'burrito', 'hot dog']):
