@@ -17,16 +17,16 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import re
 
-# Load environment variables from .env file
+# Load environment variables from .env file (local development only)
 try:
     from dotenv import load_dotenv
     import os
-    # Check if .env file exists before loading
+    # Check if .env file exists before loading (local development only)
     if os.path.exists('.env'):
         load_dotenv()
-        print("✅ Loaded environment variables from .env file")
+        print("✅ Loaded environment variables from .env file (local development)")
     else:
-        print("ℹ️  No .env file found. Using default environment variables.")
+        print("ℹ️  No .env file found. Using environment variables from system/deployment platform.")
 except ImportError:
     print("Warning: python-dotenv not installed. Install with: pip install python-dotenv")
 
@@ -52,8 +52,10 @@ try:
             service_account_info = json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
             GOOGLE_VISION_AVAILABLE = True
             print("✅ Google Vision API configured (environment variable)")
+            print(f"   Project ID: {service_account_info.get('project_id', 'Unknown')}")
         except (json.JSONDecodeError, KeyError) as e:
             print(f"❌ Invalid Google Vision service account JSON: {e}")
+            print("   Please check your GOOGLE_SERVICE_ACCOUNT environment variable in Render dashboard")
             GOOGLE_VISION_AVAILABLE = False
     elif GOOGLE_VISION_SERVICE_ACCOUNT_PATH and os.path.exists(GOOGLE_VISION_SERVICE_ACCOUNT_PATH):
         GOOGLE_VISION_AVAILABLE = True
@@ -61,7 +63,10 @@ try:
     else:
         GOOGLE_VISION_AVAILABLE = False
         print("ℹ️  Google Vision API not configured. This is optional - the app will work without it.")
-        print("   To enable AI food detection, set GOOGLE_SERVICE_ACCOUNT environment variable in Render.")
+        print("   To enable AI food detection:")
+        print("   1. Set GOOGLE_SERVICE_ACCOUNT environment variable in Render dashboard")
+        print("   2. Or upload service-account-key.json and set GOOGLE_VISION_SERVICE_ACCOUNT_PATH")
+        print("   See GOOGLE_VISION_SETUP.md for detailed instructions")
         
 except ImportError:
     GOOGLE_VISION_AVAILABLE = False
