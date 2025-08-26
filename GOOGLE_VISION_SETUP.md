@@ -63,22 +63,37 @@ The message "ℹ️ Google Vision API not configured" appears because:
    ✅ Google Vision API configured (environment variable)
    ```
 
-## Alternative: Using Service Account File
+## Alternative: Using Service Account File (Local Development Only)
 
-If you prefer to use a file instead of environment variable:
+If you prefer to use a file for local development:
 
 1. **Upload your JSON file** to your project repository
 2. **Set environment variable**:
    - **Key**: `GOOGLE_VISION_SERVICE_ACCOUNT_PATH`
    - **Value**: `service-account-key.json` (or your file name)
 
+**Note**: This method is NOT recommended for Render deployment. Use environment variables instead.
+
 ## Testing the Setup
 
-After deployment, you can test if Google Vision is working:
+### Local Testing
+After setup, you can test if Google Vision is working:
 
-1. **Upload a food image** through your app
-2. **Check if AI detection works** (should identify foods automatically)
-3. **Check the logs** for any Vision API errors
+1. **Run the test script**:
+   ```bash
+   python test_render_deployment.py
+   ```
+
+2. **Upload a food image** through your app
+3. **Check if AI detection works** (should identify foods automatically)
+4. **Check the logs** for any Vision API errors
+
+### Render Deployment Testing
+After deploying to Render:
+
+1. **Check the deployment logs** for Google Vision API initialization messages
+2. **Test food detection** by uploading an image through your deployed app
+3. **Verify that different images produce different results** (not the same hardcoded values)
 
 ## Troubleshooting
 
@@ -87,14 +102,21 @@ After deployment, you can test if Google Vision is working:
 1. **"Invalid JSON" error**:
    - Make sure you copied the entire JSON content
    - Don't add extra quotes or formatting
+   - Ensure the JSON is valid (use a JSON validator)
 
 2. **"Permission denied" error**:
    - Ensure your service account has Vision API permissions
    - Check that Vision API is enabled in your Google Cloud project
+   - Verify the service account email is correct
 
 3. **"Quota exceeded" error**:
    - Google Cloud Vision API has usage limits
    - Check your Google Cloud billing and quotas
+   - Monitor usage in Google Cloud Console
+
+4. **"Service account file not found" error**:
+   - For Render deployment: Use environment variables, not files
+   - For local development: Ensure the service account file exists in your project
 
 ### Cost Considerations:
 
@@ -116,3 +138,16 @@ If you don't want to use Google Vision API:
 - The app will work fine without it
 - Users can manually enter food items
 - No additional setup required
+
+## Deployment Checklist
+
+Before deploying to Render:
+
+- [ ] Google Cloud Vision API enabled
+- [ ] Service account created with Vision API permissions
+- [ ] Service account key downloaded
+- [ ] `GOOGLE_SERVICE_ACCOUNT` environment variable set in Render dashboard
+- [ ] Environment variable contains the entire JSON content
+- [ ] App deployed to Render
+- [ ] Deployment logs show successful Google Vision API initialization
+- [ ] Food detection tested with uploaded images

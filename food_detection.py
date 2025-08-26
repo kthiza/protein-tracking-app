@@ -12,27 +12,56 @@ except Exception:
 
 class GoogleVisionFoodDetector:
     def __init__(self, service_account_path: str = None):
-        if service_account_path is None:
-            service_account_path = os.getenv("GOOGLE_VISION_SERVICE_ACCOUNT_PATH", "service-account-key.json")
         """Initialize Google Vision API client with service account authentication.
         
         Args:
-            service_account_path: Path to the service account JSON key file
+            service_account_path: Path to the service account JSON key file (optional)
         """
         self.service_account_path = service_account_path
         self.client = None
         
         # Initialize the Vision API client
         try:
-            if os.path.exists(service_account_path):
+            # Try environment variable first (recommended for Render deployment)
+            GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT")
+            
+            if GOOGLE_SERVICE_ACCOUNT_JSON:
+                # Use environment variable (Render deployment)
+                try:
+                    import json
+                    service_account_info = json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
+                    credentials = service_account.Credentials.from_service_account_info(
+                        service_account_info,
+                        scopes=['https://www.googleapis.com/auth/cloud-platform']
+                    )
+                    self.client = vision.ImageAnnotatorClient(credentials=credentials)
+                    print(f"✅ Google Vision API initialized with environment variable")
+                    print(f"   Project ID: {service_account_info.get('project_id', 'Unknown')}")
+                except (json.JSONDecodeError, KeyError) as e:
+                    print(f"❌ Invalid Google Vision service account JSON in environment: {e}")
+                    raise e
+            
+            elif service_account_path and os.path.exists(service_account_path):
+                # Use service account file (local development)
                 credentials = service_account.Credentials.from_service_account_file(
                     service_account_path,
                     scopes=['https://www.googleapis.com/auth/cloud-platform']
                 )
                 self.client = vision.ImageAnnotatorClient(credentials=credentials)
-                print(f"✅ Google Vision API initialized with service account: {service_account_path}")
+                print(f"✅ Google Vision API initialized with service account file: {service_account_path}")
+            
+            elif os.path.exists("service-account-key.json"):
+                # Fallback to default service account file
+                credentials = service_account.Credentials.from_service_account_file(
+                    "service-account-key.json",
+                    scopes=['https://www.googleapis.com/auth/cloud-platform']
+                )
+                self.client = vision.ImageAnnotatorClient(credentials=credentials)
+                print(f"✅ Google Vision API initialized with default service account file")
+            
             else:
-                raise FileNotFoundError(f"Service account file not found: {service_account_path}")
+                raise FileNotFoundError("No Google Vision credentials found. Set GOOGLE_SERVICE_ACCOUNT environment variable or provide service account file.")
+                
         except Exception as e:
             print(f"❌ Failed to initialize Google Vision API: {e}")
             raise e
@@ -426,6 +455,10 @@ class GoogleVisionFoodDetector:
             response = self.client.label_detection(image=image)
             labels = response.label_annotations
             
+            # Perform web detection for better food identification
+            response_web = self.client.web_detection(image=image)
+            web_detection = response_web.web_detection
+            
             # Process detected labels with improved confidence thresholds for multi-item meals
             detected_foods = []
             confidence_scores = {}
@@ -443,6 +476,22 @@ class GoogleVisionFoodDetector:
                         if food not in detected_foods:
                             detected_foods.append(food)
                             confidence_scores[food] = confidence
+            
+            # Process web detection results for better multi-item detection
+            if web_detection.web_entities:
+                print(f"🌐 Processing {len(web_detection.web_entities)} web entities:")
+                for entity in web_detection.web_entities:
+                    entity_desc = entity.description.lower().strip()
+                    confidence = entity.score
+                    
+                    # Use a lower threshold for web entities as they can be more specific
+                    if confidence >= 0.6:
+                        print(f"   - {entity_desc} (score: {confidence:.3f})")
+                        food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
+                        for food in food_items:
+                            if food not in detected_foods:
+                                detected_foods.append(food)
+                                confidence_scores[food] = confidence
             
             # Apply improved filtering for multi-item meals
             filtered_foods = self._filter_multi_item_detections(detected_foods, confidence_scores)
@@ -492,10 +541,62 @@ class GoogleVisionFoodDetector:
         # Clean and normalize the label
         label = label.lower().strip()
         
-        # Direct exact matches - highest priority
-        if label in self.protein_database:
+        # Handle meat-based sauces and complex dishes FIRST (before direct matches)
+        meat_sauce_mappings = {
+            "bolognese": "beef",
+            "bolognese sauce": "beef",
+            "meat sauce": "beef",
+            "beef sauce": "beef",
+            "beef spaghetti": "beef",
+            "beef pasta": "beef",
+            "chicken sauce": "chicken",
+            "chicken pasta": "chicken",
+            "pork sauce": "pork",
+            "lamb sauce": "lamb",
+            "turkey sauce": "turkey"
+        }
+        
+        # Check for meat-based sauce descriptions first
+        sauce_found = False
+        for sauce_desc, meat_type in meat_sauce_mappings.items():
+            if sauce_desc in label and meat_type not in foods:
+                foods.append(meat_type)
+                sauce_found = True
+                break  # Only use the first matching sauce
+        
+        # Direct exact matches - highest priority (but skip if we found a sauce)
+        if label in self.protein_database and not sauce_found:
             foods.append(label)
             # Don't return immediately - continue processing other labels for multi-item meals
+        
+        # Handle complex meal descriptions (e.g., "beef spaghetti", "chicken rice", "salad vegetables")
+        # Split by common separators and check each part
+        separators = [' ', ',', ' and ', ' with ', ' in ', ' on ', ' topped with ', ' served with ']
+        for separator in separators:
+            if separator in label:
+                parts = [part.strip() for part in label.split(separator) if part.strip()]
+                for part in parts:
+                    if part in self.protein_database and part not in foods:
+                        foods.append(part)
+        
+        # Handle specific complex dish patterns
+        complex_dish_patterns = [
+            ("beef spaghetti", ["beef", "pasta"]),
+            ("beef pasta", ["beef", "pasta"]),
+            ("chicken rice", ["chicken", "rice"]),
+            ("chicken pasta", ["chicken", "pasta"]),
+            ("salad vegetables", ["salad", "vegetables"]),
+            ("fish vegetables", ["fish", "vegetables"]),
+            ("pork rice", ["pork", "rice"]),
+            ("lamb rice", ["lamb", "rice"]),
+            ("turkey rice", ["turkey", "rice"])
+        ]
+        
+        for pattern, components in complex_dish_patterns:
+            if pattern in label:
+                for component in components:
+                    if component not in foods:
+                        foods.append(component)
         
         # Handle multi-item meal descriptions (e.g., "english breakfast", "full breakfast")
         meal_keywords = ["breakfast", "lunch", "dinner", "meal", "plate", "dish"]
@@ -659,7 +760,7 @@ class GoogleVisionFoodDetector:
         
         # Group similar/related foods to avoid over-detection
         food_groups = {
-            "beef_group": ["beef", "steak", "roast beef", "ground beef", "beef steak", "ribeye", "sirloin", "filet mignon", "t-bone", "porterhouse", "beef burger", "hamburger"],
+            "beef_group": ["beef", "steak", "roast beef", "ground beef", "beef steak", "ribeye", "sirloin", "filet mignon", "t-bone", "porterhouse", "beef burger", "hamburger", "bolognese"],
             "chicken_group": ["chicken", "chicken breast", "chicken thigh", "chicken wing", "chicken nuggets", "chicken tenders", "fried chicken", "roasted chicken"],
             "pork_group": ["pork", "pork chop", "bacon", "ham", "pork loin", "pork tenderloin", "pork belly", "pulled pork", "pork ribs", "pork shoulder"],
             "fish_group": ["salmon", "tuna", "cod", "tilapia", "trout", "mackerel", "halibut", "sea bass", "red snapper", "grouper", "swordfish"],
@@ -676,9 +777,9 @@ class GoogleVisionFoodDetector:
         
         # Define specificity levels for each group to prioritize more specific terms
         specificity_rules = {
-            "egg_group": {
-                "specific": ["scrambled eggs", "fried eggs", "fried egg", "boiled eggs", "omelet", "omelette", "poached eggs", "deviled eggs"],
-                "generic": ["egg", "eggs"]
+            "beef_group": {
+                "specific": ["steak", "roast beef", "ground beef", "beef steak", "ribeye", "sirloin", "filet mignon", "t-bone", "porterhouse", "beef burger", "hamburger"],
+                "generic": ["beef", "bolognese"]
             },
             "pasta_group": {
                 "specific": ["spaghetti", "penne", "fettuccine", "lasagna"],
@@ -708,10 +809,6 @@ class GoogleVisionFoodDetector:
                 "specific": ["chicken breast", "chicken thigh", "chicken wing", "chicken nuggets", "chicken tenders", "fried chicken", "roasted chicken"],
                 "generic": ["chicken"]
             },
-            "beef_group": {
-                "specific": ["steak", "roast beef", "ground beef", "beef steak", "ribeye", "sirloin", "filet mignon", "t-bone", "porterhouse", "beef burger", "hamburger"],
-                "generic": ["beef"]
-            },
             "pork_group": {
                 "specific": ["pork chop", "bacon", "ham", "pork loin", "pork tenderloin", "pork belly", "pulled pork", "pork ribs", "pork shoulder"],
                 "generic": ["pork"]
@@ -730,11 +827,18 @@ class GoogleVisionFoodDetector:
                 if food in group_items:
                     food_grouped = True
                     
-                    # Special handling for beef group - only include if specifically detected
+                    # Special handling for beef group - prioritize beef over bolognese
                     if group_name == "beef_group":
-                        # Only add beef items if they were specifically detected, not through category matching
-                        if food in ["beef", "steak"] and confidence < 0.8:
-                            continue  # Skip low-confidence beef detections that might be from category matching
+                        if food == "bolognese":
+                            # Check if beef is already in the foods list
+                            if "beef" in foods:
+                                continue  # Skip bolognese if beef is already detected
+                        elif food == "beef" and group_name in best_items:
+                            current_best = best_items[group_name]
+                            if current_best and current_best[0] == "bolognese":
+                                # Replace bolognese with beef
+                                best_items[group_name] = (food, confidence, protein_content)
+                                continue
                     
                     # Generalized specificity handling for all groups
                     if group_name in specificity_rules:
@@ -794,6 +898,20 @@ class GoogleVisionFoodDetector:
         for group_name, (food, confidence, protein_content) in best_items.items():
             filtered.append((food, confidence, protein_content))
         
+        # Post-process to remove redundant items
+        final_filtered = []
+        for food, conf, protein in filtered:
+            # Skip bolognese if beef is already in the final list
+            if food == "bolognese" and any(item == "beef" for item, _, _ in final_filtered):
+                continue
+            # Skip specific pasta types if pasta is already in the final list
+            if food in ["spaghetti", "linguine", "penne", "fettuccine", "lasagna"] and any(item == "pasta" for item, _, _ in final_filtered):
+                continue
+            # Skip generic pasta if specific pasta type is already in the final list
+            if food == "pasta" and any(item in ["spaghetti", "penne", "fettuccine", "lasagna", "linguine"] for item, _, _ in final_filtered):
+                continue
+            final_filtered.append((food, conf, protein))
+        
         # Filter out generic terms, cooking methods, and low confidence items
         generic_terms = [
             # General food terms
@@ -816,17 +934,17 @@ class GoogleVisionFoodDetector:
             "spice", "herb", "seasoning", "flavoring", "aromatic"
         ]
         
-        filtered = [(food, conf, protein) for food, conf, protein in filtered 
-                   if conf >= 0.70 and 
-                   len(food) >= 3 and
-                   food not in generic_terms and
-                   not any(word in food for word in ["mix", "combination", "variety", "assortment"])]
+        final_filtered = [(food, conf, protein) for food, conf, protein in final_filtered 
+                         if conf >= 0.70 and 
+                         len(food) >= 3 and
+                         food not in generic_terms and
+                         not any(word in food for word in ["mix", "combination", "variety", "assortment"])]
         
         # Sort by confidence and protein content
-        filtered.sort(key=lambda x: (x[1], x[2]), reverse=True)
+        final_filtered.sort(key=lambda x: (x[1], x[2]), reverse=True)
         
-        # Return up to 4 items for complex meals (reduced from 6)
-        return [food for food, conf, protein in filtered[:4]] if filtered else []
+        # Return up to 3 items for complex meals (reduced from 4)
+        return [food for food, conf, protein in final_filtered[:3]] if final_filtered else []
 
     def calculate_protein_content(self, foods: List[str]) -> float:
         """Calculate total protein content for detected foods normalized to 250g total food weight"""
