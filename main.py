@@ -973,12 +973,51 @@ async def root():
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+    try:
+        # Test database connection
+        with Session(engine) as session:
+            # Try a simple query
+            result = session.exec(text("SELECT 1")).first()
+            database_status = "connected" if result else "error"
+    except Exception as e:
+        database_status = f"error: {str(e)}"
+    
+    # Get database type from URL
+    database_url = os.getenv("DATABASE_URL", "sqlite:///./protein_app.db")
+    database_type = "sqlite" if "sqlite" in database_url else "postgresql" if "postgresql" in database_url else "unknown"
+    
+    return {
+        "status": "healthy", 
+        "timestamp": datetime.now().isoformat(),
+        "database": database_status,
+        "database_type": database_type,
+        "environment": os.getenv("ENVIRONMENT", "development")
+    }
 
 @app.get("/api/test")
 async def test_api():
     """Test endpoint to verify API is working"""
     return {"message": "API is working!", "timestamp": datetime.now().isoformat()}
+
+@app.get("/users")
+async def get_users():
+    """Get all users (for debugging)"""
+    with Session(engine) as session:
+        users = session.exec(select(User)).all()
+        return {
+            "users": [
+                {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "protein_goal": user.protein_goal,
+                    "calorie_goal": user.calorie_goal,
+                    "weight_kg": user.weight_kg,
+                    "created_at": user.created_at.isoformat() if user.created_at else None
+                }
+                for user in users
+            ]
+        }
 
 @app.post("/auth/register")
 async def register_user(
@@ -1740,11 +1779,16 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
     cache_key = f"dashboard_meals_{current_user.id}_{datetime.now().date()}"
     cached_meals = cache.get(cache_key)
     
+    print(f"📊 Dashboard request for user {current_user.id} ({current_user.username})")
+    
     with Session(engine) as session:
         # Always fetch fresh user data from database to get latest goals
         fresh_user = session.exec(select(User).where(User.id == current_user.id)).first()
         if not fresh_user:
+            print(f"❌ User {current_user.id} not found in database")
             raise HTTPException(status_code=404, detail="User not found")
+        
+        print(f"✅ Fresh user data loaded: protein_goal={fresh_user.protein_goal}, calorie_goal={fresh_user.calorie_goal}")
         
         # Use cached meal data if available, otherwise fetch from database
         if cached_meals and cached_meals.get('value') and cached_meals['expires_at'] > time.time():
@@ -1834,6 +1878,7 @@ async def get_dashboard_data(current_user: User = Depends(get_current_user)):
         }
         cache.set(cache_key, meal_cache_data, ttl=120)
         
+        print(f"📊 Dashboard response: protein_goal={result['user']['protein_goal']}, calorie_goal={result['user']['calorie_goal']}")
         return result
 
 @app.get("/meals")

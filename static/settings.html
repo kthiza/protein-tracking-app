@@ -2138,6 +2138,11 @@
             }
         }
 
+        function markReturningToDashboard() {
+            // Mark that user is returning to dashboard from settings
+            sessionStorage.setItem('fromSettings', 'true');
+        }
+
         function showAutoSaveNotification() {
             // Create a subtle notification that appears briefly
             const notification = document.createElement('div');
@@ -2197,7 +2202,7 @@
             `;
 
             dropdown.innerHTML = `
-                <a href="dashboard.html" style="
+                <a href="dashboard.html" onclick="markReturningToDashboard()" style="
                     display: flex;
                     align-items: center;
                     gap: 0.75rem;

@@ -1038,6 +1038,15 @@
         }
 
         async function initializeApp() {
+            // Check if user just came from settings page (force refresh)
+            const fromSettings = sessionStorage.getItem('fromSettings');
+            if (fromSettings) {
+                console.log('User returned from settings, forcing fresh data load');
+                sessionStorage.removeItem('fromSettings');
+                // Clear any cached data to force fresh load
+                localStorage.removeItem('dashboardCache');
+            }
+            
             await updateUserDisplay();
             loadDashboardData();
             loadRecentMeals();
@@ -1058,6 +1067,7 @@
             document.addEventListener('visibilitychange', function() {
                 if (!document.hidden) {
                     console.log('Page became visible, refreshing dashboard data');
+                    // Force fresh data load when returning to the page
                     loadDashboardData();
                     loadRecentMeals();
                 }
@@ -1068,6 +1078,15 @@
                 console.log('Window gained focus, refreshing dashboard data');
                 loadDashboardData();
                 loadRecentMeals();
+            });
+            
+            // Refresh when user navigates back to the page (browser back button)
+            window.addEventListener('pageshow', function(event) {
+                if (event.persisted) {
+                    console.log('Page restored from cache, refreshing dashboard data');
+                    loadDashboardData();
+                    loadRecentMeals();
+                }
             });
         }
 
@@ -1123,6 +1142,12 @@
                 // Use the proper fetchJSON helper with authentication
                 const data = await AppAPI.fetchJSON('/dashboard', {}, { requireAuth: true });
                 console.log('Dashboard API response:', data);
+                
+                // Validate the response data
+                if (!data || !data.user) {
+                    throw new Error('Invalid dashboard data received');
+                }
+                
                 updateDashboardStats(data);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
@@ -1223,12 +1248,15 @@
             let proteinGoal = data.user.protein_goal;
             let calorieGoal = data.user.calorie_goal;
             
-            // Fallback to localStorage if backend doesn't provide goals
-            if (!proteinGoal && currentUser && currentUser.protein_goal) {
+            // Check if goals are valid numbers (not null, undefined, or 0)
+            const isValidGoal = (goal) => goal !== null && goal !== undefined && goal > 0;
+            
+            // Fallback to localStorage if backend doesn't provide valid goals
+            if (!isValidGoal(proteinGoal) && currentUser && currentUser.protein_goal) {
                 proteinGoal = currentUser.protein_goal;
                 console.log('Using protein goal from localStorage:', proteinGoal);
             }
-            if (!calorieGoal && currentUser && currentUser.calorie_goal) {
+            if (!isValidGoal(calorieGoal) && currentUser && currentUser.calorie_goal) {
                 calorieGoal = currentUser.calorie_goal;
                 console.log('Using calorie goal from localStorage:', calorieGoal);
             }
