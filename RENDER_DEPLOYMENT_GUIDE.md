@@ -61,6 +61,12 @@ This guide will help you deploy your Protein App to Render with Google Vision AP
 4. **Start Command**: `python main.py`
 5. **Plan**: Free (or paid if you prefer)
 
+**Note**: The `requirements.txt` file includes all necessary dependencies including:
+- `google-auth` for Google Cloud authentication
+- `google-cloud-vision` for the Vision API
+- `python-dotenv` for environment variable management
+- All other required packages for the application
+
 ### 2.3 Set Environment Variables
 1. Go to "Environment" tab
 2. Add the following environment variables:

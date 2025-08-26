@@ -927,7 +927,7 @@ class GoogleVisionFoodDetector:
             
             # Salad types -> salad
             "greek salad": "salad", "caesar salad": "salad", "cobb salad": "salad",
-            "garden salad": "salad", "green salad": "salad",
+            "garden salad": "salad", "green salad": "salad", "tabbouleh": "salad",
             
             # Bread types -> bread
             "white bread": "bread", "whole wheat bread": "bread", "sourdough": "bread",
@@ -941,25 +941,6 @@ class GoogleVisionFoodDetector:
             # Dish components -> main dish
             "bolognese": "beef",  # bolognese sauce contains beef
         }
-        
-        # Define dish components (items that are typically part of larger dishes)
-        # These should ALWAYS be filtered out when the main dish is present
-        dish_components = {
-            "cheese": ["pizza", "sandwich", "burger", "pasta", "salad"],
-            "ham": ["sandwich", "salad", "pizza"],
-            "bacon": ["sandwich", "salad", "breakfast"],
-            "sausage": ["pizza", "pasta", "breakfast"],
-            "egg": ["sandwich", "salad", "breakfast"],
-            "tomato": ["salad", "sandwich", "pizza"],
-            "lettuce": ["salad", "sandwich", "burger"],
-            "onion": ["salad", "sandwich", "pizza", "burger"],
-            "pepper": ["salad", "sandwich", "pizza"],
-            "mushroom": ["salad", "sandwich", "pizza"],
-            "chicken": ["shawarma", "wrap", "sandwich", "salad"],  # chicken is component of shawarma
-        }
-        
-        # Define base foods (simple foods that can be standalone or have components)
-        base_foods = ["salad", "rice", "pasta", "bread", "soup", "pizza", "sandwich", "burger", "wrap", "shawarma"]
         
         # First pass: consolidate related foods
         consolidated_foods = {}
@@ -1002,79 +983,62 @@ class GoogleVisionFoodDetector:
         
         final_filtered = unique_components
         
-        # Filter out dish components when main dish is present
-        filtered_components = []
-        for food, conf, protein in final_filtered:
-            # Check if this is a component that should be filtered out
-            should_filter = False
-            if food in dish_components:
-                # Check if any of the main dishes for this component are present
-                for main_dish in dish_components[food]:
-                    if any(item == main_dish for item, _, _ in final_filtered):
-                        should_filter = True
-                        break
-            
-            if not should_filter:
-                filtered_components.append((food, conf, protein))
+        # UNIVERSAL APPROACH: Focus on the primary food item
+        # Sort by confidence and protein content to find the most significant food
+        final_filtered.sort(key=lambda x: (x[1], x[2]), reverse=True)
         
-        final_filtered = filtered_components
-        
-        # General confidence-based filtering for remaining component foods
-        # If we have a base food and a component, only include the component if confidence is high
-        if len(final_filtered) == 2:
-            base_food = None
-            component_food = None
+        # For any image, we want to identify the PRIMARY food item
+        # If we have multiple items, only keep the most confident one unless there's a clear multi-item dish
+        if len(final_filtered) >= 2:
+            primary_food, primary_conf, primary_protein = final_filtered[0]
+            secondary_food, secondary_conf, secondary_protein = final_filtered[1]
             
-            for food, conf, protein in final_filtered:
-                if food in base_foods:
-                    base_food = (food, conf, protein)
-                elif food in dish_components:
-                    component_food = (food, conf, protein)
+            # Check if this looks like a legitimate multi-item dish
+            # Only include multiple items if they're clearly part of a complex dish
+            is_complex_dish = False
             
-            # If we have a base food and a component, apply confidence filtering
-            if base_food and component_food:
-                base_food_name, base_conf, base_protein = base_food
-                comp_food_name, comp_conf, comp_protein = component_food
+            # Define legitimate multi-item dish patterns
+            complex_dish_patterns = [
+                # Meat + starch combinations (clear main dish + side)
+                ("beef", "pasta"), ("beef", "rice"), ("beef", "bread"),
+                ("chicken", "rice"), ("chicken", "pasta"), ("chicken", "bread"),
+                ("pork", "rice"), ("pork", "pasta"), ("pork", "bread"),
+                ("fish", "rice"), ("fish", "pasta"), ("fish", "bread"),
                 
-                # Check if the component is typically part of this base food
-                is_typical_component = (
-                    comp_food_name in dish_components and 
-                    base_food_name in dish_components[comp_food_name]
-                )
+                # Sandwich/wrap patterns (clear sandwich structure)
+                ("bread", "meat"), ("bread", "chicken"), ("bread", "beef"), ("bread", "pork"),
+                ("wrap", "meat"), ("wrap", "chicken"), ("wrap", "beef"), ("wrap", "pork"),
                 
-                # Apply confidence thresholds based on relationship
-                if is_typical_component:
-                    # For typical components, use moderate threshold
-                    if comp_conf < 0.80:
-                        final_filtered = [base_food]  # Keep only the base food
-                else:
-                    # For non-typical components, use high threshold
-                    if comp_conf < 0.85:
-                        final_filtered = [base_food]  # Keep only the base food
-        
-        # Additional general filtering for 3+ items
-        if len(final_filtered) >= 3:
-            # For complex meals, prioritize the most confident items
-            # and remove low-confidence components
-            high_confidence_threshold = 0.75
-            filtered_by_confidence = []
+                # Pizza patterns (clear pizza structure)
+                ("pizza", "cheese"), ("pizza", "pepperoni"), ("pizza", "meat"),
+            ]
             
-            for food, conf, protein in final_filtered:
-                # Keep high confidence items
-                if conf >= high_confidence_threshold:
-                    filtered_by_confidence.append((food, conf, protein))
-                # Keep base foods even with lower confidence
-                elif food in base_foods and conf >= 0.70:
-                    filtered_by_confidence.append((food, conf, protein))
+            # Check if the two items form a legitimate complex dish
+            for pattern in complex_dish_patterns:
+                if (primary_food == pattern[0] and secondary_food == pattern[1]) or \
+                   (primary_food == pattern[1] and secondary_food == pattern[0]):
+                    is_complex_dish = True
+                    break
             
-            # If we still have too many items, take the top 3 by confidence
-            if len(filtered_by_confidence) > 3:
-                filtered_by_confidence.sort(key=lambda x: x[1], reverse=True)
-                final_filtered = filtered_by_confidence[:3]
-            else:
-                final_filtered = filtered_by_confidence
+            # If it's not a legitimate complex dish, keep only the primary item
+            if not is_complex_dish:
+                final_filtered = [final_filtered[0]]
         
-        return [food for food, conf, protein in final_filtered]
+        # Additional filtering: Remove non-food items
+        non_food_items = [
+            "salt", "pepper", "black pepper", "white pepper", "salt and pepper",
+            "sugar", "honey", "syrup", "oil", "olive oil", "vegetable oil",
+            "vinegar", "lemon juice", "lime juice", "soy sauce", "hot sauce",
+            "ketchup", "mustard", "mayonnaise", "butter", "margarine",
+            "flour", "baking powder", "baking soda", "yeast", "breadcrumbs",
+            "water", "ice", "steam", "smoke", "air", "dust", "dirt"
+        ]
+        
+        final_filtered = [(food, conf, protein) for food, conf, protein in final_filtered 
+                         if food not in non_food_items]
+        
+        # Return up to 2 items maximum (primary + secondary if it's a legitimate complex dish)
+        return [food for food, conf, protein in final_filtered[:2]] if final_filtered else []
 
     def calculate_protein_content(self, foods: List[str]) -> float:
         """Calculate total protein content for detected foods normalized to 250g total food weight"""
