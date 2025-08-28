@@ -98,12 +98,12 @@ class GoogleVisionFoodDetector:
             
             # Plant-based Proteins (Medium-High Protein)
             "tofu": 8.0, "tempeh": 20.0, "edamame": 11.0, "soybeans": 36.0, "soy milk": 3.3,
-            "lentils": 9.0,             "beans": 21.0, "baked beans": 21.0, "black beans": 21.0, "kidney beans": 24.0, "pinto beans": 21.0,
-            "navy beans": 22.0, "lima beans": 21.0, "cannellini beans": 23.0, "great northern beans": 22.0, "white beans": 23.0, "garbanzo beans": 19.0, "chickpeas": 19.0,
+            "lentils": 9.0,             "beans": 9.0, "baked beans": 9.0, "black beans": 9.0, "kidney beans": 9.0, "pinto beans": 9.0,
+            "navy beans": 9.0, "lima beans": 9.0, "cannellini beans": 9.0, "great northern beans": 9.0, "white beans": 9.0, "garbanzo beans": 9.0, "chickpeas": 9.0,
             "hummus": 8.0, "falafel": 8.0,
-            "split peas": 25.0, "black eyed peas": 24.0, "adzuki beans": 20.0, "mung beans": 24.0,
-            "quinoa": 14.0, "seitan": 75.0, "spirulina": 57.0, "nutritional yeast": 50.0,
-            "textured vegetable protein": 50.0, "pea protein": 80.0, "rice protein": 80.0,
+            "split peas": 9.0, "black eyed peas": 8.0, "adzuki beans": 8.0, "mung beans": 8.0,
+            "quinoa": 14.0, "seitan": 25.0, "spirulina": 57.0, "nutritional yeast": 50.0,
+            "textured vegetable protein": 50.0, "pea protein": 25.0, "rice protein": 25.0,
             
             # Nuts & Seeds (Medium Protein)
             "almonds": 21.0, "walnuts": 15.0, "peanuts": 26.0, "cashews": 18.0, "pistachios": 20.0,
