@@ -98,6 +98,36 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
+            
+            /* Mobile responsive fixes for text positioning */
+            @media (max-width: 768px) {
+                .data-privacy-section {
+                    padding: 1rem !important;
+                }
+                
+                .data-privacy-section .flex-container {
+                    flex-direction: column !important;
+                    align-items: stretch !important;
+                    gap: 1rem !important;
+                }
+                
+                .data-privacy-section .text-container {
+                    min-width: 100% !important;
+                    margin-bottom: 0.5rem !important;
+                }
+                
+                .data-privacy-section button {
+                    align-self: flex-end !important;
+                    width: auto !important;
+                }
+            }
+            
+            /* Ensure text containers have proper dimensions */
+            .text-container {
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+                hyphens: auto;
+            }
             overflow-x: hidden;
         }
         
@@ -1340,34 +1370,34 @@
                 <h2 class="upload-title">Data & Privacy</h2>
                 <p class="upload-subtitle">Manage your data and account security</p>
             </div>
-            <div style="background: var(--bg-secondary); border-radius: var(--radius-xl); padding: 2rem; margin-bottom: 2rem; border: 1px solid var(--border-color);">
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border-color);">
-                    <div>
+            <div class="data-privacy-section" style="background: var(--bg-secondary); border-radius: var(--radius-xl); padding: 2rem; margin-bottom: 2rem; border: 1px solid var(--border-color);">
+                <div class="flex-container" style="display: flex; justify-content: space-between; align-items: flex-start; padding: 1rem 0; border-bottom: 1px solid var(--border-color); gap: 1rem;">
+                    <div class="text-container" style="flex: 1; min-width: 0;">
                         <div style="font-weight: 500; margin-bottom: 0.25rem;">Export Data</div>
-                        <div style="font-size: 0.875rem; color: var(--text-secondary);">Download all your meal history</div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.4;">Download all your meal history and data</div>
                     </div>
-                    <button onclick="exportData()" style="padding: 0.5rem 1rem; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); cursor: pointer;">
+                    <button onclick="exportData()" style="padding: 0.5rem 1rem; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); cursor: pointer; white-space: nowrap; flex-shrink: 0;">
                         <i class="fas fa-download"></i> Export
-            </button>
-        </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border-color);">
-                    <div>
-                        <div style="font-weight: 500; margin-bottom: 0.25rem;">Clear Cache</div>
-                        <div style="font-size: 0.875rem; color: var(--text-secondary);">Clear temporary app data</div>
+                    </button>
                 </div>
-                    <button onclick="clearCache()" style="padding: 0.5rem 1rem; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); cursor: pointer;">
+                <div class="flex-container" style="display: flex; justify-content: space-between; align-items: flex-start; padding: 1rem 0; border-bottom: 1px solid var(--border-color); gap: 1rem;">
+                    <div class="text-container" style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 500; margin-bottom: 0.25rem;">Clear Cache</div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.4;">Clear temporary app data and cookies</div>
+                    </div>
+                    <button onclick="clearCache()" style="padding: 0.5rem 1rem; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); cursor: pointer; white-space: nowrap; flex-shrink: 0;">
                         <i class="fas fa-trash"></i> Clear
                     </button>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0;">
-                    <div>
+                <div class="flex-container" style="display: flex; justify-content: space-between; align-items: flex-start; padding: 1rem 0; gap: 1rem;">
+                    <div class="text-container" style="flex: 1; min-width: 0;">
                         <div style="font-weight: 500; margin-bottom: 0.25rem;">Delete Account</div>
-                        <div style="font-size: 0.875rem; color: var(--text-secondary);">Permanently delete all data</div>
-            </div>
-                    <button onclick="deleteAccount()" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); border: none; border-radius: 6px; color: white; cursor: pointer;">
+                        <div style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.4;">Permanently delete all data and account</div>
+                    </div>
+                    <button onclick="deleteAccount()" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); border: none; border-radius: 6px; color: white; cursor: pointer; white-space: nowrap; flex-shrink: 0;">
                         <i class="fas fa-user-times"></i> Delete
                     </button>
-            </div>
+                </div>
             </div>
         </section>
 
