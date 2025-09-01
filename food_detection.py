@@ -424,33 +424,33 @@ class GoogleVisionFoodDetector:
             "lotus seed cache": 1.4, "lotus seed hoard": 1.4, "lotus seed stash": 1.4
          }
          
-         # Basic calorie database for validation (calories per 100g)
-         self.calorie_database = {
-             # Proteins
-             "chicken": 165, "beef": 250, "pork": 242, "salmon": 208, "tuna": 144,
-             "eggs": 155, "bacon": 541, "ham": 145, "cheese": 402, "milk": 42,
-             
-             # Carbs
-             "rice": 130, "pasta": 131, "bread": 265, "toast": 265, "pizza": 266,
-             "potato": 77, "corn": 86, "oats": 389, "quinoa": 120,
-             
-             # Vegetables
-             "salad": 20, "broccoli": 34, "spinach": 23, "tomato": 18, "cucumber": 16,
-             "lettuce": 15, "carrot": 41, "onion": 40, "mushrooms": 22,
-             
-             # Fruits
-             "apple": 52, "banana": 89, "orange": 47, "strawberry": 32,
-             
-             # Legumes & Nuts
-             "beans": 127, "lentils": 116, "chickpeas": 164, "almonds": 579,
-             "peanuts": 567, "walnuts": 654, "cashews": 553,
-             
-             # Default for unknown foods
-             "default": 100
-         }
-         
-         # High-confidence food keywords that should trigger detection
-         self.food_keywords = {
+        # Basic calorie database for validation (calories per 100g)
+        self.calorie_database = {
+            # Proteins
+            "chicken": 165, "beef": 250, "pork": 242, "salmon": 208, "tuna": 144,
+            "eggs": 155, "bacon": 541, "ham": 145, "cheese": 402, "milk": 42,
+            
+            # Carbs
+            "rice": 130, "pasta": 131, "bread": 265, "toast": 265, "pizza": 266,
+            "potato": 77, "corn": 86, "oats": 389, "quinoa": 120,
+            
+            # Vegetables
+            "salad": 20, "broccoli": 34, "spinach": 23, "tomato": 18, "cucumber": 16,
+            "lettuce": 15, "carrot": 41, "onion": 40, "mushrooms": 22,
+            
+            # Fruits
+            "apple": 52, "banana": 89, "orange": 47, "strawberry": 32,
+            
+            # Legumes & Nuts
+            "beans": 127, "lentils": 116, "chickpeas": 164, "almonds": 579,
+            "peanuts": 567, "walnuts": 654, "cashews": 553,
+            
+            # Default for unknown foods
+            "default": 100
+        }
+        
+        # High-confidence food keywords that should trigger detection
+        self.food_keywords = {
             "meat": ["chicken", "beef", "pork", "lamb", "turkey", "duck", "steak", "meat"],
             "fish": ["salmon", "tuna", "cod", "tilapia", "fish", "seafood"],
             "dairy": ["milk", "cheese", "yogurt", "cream", "butter"],
