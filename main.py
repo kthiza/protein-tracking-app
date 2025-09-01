@@ -624,9 +624,9 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
         food_weights[food_item] = realistic_portion
         total_weight += realistic_portion
     
-    # Normalize to 350g total
+    # Normalize to 300g total for realistic plate size
     if total_weight > 0:
-        scale_factor = 350.0 / total_weight
+        scale_factor = 300.0 / total_weight
         for food_item in food_weights:
             food_weights[food_item] *= scale_factor
     
@@ -657,8 +657,8 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
         total_protein += protein_for_this_item
         print(f"   📊 {food_item}: {portion_weight:.0f}g → {protein_for_this_item:.1f}g protein")
     
-    print(f"📊 Multiple food items: {len(food_items)} items, {total_weight:.0f}g total → 350g normalized")
-    print(f"📊 Protein calculation: {total_protein:.1f}g from 350g total")
+    print(f"📊 Multiple food items: {len(food_items)} items, {total_weight:.0f}g total → 300g normalized")
+    print(f"📊 Protein calculation: {total_protein:.1f}g from 300g total")
     return round(total_protein, 1), matched_foods
 
 def calculate_calories_enhanced(food_items: List[str]) -> tuple[float, List[str]]:
@@ -705,9 +705,9 @@ def calculate_calories_enhanced(food_items: List[str]) -> tuple[float, List[str]
         food_weights[food_item] = realistic_portion
         total_weight += realistic_portion
     
-    # Normalize to 350g total
+    # Normalize to 300g total for realistic plate size
     if total_weight > 0:
-        scale_factor = 350.0 / total_weight
+        scale_factor = 300.0 / total_weight
         for food_item in food_weights:
             food_weights[food_item] *= scale_factor
     
@@ -738,8 +738,8 @@ def calculate_calories_enhanced(food_items: List[str]) -> tuple[float, List[str]
         total_calories += calories_for_this_item
         print(f"   📊 {food_item}: {portion_weight:.0f}g → {calories_for_this_item:.1f} calories")
     
-    print(f"📊 Multiple food items: {len(food_items)} items, {total_weight:.0f}g total → 350g normalized")
-    print(f"📊 Calorie calculation: {total_calories:.1f} calories from 350g total")
+    print(f"📊 Multiple food items: {len(food_items)} items, {total_weight:.0f}g total → 300g normalized")
+    print(f"📊 Calorie calculation: {total_calories:.1f} calories from 300g total")
     return round(total_calories, 1), matched_foods
 
 def _estimate_protein_from_food_name(food_name: str) -> float:
@@ -873,37 +873,37 @@ def _get_realistic_portion_size(food_name: str) -> float:
     # High-density foods (nuts, seeds, oils, etc.) - smaller portions
     if any(word in food_name for word in ['almond', 'walnut', 'cashew', 'peanut', 'nut', 'seed', 'chia', 'pumpkin', 'sunflower']):
         return 30.0  # 30g for nuts/seeds is a realistic serving
-    
+
     # Very high-density foods (oils, butter, etc.)
     elif any(word in food_name for word in ['oil', 'butter', 'margarine']):
-        return 15.0  # 15g for oils/fats
-    
+        return 10.0  # 10g for oils/fats
+
     # Medium-high density foods (cheese, bacon, etc.)
     elif any(word in food_name for word in ['cheese', 'cheddar', 'bacon', 'cream cheese']):
-        return 50.0  # 50g for cheese
-    
+        return 40.0  # 40g for cheese/bacon
+
     # Steak gets a larger single-item portion
     elif 'steak' in food_name:
-        return 250.0  # 250g for steak
+        return 200.0  # 200g for steak
     # Protein-rich foods (meats, fish, eggs) - moderate portions
     elif any(word in food_name for word in ['chicken', 'beef', 'pork', 'turkey', 'lamb', 'duck', 'salmon', 'tuna', 'fish', 'shrimp', 'prawn', 'egg']):
-        return 150.0  # 150g for protein foods (more realistic for typical servings)
-    
+        return 120.0  # 120g for protein foods
+
     # Grains and carbs (pasta, rice, bread) - moderate portions
     elif any(word in food_name for word in ['pasta', 'spaghetti', 'rice', 'bread', 'quinoa', 'oatmeal', 'oats', 'cereal']):
-        return 200.0  # 200g for grains (more realistic for typical servings)
-    
+        return 150.0  # 150g for grains
+
     # Fast food and mixed dishes - moderate portions
     elif any(word in food_name for word in ['pizza', 'burger', 'sandwich', 'wrap', 'taco', 'burrito', 'hot dog']):
         return 250.0  # 250g for complete meals
-    
+
     # Low-density foods (vegetables, fruits) - larger portions
     elif any(word in food_name for word in ['broccoli', 'spinach', 'kale', 'asparagus', 'cauliflower', 'salad', 'vegetable', 'fruit', 'apple', 'banana']):
-        return 300.0  # 300g for vegetables
-    
+        return 250.0  # 250g for vegetables/fruits
+
     # Very low-density foods (soups, smoothies) - larger portions
     elif any(word in food_name for word in ['soup', 'smoothie']):
-        return 400.0  # 400g for liquids
+        return 350.0  # 350g for liquids
     
     # Default for unknown foods
     else:
@@ -975,15 +975,15 @@ def identify_food_local_fallback(image_path: str) -> List[str]:
             # Get image file extension to make educated guesses
             filename = os.path.basename(image_path).lower()
             
-            # Analyze filename for clues
+            # Analyze filename for clues (map to canonical items in databases)
             if any(word in filename for word in ['pasta', 'spaghetti', 'noodle']):
                 return ['pasta']
             elif any(word in filename for word in ['pizza', 'slice']):
                 return ['pizza']
             elif any(word in filename for word in ['burger', 'hamburger']):
-                return ['beef', 'bread']
+                return ['hamburger']
             elif any(word in filename for word in ['salad', 'vegetable']):
-                return ['vegetables']
+                return ['salad']
             elif any(word in filename for word in ['chicken', 'poultry']):
                 return ['chicken']
             elif any(word in filename for word in ['fish', 'salmon', 'tuna']):
@@ -997,9 +997,9 @@ def identify_food_local_fallback(image_path: str) -> List[str]:
             elif any(word in filename for word in ['soup', 'stew']):
                 return ['soup']
             elif any(word in filename for word in ['sandwich', 'sub']):
-                return ['bread', 'meat']
+                return ['sandwich']
             elif any(word in filename for word in ['taco', 'burrito', 'wrap']):
-                return ['tortilla', 'meat']
+                return ['wrap']
             elif any(word in filename for word in ['sushi', 'roll']):
                 return ['rice', 'fish']
             elif any(word in filename for word in ['steak', 'beef']):
@@ -1017,7 +1017,7 @@ def identify_food_local_fallback(image_path: str) -> List[str]:
             elif any(word in filename for word in ['milk', 'yogurt']):
                 return ['milk']
             elif any(word in filename for word in ['nut', 'almond', 'peanut']):
-                return ['nuts']
+                return ['almonds']
             elif any(word in filename for word in ['bean', 'lentil']):
                 return ['beans']
             elif any(word in filename for word in ['tofu', 'soy']):
@@ -1025,23 +1025,8 @@ def identify_food_local_fallback(image_path: str) -> List[str]:
             elif any(word in filename for word in ['quinoa', 'grain']):
                 return ['quinoa']
             else:
-                # If no specific clues, return a generic but varied response
-                # Use timestamp to vary the response
-                import time
-                timestamp = int(time.time())
-                generic_options = [
-                    ['pasta', 'vegetables'],
-                    ['chicken', 'rice'],
-                    ['beef', 'potato'],
-                    ['fish', 'vegetables'],
-                    ['eggs', 'bread'],
-                    ['pizza', 'cheese'],
-                    ['salad', 'vegetables'],
-                    ['soup', 'vegetables'],
-                    ['sandwich', 'meat'],
-                    ['rice', 'vegetables']
-                ]
-                return generic_options[timestamp % len(generic_options)]
+                # Be conservative: if no clue, don't guess
+                return []
                 
         except ImportError:
             # If PIL is not available, use a simple timestamp-based variation
@@ -1063,10 +1048,8 @@ def identify_food_local_fallback(image_path: str) -> List[str]:
         
     except Exception as e:
         print(f"❌ Local fallback failed: {e}")
-        # Return a minimal fallback that varies
-        import time
-        timestamp = int(time.time())
-        return ['food'] if timestamp % 2 == 0 else ['meal']
+        # Return nothing if fallback fails, to allow manual entry or proper error
+        return []
 
 @app.get("/")
 async def root():

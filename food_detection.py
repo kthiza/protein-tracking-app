@@ -469,7 +469,7 @@ class GoogleVisionFoodDetector:
                 label_desc = label.description.lower().strip()
                 confidence = label.score
                 
-                if confidence >= 0.70:
+                if confidence >= 0.65:
                     # Check if this label matches any food items with improved matching
                     food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
                     for food in food_items:
@@ -485,7 +485,7 @@ class GoogleVisionFoodDetector:
                     confidence = entity.score
                     
                     # Use a lower threshold for web entities as they can be more specific
-                    if confidence >= 0.6:
+                    if confidence >= 0.55:
                         print(f"   - {entity_desc} (score: {confidence:.3f})")
                         food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
                         for food in food_items:
@@ -495,6 +495,9 @@ class GoogleVisionFoodDetector:
             
             # Apply improved filtering for multi-item meals
             filtered_foods = self._filter_multi_item_detections(detected_foods, confidence_scores)
+
+            # Canonicalize outputs to database-friendly items
+            filtered_foods = self._canonicalize_food_list(filtered_foods)
             
             if not filtered_foods:
                 print("⚠️  No food items detected in image")
@@ -505,7 +508,7 @@ class GoogleVisionFoodDetector:
                     "detection_method": "google_vision_api"
                 }
             
-            # Calculate total protein content using the new 250g normalization
+            # Calculate total protein content using the 300g normalization (for logs only)
             total_protein = self.calculate_protein_content(filtered_foods)
             
             print(f"🎯 Successfully detected {len(filtered_foods)} food items:")
@@ -515,9 +518,9 @@ class GoogleVisionFoodDetector:
                 print(f"   - {food} (confidence: {conf:.3f}, protein: {protein}g/100g)")
             
             if len(filtered_foods) == 1:
-                print(f"📊 Single food item: {filtered_foods[0]}, 250g")
+                print(f"📊 Single food item: {filtered_foods[0]}, 300g")
             else:
-                grams_per_item = 250.0 / len(filtered_foods)
+                grams_per_item = 300.0 / len(filtered_foods)
                 print(f"📊 Multiple food items: {len(filtered_foods)} items, {grams_per_item:.0f}g each")
             print(f"📊 Total protein content: {total_protein:.1f}g")
             
@@ -1041,11 +1044,11 @@ class GoogleVisionFoodDetector:
         final_filtered = [(food, conf, protein) for food, conf, protein in final_filtered 
                          if food not in non_food_items]
         
-        # Return up to 2 items maximum (primary + secondary if it's a legitimate complex dish)
-        return [food for food, conf, protein in final_filtered[:2]] if final_filtered else []
+        # Return up to 3 items maximum (primary + others if legitimate complex dish)
+        return [food for food, conf, protein in final_filtered[:3]] if final_filtered else []
 
     def calculate_protein_content(self, foods: List[str]) -> float:
-        """Calculate total protein content for detected foods normalized to 250g total food weight"""
+        """Calculate total protein content for detected foods normalized to 300g total food weight"""
         if not foods:
             return 0.0
         
@@ -1055,15 +1058,15 @@ class GoogleVisionFoodDetector:
             protein_per_100g = self.protein_database.get(food, 5.0)  # Default 5g if not found
             raw_protein_per_100g += protein_per_100g
         
-        # For single food item: return protein content for 250g of that food
+        # For single food item: return protein content for 300g of that food
         if len(foods) == 1:
             protein_per_100g = self.protein_database.get(foods[0], 5.0)
-            total_protein = (protein_per_100g * 250.0) / 100.0
+            total_protein = (protein_per_100g * 300.0) / 100.0
             return round(total_protein, 1)
         
-        # For multiple food items: distribute 250g equally among items
-        # Each item gets 250g / num_items, then calculate protein for that portion
-        grams_per_item = 250.0 / len(foods)
+        # For multiple food items: distribute 300g equally among items
+        # Each item gets 300g / num_items, then calculate protein for that portion
+        grams_per_item = 300.0 / len(foods)
         total_protein = 0.0
         
         for food in foods:
@@ -1072,6 +1075,39 @@ class GoogleVisionFoodDetector:
             total_protein += protein_for_this_item
         
         return round(total_protein, 1)
+
+    def _canonicalize_food_list(self, foods: List[str]) -> List[str]:
+        """Map detected items to canonical keys used in the nutrition databases and de-duplicate.
+        Keeps original order, limits to top 3 items.
+        """
+        if not foods:
+            return []
+        mapping = {
+            "burger": "hamburger",
+            "beefburger": "hamburger",
+            "prawns": "shrimp",
+            "fries": "potato",
+            "chips": "chips",
+            "cheese pizza": "pizza",
+            "wraps": "wrap",
+            "eggs": "eggs",
+            "egg": "eggs",
+            "veggies": "vegetables",
+        }
+        canonical: List[str] = []
+        seen = set()
+        for item in foods:
+            key = item.strip().lower()
+            mapped = mapping.get(key, key)
+            # If mapped item not in protein DB, keep original to avoid losing information
+            final_item = mapped if mapped in self.protein_database else key
+            if final_item not in seen and final_item in self.protein_database:
+                seen.add(final_item)
+                canonical.append(final_item)
+            # Stop at 3 items to avoid overcounting
+            if len(canonical) >= 3:
+                break
+        return canonical
 
 
 def identify_food_with_google_vision(image_path: str) -> List[str]:
