@@ -422,10 +422,35 @@ class GoogleVisionFoodDetector:
             "lotus seed production": 1.4, "lotus seed supply": 1.4, "lotus seed stock": 1.4,
             "lotus seed inventory": 1.4, "lotus seed reserve": 1.4, "lotus seed store": 1.4,
             "lotus seed cache": 1.4, "lotus seed hoard": 1.4, "lotus seed stash": 1.4
-        }
-        
-        # High-confidence food keywords that should trigger detection
-        self.food_keywords = {
+         }
+         
+         # Basic calorie database for validation (calories per 100g)
+         self.calorie_database = {
+             # Proteins
+             "chicken": 165, "beef": 250, "pork": 242, "salmon": 208, "tuna": 144,
+             "eggs": 155, "bacon": 541, "ham": 145, "cheese": 402, "milk": 42,
+             
+             # Carbs
+             "rice": 130, "pasta": 131, "bread": 265, "toast": 265, "pizza": 266,
+             "potato": 77, "corn": 86, "oats": 389, "quinoa": 120,
+             
+             # Vegetables
+             "salad": 20, "broccoli": 34, "spinach": 23, "tomato": 18, "cucumber": 16,
+             "lettuce": 15, "carrot": 41, "onion": 40, "mushrooms": 22,
+             
+             # Fruits
+             "apple": 52, "banana": 89, "orange": 47, "strawberry": 32,
+             
+             # Legumes & Nuts
+             "beans": 127, "lentils": 116, "chickpeas": 164, "almonds": 579,
+             "peanuts": 567, "walnuts": 654, "cashews": 553,
+             
+             # Default for unknown foods
+             "default": 100
+         }
+         
+         # High-confidence food keywords that should trigger detection
+         self.food_keywords = {
             "meat": ["chicken", "beef", "pork", "lamb", "turkey", "duck", "steak", "meat"],
             "fish": ["salmon", "tuna", "cod", "tilapia", "fish", "seafood"],
             "dairy": ["milk", "cheese", "yogurt", "cream", "butter"],
@@ -814,7 +839,9 @@ class GoogleVisionFoodDetector:
             # Determine realistic portion size based on food type
             portion_size = self._get_realistic_portion_size(food)
             total_protein = (protein_per_100g * portion_size) / 100.0
-            return round(total_protein, 1)
+            # Validate and cap protein at realistic levels
+            validated_protein = self._validate_protein_content(total_protein, 1)
+            return round(validated_protein, 1)
         
         # For multiple food items: use realistic dish proportions
         if len(foods) == 2:
@@ -866,15 +893,22 @@ class GoogleVisionFoodDetector:
                     total_protein += protein_for_this_item
                     
         else:
-            # For 3+ items: use realistic portions for each
+            # For 3+ items: use SMART portion distribution
+            # Total plate should be around 400-500g for a full meal
+            total_plate_weight = self._get_total_plate_weight(len(foods))
+            
+            # Distribute portions intelligently based on food type and importance
             total_protein = 0.0
             for food in foods:
-                portion_size = self._get_realistic_portion_size(food)
+                # Get adjusted portion size for multi-item plates
+                adjusted_portion = self._get_adjusted_portion_for_plate(food, foods, total_plate_weight)
                 protein_per_100g = self.protein_database.get(food, 5.0)
-                protein_for_this_item = (protein_per_100g * portion_size) / 100.0
+                protein_for_this_item = (protein_per_100g * adjusted_portion) / 100.0
                 total_protein += protein_for_this_item
         
-        return round(total_protein, 1)
+        # Validate and cap protein at realistic levels for typical meals
+        validated_protein = self._validate_protein_content(total_protein, len(foods))
+        return round(validated_protein, 1)
     
     def _get_realistic_portion_size(self, food: str) -> float:
         """Get realistic portion size in grams for a given food item"""
@@ -915,6 +949,80 @@ class GoogleVisionFoodDetector:
         
         # Return realistic portion size, or default to 100g if not specified
         return portion_sizes.get(food.lower(), 100.0)
+    
+    def _get_total_plate_weight(self, num_foods: int) -> float:
+        """Get realistic total plate weight for multi-item meals"""
+        # More realistic plate weights - typical restaurant/home meal portions
+        base_weights = {
+            3: 300.0,   # 3 items: 300g total (more realistic)
+            4: 350.0,   # 4 items: 350g total  
+            5: 400.0,   # 5 items: 400g total
+            6: 450.0,   # 6+ items: 450g total
+        }
+        return base_weights.get(num_foods, 400.0)
+    
+    def _get_adjusted_portion_for_plate(self, food: str, all_foods: List[str], total_plate_weight: float) -> float:
+        """Get adjusted portion size for multi-item plates considering food importance"""
+        # Food priority categories (higher priority = larger portion)
+        high_priority = ["chicken", "beef", "pork", "salmon", "tuna", "eggs", "tofu", "beans"]
+        medium_priority = ["rice", "pasta", "quinoa", "bread", "toast", "wrap", "pizza"]
+        low_priority = ["vegetables", "salad", "tomato", "cucumber", "lettuce", "sauce", "gravy", "lemon"]
+        
+        # More realistic portion multipliers for multi-item plates
+        if food in high_priority:
+            portion_multiplier = 0.7  # Reduced from 1.0 - protein sources get smaller portions when sharing plate
+        elif food in medium_priority:
+            portion_multiplier = 0.6  # Reduced from 0.8 - carbs get even smaller portions
+        elif food in low_priority:
+            portion_multiplier = 0.3  # Reduced from 0.5 - sides get very small portions
+        else:
+            portion_multiplier = 0.5  # Default for unknown foods
+        
+        # Get base portion size
+        base_portion = self._get_realistic_portion_size(food)
+        
+        # Apply multiplier and ensure it fits within plate constraints
+        adjusted_portion = base_portion * portion_multiplier
+        
+        # For very small portions, ensure minimum size but keep it realistic
+        if adjusted_portion < 15.0:
+            adjusted_portion = 15.0
+        
+        return adjusted_portion
+    
+    def _validate_protein_content(self, calculated_protein: float, num_foods: int) -> float:
+        """Validate and cap protein content at realistic levels for typical meals"""
+        # Realistic protein limits based on meal type and number of items
+        protein_limits = {
+            1: 45.0,   # Single food: max 45g protein (e.g., large steak)
+            2: 40.0,   # Two foods: max 40g protein (e.g., pasta + meat)
+            3: 35.0,   # Three foods: max 35g protein (e.g., protein + carb + veg)
+            4: 30.0,   # Four foods: max 30g protein (e.g., breakfast plate)
+            5: 28.0,   # Five foods: max 28g protein
+            6: 25.0,   # Six+ foods: max 25g protein (e.g., buffet style)
+        }
+        
+        max_protein = protein_limits.get(num_foods, 25.0)
+        
+        # If calculated protein is unrealistically high, cap it
+        if calculated_protein > max_protein:
+            print(f"⚠️  Protein capped from {calculated_protein:.1f}g to {max_protein:.1f}g (realistic limit for {num_foods} items)")
+            return max_protein
+        
+        return calculated_protein
+    
+    def calculate_calories(self, foods: List[str], portions: List[float]) -> float:
+        """Calculate total calories for validation"""
+        if len(foods) != len(portions):
+            return 0.0
+        
+        total_calories = 0.0
+        for food, portion in zip(foods, portions):
+            calories_per_100g = self.calorie_database.get(food, self.calorie_database["default"])
+            food_calories = (calories_per_100g * portion) / 100.0
+            total_calories += food_calories
+        
+        return round(total_calories, 1)
 
     def _canonicalize_food_list(self, foods: List[str]) -> List[str]:
         """Map detected items to canonical keys used in the nutrition databases and de-duplicate.
