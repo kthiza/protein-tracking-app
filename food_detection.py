@@ -469,7 +469,7 @@ class GoogleVisionFoodDetector:
                 label_desc = label.description.lower().strip()
                 confidence = label.score
                 
-                if confidence >= 0.65:
+                if confidence >= 0.60:
                     # Check if this label matches any food items with improved matching
                     food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
                     for food in food_items:
@@ -494,7 +494,7 @@ class GoogleVisionFoodDetector:
                                 confidence_scores[food] = confidence
             
             # Apply improved filtering for multi-item meals
-            filtered_foods = self._filter_multi_item_detections(detected_foods, confidence_scores)
+            filtered_foods = self._filter_and_prioritize_foods(detected_foods, confidence_scores)
 
             # Canonicalize outputs to database-friendly items
             filtered_foods = self._canonicalize_food_list(filtered_foods)
@@ -544,31 +544,35 @@ class GoogleVisionFoodDetector:
         # Clean and normalize the label
         label = label.lower().strip()
         
-        # Handle meat-based sauces and complex dishes FIRST (before direct matches)
-        meat_sauce_mappings = {
-            "bolognese": "beef",
-            "bolognese sauce": "beef",
-            "meat sauce": "beef",
-            "beef sauce": "beef",
-            "beef spaghetti": "beef",
-            "beef pasta": "beef",
-            "chicken sauce": "chicken",
-            "chicken pasta": "chicken",
-            "pork sauce": "pork",
-            "lamb sauce": "lamb",
-            "turkey sauce": "turkey"
+        # Handle complex dishes FIRST (before direct matches)
+        complex_dish_mappings = {
+            "bolognese": ["pasta", "beef"],  # bolognese is pasta with beef sauce
+            "bolognese sauce": ["pasta", "beef"],
+            "meat sauce": ["pasta", "beef"],
+            "beef sauce": ["pasta", "beef"],
+            "beef spaghetti": ["pasta", "beef"],
+            "beef pasta": ["pasta", "beef"],
+            "chicken sauce": ["pasta", "chicken"],
+            "chicken pasta": ["pasta", "chicken"],
+            "pork sauce": ["pasta", "pork"],
+            "lamb sauce": ["pasta", "lamb"],
+            "turkey sauce": ["pasta", "turkey"],
+            "spaghetti bolognese": ["pasta", "beef"],
+            "pasta bolognese": ["pasta", "beef"]
         }
         
-        # Check for meat-based sauce descriptions first
-        sauce_found = False
-        for sauce_desc, meat_type in meat_sauce_mappings.items():
-            if sauce_desc in label and meat_type not in foods:
-                foods.append(meat_type)
-                sauce_found = True
-                break  # Only use the first matching sauce
+        # Check for complex dish descriptions first
+        complex_dish_found = False
+        for dish_desc, components in complex_dish_mappings.items():
+            if dish_desc in label:
+                for component in components:
+                    if component not in foods:
+                        foods.append(component)
+                complex_dish_found = True
+                break  # Only use the first matching complex dish
         
-        # Direct exact matches - highest priority (but skip if we found a sauce)
-        if label in self.protein_database and not sauce_found:
+        # Direct exact matches - highest priority (but skip if we found a complex dish)
+        if label in self.protein_database and not complex_dish_found:
             foods.append(label)
             # Don't return immediately - continue processing other labels for multi-item meals
         
@@ -592,7 +596,17 @@ class GoogleVisionFoodDetector:
             ("fish vegetables", ["fish", "vegetables"]),
             ("pork rice", ["pork", "rice"]),
             ("lamb rice", ["lamb", "rice"]),
-            ("turkey rice", ["turkey", "rice"])
+            ("turkey rice", ["turkey", "rice"]),
+            ("curry rice", ["curry", "rice"]),
+            ("curry chicken", ["curry", "chicken"]),
+            ("curry beef", ["curry", "beef"]),
+            ("sushi rice", ["sushi", "rice"]),
+            ("pizza pepperoni", ["pizza", "pepperoni"]),
+            ("pizza cheese", ["pizza", "cheese"]),
+            ("wrap chicken", ["wrap", "chicken"]),
+            ("wrap beef", ["wrap", "beef"]),
+            ("sandwich chicken", ["sandwich", "chicken"]),
+            ("sandwich beef", ["sandwich", "beef"])
         ]
         
         for pattern, components in complex_dish_patterns:
@@ -688,7 +702,7 @@ class GoogleVisionFoodDetector:
                     foods.append(food_item)
         
         # Category-based matching for high-confidence categories (only if no specific items found)
-        if confidence >= 0.85 and not foods:
+        if confidence >= 0.80 and not foods:
             category_matches = self._match_food_categories(label, already_detected_foods)
             for item in category_matches:
                 if item not in foods:
@@ -713,9 +727,9 @@ class GoogleVisionFoodDetector:
         for meal_type, items in breakfast_components.items():
             if meal_type in meal_label:
                 # Add components based on confidence level
-                if confidence >= 0.80:
+                if confidence >= 0.75:
                     components.extend(items[:4])  # Add top 4 components for high confidence
-                elif confidence >= 0.70:
+                elif confidence >= 0.65:
                     components.extend(items[:2])  # Add top 2 components for medium confidence
         
         return components
@@ -770,282 +784,22 @@ class GoogleVisionFoodDetector:
         
         return category_matches
 
-    def _filter_multi_item_detections(self, foods: List[str], confidence_scores: Dict[str, float]) -> List[str]:
-        """Filter detections to include multiple relevant food items for complex meals"""
-        filtered = []
+
+
         
-        # Group similar/related foods to avoid over-detection
-        food_groups = {
-            "beef_group": ["beef", "steak", "roast beef", "ground beef", "beef steak", "ribeye", "sirloin", "filet mignon", "t-bone", "porterhouse", "beef burger", "hamburger", "bolognese"],
-            "chicken_group": ["chicken", "chicken breast", "chicken thigh", "chicken wing", "chicken nuggets", "chicken tenders", "fried chicken", "roasted chicken"],
-            "pork_group": ["pork", "pork chop", "bacon", "ham", "pork loin", "pork tenderloin", "pork belly", "pulled pork", "pork ribs", "pork shoulder"],
-            "fish_group": ["salmon", "tuna", "cod", "tilapia", "trout", "mackerel", "halibut", "sea bass", "red snapper", "grouper", "swordfish"],
-            "dairy_group": ["milk", "cheese", "cheddar", "mozzarella", "parmesan", "feta", "blue cheese", "swiss", "gouda", "brie", "yogurt", "greek yogurt", "cottage cheese"],
-            "egg_group": ["egg", "eggs", "scrambled eggs", "fried eggs", "fried egg", "boiled eggs", "omelet", "omelette", "poached eggs", "deviled eggs"],
-            "bread_group": ["bread", "white bread", "whole wheat bread", "sourdough", "bagel", "toast"],
-            "pasta_group": ["pasta", "spaghetti", "penne", "fettuccine", "lasagna", "noodles"],
-            "rice_group": ["rice", "white rice", "brown rice", "wild rice", "jasmine rice"],
-            "sauce_group": ["bolognese", "marinara", "alfredo", "carbonara", "pesto", "tomato sauce"],
-            "pizza_group": ["pizza", "pepperoni", "margherita", "hawaiian", "supreme", "cheese pizza", "pepperoni pizza"],
-            "wrap_group": ["wrap", "burrito", "taco", "quesadilla", "enchilada", "fajita", "shawarma", "gyro", "kebab", "pita", "tortilla", "flatbread", "naan", "roti", "chapati"],
-            "bean_group": ["beans", "baked beans", "black beans", "kidney beans", "pinto beans", "navy beans", "lima beans", "cannellini beans", "great northern beans", "white beans", "garbanzo beans", "chickpeas"]
-        }
+
         
-        # Define specificity levels for each group to prioritize more specific terms
-        specificity_rules = {
-            "beef_group": {
-                "specific": ["steak", "roast beef", "ground beef", "beef steak", "ribeye", "sirloin", "filet mignon", "t-bone", "porterhouse", "beef burger", "hamburger"],
-                "generic": ["beef", "bolognese"]
-            },
-            "pasta_group": {
-                "specific": ["spaghetti", "penne", "fettuccine", "lasagna"],
-                "generic": ["pasta", "noodles"]
-            },
-            "pizza_group": {
-                "specific": ["pizza"],
-                "generic": ["pepperoni", "margherita", "hawaiian", "supreme", "cheese pizza", "pepperoni pizza"]
-            },
-            "wrap_group": {
-                "specific": ["burrito", "taco", "quesadilla", "enchilada", "fajita", "shawarma", "gyro", "kebab"],
-                "generic": ["wrap", "pita", "tortilla", "flatbread", "naan", "roti", "chapati"]
-            },
-            "bean_group": {
-                "specific": ["baked beans", "black beans", "kidney beans", "pinto beans", "navy beans", "lima beans", "cannellini beans", "great northern beans", "white beans", "garbanzo beans", "chickpeas"],
-                "generic": ["beans"]
-            },
-            "bread_group": {
-                "specific": ["white bread", "whole wheat bread", "sourdough", "bagel", "toast"],
-                "generic": ["bread"]
-            },
-            "rice_group": {
-                "specific": ["white rice", "brown rice", "wild rice", "jasmine rice"],
-                "generic": ["rice"]
-            },
-            "chicken_group": {
-                "specific": ["chicken breast", "chicken thigh", "chicken wing", "chicken nuggets", "chicken tenders", "fried chicken", "roasted chicken"],
-                "generic": ["chicken"]
-            },
-            "pork_group": {
-                "specific": ["pork chop", "bacon", "ham", "pork loin", "pork tenderloin", "pork belly", "pulled pork", "pork ribs", "pork shoulder"],
-                "generic": ["pork"]
-            }
-        }
+
         
-        # Find the best item from each group
-        best_items = {}
-        for food in foods:
-            confidence = confidence_scores.get(food, 0.5)
-            protein_content = self.protein_database.get(food, 0)
-            
-            # Check if this food belongs to a group
-            food_grouped = False
-            for group_name, group_items in food_groups.items():
-                if food in group_items:
-                    food_grouped = True
-                    
-                    # Special handling for beef group - prioritize beef over bolognese
-                    if group_name == "beef_group":
-                        if food == "bolognese":
-                            # Check if beef is already in the foods list
-                            if "beef" in foods:
-                                continue  # Skip bolognese if beef is already detected
-                        elif food == "beef" and group_name in best_items:
-                            current_best = best_items[group_name]
-                            if current_best and current_best[0] == "bolognese":
-                                # Replace bolognese with beef
-                                best_items[group_name] = (food, confidence, protein_content)
-                                continue
-                    
-                    # Generalized specificity handling for all groups
-                    if group_name in specificity_rules:
-                        rules = specificity_rules[group_name]
-                        specific_terms = rules["specific"]
-                        generic_terms = rules["generic"]
-                        
-                        if food in specific_terms:
-                            # Specific terms get priority over generic terms
-                            if group_name not in best_items:
-                                best_items[group_name] = (food, confidence + 0.1, protein_content)  # Boost confidence
-                            else:
-                                # Only replace if the new item is more specific or has higher score
-                                current_best = best_items[group_name]
-                                current_food = current_best[0]
-                                
-                                # If current item is generic and new item is specific, replace it
-                                if current_food in generic_terms and food in specific_terms:
-                                    best_items[group_name] = (food, confidence, protein_content)
-                                # If both are specific or both are generic, use score comparison
-                                elif (current_food in specific_terms) == (food in specific_terms):
-                                    current_score = current_best[1] + (current_best[2] / 100)
-                                    new_score = confidence + (protein_content / 100)
-                                    if new_score > current_score:
-                                        best_items[group_name] = (food, confidence, protein_content)
-                        elif food in generic_terms:
-                            # Only add generic terms if no specific term is detected
-                            if group_name not in best_items:
-                                best_items[group_name] = (food, confidence, protein_content)
-                            else:
-                                # Only keep generic term if current item is also generic and has lower score
-                                current_best = best_items[group_name]
-                                current_food = current_best[0]
-                                if current_food in generic_terms:
-                                    current_score = current_best[1] + (current_best[2] / 100)
-                                    new_score = confidence + (protein_content / 100)
-                                    if new_score > current_score:
-                                        best_items[group_name] = (food, confidence, protein_content)
-                        continue
-                    else:
-                        # For groups without specific rules, use standard scoring
-                        if group_name not in best_items:
-                            best_items[group_name] = (food, confidence, protein_content)
-                        else:
-                            current_best = best_items[group_name]
-                            current_score = current_best[1] + (current_best[2] / 100)
-                            new_score = confidence + (protein_content / 100)
-                            if new_score > current_score:
-                                best_items[group_name] = (food, confidence, protein_content)
-                    break
-            
-            # If not grouped, add it directly
-            if not food_grouped:
-                filtered.append((food, confidence, protein_content))
+
         
-        # Add the best item from each group
-        for group_name, (food, confidence, protein_content) in best_items.items():
-            filtered.append((food, confidence, protein_content))
+
         
-        # Post-process to remove redundant items using general food relationships
-        final_filtered = []
+
         
-        # Define food relationships (component -> main dish)
-        food_relationships = {
-            # Pasta types -> pasta
-            "spaghetti": "pasta", "linguine": "pasta", "penne": "pasta", 
-            "fettuccine": "pasta", "lasagna": "pasta", "rigatoni": "pasta",
-            "ziti": "pasta", "rotini": "pasta", "farfalle": "pasta",
-            
-            # Rice types -> rice
-            "white rice": "rice", "brown rice": "rice", "wild rice": "rice",
-            "jasmine rice": "rice", "basmati rice": "rice",
-            
-            # Salad types -> salad
-            "greek salad": "salad", "caesar salad": "salad", "cobb salad": "salad",
-            "garden salad": "salad", "green salad": "salad", "tabbouleh": "salad",
-            
-            # Bread types -> bread
-            "white bread": "bread", "whole wheat bread": "bread", "sourdough": "bread",
-            "bagel": "bread", "toast": "bread",
-            
-            # Meat types -> main meat
-            "chicken breast": "chicken", "chicken thigh": "chicken", "chicken wing": "chicken",
-            "ground beef": "beef", "beef steak": "beef", "roast beef": "beef",
-            "pork chop": "pork", "pork loin": "pork", "pork tenderloin": "pork",
-            
-            # Dish components -> main dish
-            "bolognese": "beef",  # bolognese sauce contains beef
-        }
+
         
-        # First pass: consolidate related foods
-        consolidated_foods = {}
-        for food, conf, protein in filtered:
-            # Check if this food should be consolidated to a main category
-            if food in food_relationships and food_relationships[food] is not None:
-                main_food = food_relationships[food]
-                # Keep the higher confidence version
-                if main_food not in consolidated_foods or conf > consolidated_foods[main_food][1]:
-                    consolidated_foods[main_food] = (main_food, conf, protein)
-            else:
-                # Keep the food as is
-                if food not in consolidated_foods or conf > consolidated_foods[food][1]:
-                    consolidated_foods[food] = (food, conf, protein)
-        
-        # Convert back to list
-        final_filtered = list(consolidated_foods.values())
-        
-        # Handle meal breakdown
-        meal_components = []
-        for food, conf, protein in final_filtered:
-            if food == "english breakfast":
-                meal_components.extend([("bacon", conf, 37.0), ("egg", conf, 13.0), ("sausage", conf, 18.0)])
-            elif food == "full breakfast":
-                meal_components.extend([("bacon", conf, 37.0), ("egg", conf, 13.0), ("sausage", conf, 18.0)])
-            elif food == "american breakfast":
-                meal_components.extend([("bacon", conf, 37.0), ("egg", conf, 13.0), ("pancakes", conf, 6.0)])
-            elif food == "continental breakfast":
-                meal_components.extend([("bread", conf, 8.0), ("cheese", conf, 25.0), ("yogurt", conf, 10.0)])
-            else:
-                meal_components.append((food, conf, protein))
-        
-        # Remove duplicates from meal components
-        seen_foods = set()
-        unique_components = []
-        for food, conf, protein in meal_components:
-            if food not in seen_foods:
-                seen_foods.add(food)
-                unique_components.append((food, conf, protein))
-        
-        final_filtered = unique_components
-        
-        # UNIVERSAL APPROACH: Focus on the primary food item
-        # Sort by confidence and protein content to find the most significant food
-        final_filtered.sort(key=lambda x: (x[1], x[2]), reverse=True)
-        
-        # For any image, we want to identify the PRIMARY food item
-        # If we have multiple items, only keep the most confident one unless there's a clear multi-item dish
-        if len(final_filtered) >= 2:
-            primary_food, primary_conf, primary_protein = final_filtered[0]
-            secondary_food, secondary_conf, secondary_protein = final_filtered[1]
-            
-            # Check if this looks like a legitimate multi-item dish
-            # Only include multiple items if they're clearly part of a complex dish
-            is_complex_dish = False
-            
-            # Define legitimate multi-item dish patterns
-            complex_dish_patterns = [
-                # Meat + starch combinations (clear main dish + side)
-                ("beef", "pasta"), ("beef", "rice"), ("beef", "bread"),
-                ("chicken", "rice"), ("chicken", "pasta"), ("chicken", "bread"),
-                ("pork", "rice"), ("pork", "pasta"), ("pork", "bread"),
-                ("fish", "rice"), ("fish", "pasta"), ("fish", "bread"),
-                
-                # Sandwich/wrap patterns (clear sandwich structure)
-                ("bread", "meat"), ("bread", "chicken"), ("bread", "beef"), ("bread", "pork"),
-                ("wrap", "meat"), ("wrap", "chicken"), ("wrap", "beef"), ("wrap", "pork"),
-                
-                # Pizza patterns (clear pizza structure) - REMOVED cheese since it's a component
-                ("pizza", "pepperoni"), ("pizza", "meat"),
-            ]
-            
-            # Check if the two items form a legitimate complex dish
-            for pattern in complex_dish_patterns:
-                if (primary_food == pattern[0] and secondary_food == pattern[1]) or \
-                   (primary_food == pattern[1] and secondary_food == pattern[0]):
-                    is_complex_dish = True
-                    break
-            
-            # If it's not a legitimate complex dish, keep only the primary item
-            if not is_complex_dish:
-                final_filtered = [final_filtered[0]]
-        
-        # Additional filtering: Remove non-food items and dish components
-        non_food_items = [
-            "salt", "pepper", "black pepper", "white pepper", "salt and pepper",
-            "sugar", "honey", "syrup", "oil", "olive oil", "vegetable oil",
-            "vinegar", "lemon juice", "lime juice", "soy sauce", "hot sauce",
-            "ketchup", "mustard", "mayonnaise", "butter", "margarine",
-            "flour", "baking powder", "baking soda", "yeast", "breadcrumbs",
-            "water", "ice", "steam", "smoke", "air", "dust", "dirt",
-            # Dish components that shouldn't be detected separately
-            "cheese", "mozzarella", "cheddar", "parmesan", "gouda", "swiss", "provolone",
-            "cream cheese", "cottage cheese", "ricotta", "feta", "blue cheese",
-            "sauce", "gravy", "dressing", "marinade", "seasoning", "herbs", "spices"
-        ]
-        
-        final_filtered = [(food, conf, protein) for food, conf, protein in final_filtered 
-                         if food not in non_food_items]
-        
-        # Return up to 3 items maximum (primary + others if legitimate complex dish)
-        return [food for food, conf, protein in final_filtered[:3]] if final_filtered else []
+
 
     def calculate_protein_content(self, foods: List[str]) -> float:
         """Calculate total protein content for detected foods normalized to 300g total food weight"""
@@ -1064,15 +818,60 @@ class GoogleVisionFoodDetector:
             total_protein = (protein_per_100g * 300.0) / 100.0
             return round(total_protein, 1)
         
-        # For multiple food items: distribute 300g equally among items
-        # Each item gets 300g / num_items, then calculate protein for that portion
-        grams_per_item = 300.0 / len(foods)
-        total_protein = 0.0
-        
-        for food in foods:
-            protein_per_100g = self.protein_database.get(food, 5.0)
-            protein_for_this_item = (protein_per_100g * grams_per_item) / 100.0
-            total_protein += protein_for_this_item
+        # For multiple food items: use realistic proportions based on dish type
+        if len(foods) == 2:
+            # Initialize total_protein for 2-item case
+            total_protein = 0.0
+            
+            # Check if this is a common dish pattern
+            if ("pasta" in foods and "beef" in foods) or ("pasta" in foods and "chicken" in foods):
+                # Pasta dishes: 70% pasta, 30% meat
+                pasta_food = "pasta" if "pasta" in foods else "spaghetti"
+                meat_food = "beef" if "beef" in foods else "chicken"
+                
+                pasta_grams = 300.0 * 0.7  # 210g pasta
+                meat_grams = 300.0 * 0.3   # 90g meat
+                
+                pasta_protein = (self.protein_database.get(pasta_food, 5.0) * pasta_grams) / 100.0
+                meat_protein = (self.protein_database.get(meat_food, 5.0) * meat_grams) / 100.0
+                total_protein = pasta_protein + meat_protein
+                
+            elif ("rice" in foods and "chicken" in foods) or ("rice" in foods and "beef" in foods):
+                # Rice dishes: 60% rice, 40% meat
+                rice_grams = 300.0 * 0.6  # 180g rice
+                meat_grams = 300.0 * 0.4  # 120g meat
+                
+                rice_protein = (self.protein_database.get("rice", 5.0) * rice_grams) / 100.0
+                meat_food = "chicken" if "chicken" in foods else "beef"
+                meat_protein = (self.protein_database.get(meat_food, 5.0) * meat_grams) / 100.0
+                total_protein = rice_protein + meat_protein
+                
+            elif ("bread" in foods and any(meat in foods for meat in ["chicken", "beef", "pork"])):
+                # Sandwich/wrap: 40% bread, 60% meat
+                bread_grams = 300.0 * 0.4  # 120g bread
+                meat_grams = 300.0 * 0.6   # 180g meat
+                
+                bread_protein = (self.protein_database.get("bread", 8.0) * bread_grams) / 100.0
+                # Find which meat is in the foods
+                meat_food = next(meat for meat in ["chicken", "beef", "pork"] if meat in foods)
+                meat_protein = (self.protein_database.get(meat_food, 5.0) * meat_grams) / 100.0
+                total_protein = bread_protein + meat_protein
+                
+            else:
+                # Default: distribute equally
+                grams_per_item = 300.0 / len(foods)
+                for food in foods:
+                    protein_per_100g = self.protein_database.get(food, 5.0)
+                    protein_for_this_item = (protein_per_100g * grams_per_item) / 100.0
+                    total_protein += protein_for_this_item
+        else:
+            # For 3+ items or other combinations: distribute equally
+            total_protein = 0.0  # Initialize for 3+ items case
+            grams_per_item = 300.0 / len(foods)
+            for food in foods:
+                protein_per_100g = self.protein_database.get(food, 5.0)
+                protein_for_this_item = (protein_per_100g * grams_per_item) / 100.0
+                total_protein += protein_for_this_item
         
         return round(total_protein, 1)
 
@@ -1108,6 +907,159 @@ class GoogleVisionFoodDetector:
             if len(canonical) >= 3:
                 break
         return canonical
+
+    def _filter_and_prioritize_foods(self, foods: List[str], confidence_scores: Dict[str, float]) -> List[str]:
+        """Filter and prioritize detected foods using improved logic for complex dishes"""
+        if not foods:
+            return []
+        
+        # Step 1: Clean and normalize food names
+        cleaned_foods = []
+        for food in foods:
+            food_clean = food.lower().strip()
+            # Remove common non-food terms
+            if food_clean not in ['food', 'meal', 'dish', 'plate', 'bowl', 'serving']:
+                cleaned_foods.append(food_clean)
+        
+        if not cleaned_foods:
+            return []
+        
+        # Step 2: Score foods by confidence and nutritional significance
+        scored_foods = []
+        for food in cleaned_foods:
+            confidence = confidence_scores.get(food, 0.5)
+            protein_content = self.protein_database.get(food, 5.0)
+            
+            # Boost score for high-protein foods (more nutritionally significant)
+            protein_boost = min(protein_content / 50.0, 0.3)  # Max 0.3 boost
+            final_score = confidence + protein_boost
+            
+            scored_foods.append((food, final_score, protein_content))
+        
+        # Step 3: Sort by final score
+        scored_foods.sort(key=lambda x: x[1], reverse=True)
+        
+        # Step 4: Smart dish analysis - detect complex dishes
+        complex_dish_patterns = {
+            # Pasta dishes
+            "pasta_with_meat": ["pasta", "spaghetti", "penne", "fettuccine", "lasagna", "rigatoni"],
+            "pasta_with_sauce": ["pasta", "spaghetti", "penne", "fettuccine", "lasagna", "rigatoni"],
+            
+            # Rice dishes  
+            "rice_with_meat": ["rice", "white rice", "brown rice", "jasmine rice", "basmati rice"],
+            "rice_with_vegetables": ["rice", "white rice", "brown rice", "jasmine rice", "basmati rice"],
+            
+            # Sandwich/wrap dishes
+            "sandwich": ["bread", "toast", "bagel", "english muffin", "bun", "roll"],
+            "wrap": ["wrap", "tortilla", "pita", "flatbread", "naan", "roti"],
+            
+            # Pizza dishes
+            "pizza": ["pizza", "pepperoni", "margherita", "cheese pizza"],
+            
+            # Salad dishes
+            "salad": ["salad", "lettuce", "greens", "vegetables", "cucumber", "tomato"],
+            
+            # Breakfast dishes
+            "breakfast": ["egg", "eggs", "bacon", "sausage", "toast", "hash browns", "beans"],
+            
+            # Soup/stew dishes
+            "soup": ["soup", "stew", "broth", "beans", "vegetables", "meat"]
+        }
+        
+        # Step 5: Analyze detected foods for dish patterns
+        detected_patterns = []
+        for pattern_name, pattern_foods in complex_dish_patterns.items():
+            matches = [food for food, _, _ in scored_foods if food in pattern_foods]
+            if len(matches) >= 2:  # At least 2 components to form a dish
+                detected_patterns.append((pattern_name, matches, len(matches)))
+        
+        # Step 6: Determine final food items based on dish analysis
+        final_foods = []
+        
+        if detected_patterns:
+            # We have complex dishes - prioritize the most complete one
+            detected_patterns.sort(key=lambda x: x[2], reverse=True)  # Sort by number of components
+            best_pattern = detected_patterns[0]
+            
+            if best_pattern[0] == "pasta_with_meat":
+                # Pasta + meat dish (like spaghetti bolognese)
+                pasta_items = [food for food, _, _ in scored_foods if food in ["pasta", "spaghetti", "penne", "fettuccine", "lasagna"]]
+                meat_items = [food for food, _, _ in scored_foods if food in ["beef", "ground beef", "meat", "mince"]]
+                
+                if pasta_items and meat_items:
+                    final_foods = [pasta_items[0], meat_items[0]]  # Keep pasta + meat
+                elif pasta_items:
+                    final_foods = [pasta_items[0]]  # Just pasta if no meat detected
+                else:
+                    final_foods = [scored_foods[0][0]]  # Fallback to highest scored item
+                    
+            elif best_pattern[0] == "rice_with_meat":
+                # Rice + meat dish (like chicken curry with rice)
+                rice_items = [food for food, _, _ in scored_foods if food in ["rice", "white rice", "brown rice", "jasmine rice"]]
+                meat_items = [food for food, _, _ in scored_foods if food in ["chicken", "beef", "pork", "fish", "shrimp"]]
+                
+                if rice_items and meat_items:
+                    final_foods = [meat_items[0], rice_items[0]]  # Keep meat + rice
+                elif meat_items:
+                    final_foods = [meat_items[0]]  # Just meat if no rice detected
+                else:
+                    final_foods = [scored_foods[0][0]]  # Fallback to highest scored item
+                    
+            elif best_pattern[0] == "breakfast":
+                # Full breakfast - keep multiple components
+                breakfast_items = [food for food, _, _ in scored_foods if food in ["egg", "eggs", "bacon", "sausage", "toast", "beans", "mushroom", "tomato"]]
+                final_foods = breakfast_items[:3]  # Keep up to 3 breakfast items
+                
+            elif best_pattern[0] == "salad":
+                # Salad - keep main components
+                salad_items = [food for food, _, _ in scored_foods if food in ["salad", "lettuce", "greens", "cucumber", "tomato", "chickpeas", "cheese"]]
+                final_foods = salad_items[:2]  # Keep up to 2 salad components
+                
+            elif best_pattern[0] == "pizza":
+                # Pizza - keep pizza + main topping if detected
+                pizza_items = [food for food, _, _ in scored_foods if food in ["pizza", "pepperoni", "cheese"]]
+                final_foods = pizza_items[:2]  # Keep pizza + main topping
+                
+            else:
+                # Other complex dishes - keep top 2-3 components
+                pattern_foods = [food for food, _, _ in scored_foods if food in best_pattern[1]]
+                final_foods = pattern_foods[:3]  # Keep up to 3 components
+        else:
+            # No clear dish pattern - use smart single-item detection
+            if len(scored_foods) == 1:
+                final_foods = [scored_foods[0][0]]
+            else:
+                # Multiple items but no clear dish - analyze for complementary foods
+                primary_food = scored_foods[0][0]
+                primary_protein = scored_foods[0][2]
+                
+                # If primary food is low protein, look for protein source
+                if primary_protein < 10.0:
+                    protein_foods = [food for food, _, protein in scored_foods if protein > 15.0]
+                    if protein_foods:
+                        final_foods = [primary_food, protein_foods[0]]
+                    else:
+                        final_foods = [primary_food]
+                else:
+                    # Primary food is protein-rich, keep it
+                    final_foods = [primary_food]
+        
+        # Step 7: Final validation and cleanup
+        validated_foods = []
+        for food in final_foods:
+            # Remove non-food items
+            if food not in ['food', 'meal', 'dish', 'plate', 'bowl', 'serving', 'sauce', 'gravy', 'dressing']:
+                validated_foods.append(food)
+        
+        # Ensure we don't exceed 3 items
+        validated_foods = validated_foods[:3]
+        
+        print(f"🔍 Food detection analysis:")
+        print(f"   Raw detected: {cleaned_foods}")
+        print(f"   Complex patterns: {[p[0] for p in detected_patterns]}")
+        print(f"   Final selection: {validated_foods}")
+        
+        return validated_foods
 
 
 def identify_food_with_google_vision(image_path: str) -> List[str]:
