@@ -802,78 +802,119 @@ class GoogleVisionFoodDetector:
 
 
     def calculate_protein_content(self, foods: List[str]) -> float:
-        """Calculate total protein content for detected foods normalized to 300g total food weight"""
+        """Calculate total protein content for detected foods using realistic portion sizes"""
         if not foods:
             return 0.0
         
-        # Calculate raw protein sum per 100g for each food
-        raw_protein_per_100g = 0.0
-        for food in foods:
-            protein_per_100g = self.protein_database.get(food, 5.0)  # Default 5g if not found
-            raw_protein_per_100g += protein_per_100g
-        
-        # For single food item: return protein content for 300g of that food
+        # For single food item: use realistic portion size
         if len(foods) == 1:
-            protein_per_100g = self.protein_database.get(foods[0], 5.0)
-            total_protein = (protein_per_100g * 300.0) / 100.0
+            food = foods[0]
+            protein_per_100g = self.protein_database.get(food, 5.0)
+            
+            # Determine realistic portion size based on food type
+            portion_size = self._get_realistic_portion_size(food)
+            total_protein = (protein_per_100g * portion_size) / 100.0
             return round(total_protein, 1)
         
-        # For multiple food items: use realistic proportions based on dish type
+        # For multiple food items: use realistic dish proportions
         if len(foods) == 2:
-            # Initialize total_protein for 2-item case
             total_protein = 0.0
             
-            # Check if this is a common dish pattern
+            # Check for specific dish patterns with realistic portions
             if ("pasta" in foods and "beef" in foods) or ("pasta" in foods and "chicken" in foods):
-                # Pasta dishes: 70% pasta, 30% meat
+                # Pasta dishes: 200g pasta + 100g meat = 300g total
                 pasta_food = "pasta" if "pasta" in foods else "spaghetti"
                 meat_food = "beef" if "beef" in foods else "chicken"
                 
-                pasta_grams = 300.0 * 0.7  # 210g pasta
-                meat_grams = 300.0 * 0.3   # 90g meat
-                
-                pasta_protein = (self.protein_database.get(pasta_food, 5.0) * pasta_grams) / 100.0
-                meat_protein = (self.protein_database.get(meat_food, 5.0) * meat_grams) / 100.0
+                pasta_protein = (self.protein_database.get(pasta_food, 5.0) * 200.0) / 100.0
+                meat_protein = (self.protein_database.get(meat_food, 5.0) * 100.0) / 100.0
                 total_protein = pasta_protein + meat_protein
                 
             elif ("rice" in foods and "chicken" in foods) or ("rice" in foods and "beef" in foods):
-                # Rice dishes: 60% rice, 40% meat
-                rice_grams = 300.0 * 0.6  # 180g rice
-                meat_grams = 300.0 * 0.4  # 120g meat
-                
-                rice_protein = (self.protein_database.get("rice", 5.0) * rice_grams) / 100.0
+                # Rice dishes: 180g rice + 120g meat = 300g total
+                rice_protein = (self.protein_database.get("rice", 2.7) * 180.0) / 100.0
                 meat_food = "chicken" if "chicken" in foods else "beef"
-                meat_protein = (self.protein_database.get(meat_food, 5.0) * meat_grams) / 100.0
+                meat_protein = (self.protein_database.get(meat_food, 5.0) * 120.0) / 100.0
                 total_protein = rice_protein + meat_protein
                 
             elif ("bread" in foods and any(meat in foods for meat in ["chicken", "beef", "pork"])):
-                # Sandwich/wrap: 40% bread, 60% meat
-                bread_grams = 300.0 * 0.4  # 120g bread
-                meat_grams = 300.0 * 0.6   # 180g meat
-                
-                bread_protein = (self.protein_database.get("bread", 8.0) * bread_grams) / 100.0
-                # Find which meat is in the foods
+                # Sandwich/wrap: 120g bread + 180g meat = 300g total
+                bread_protein = (self.protein_database.get("bread", 8.0) * 120.0) / 100.0
                 meat_food = next(meat for meat in ["chicken", "beef", "pork"] if meat in foods)
-                meat_protein = (self.protein_database.get(meat_food, 5.0) * meat_grams) / 100.0
+                meat_protein = (self.protein_database.get(meat_food, 5.0) * 180.0) / 100.0
                 total_protein = bread_protein + meat_protein
                 
+            elif ("pizza" in foods and "pepperoni" in foods):
+                # Pizza with pepperoni: 250g pizza base + 50g pepperoni = 300g total
+                pizza_protein = (self.protein_database.get("pizza", 12.0) * 250.0) / 100.0
+                pepperoni_protein = (self.protein_database.get("pepperoni", 25.0) * 50.0) / 100.0
+                total_protein = pizza_protein + pepperoni_protein
+                
+            elif ("wrap" in foods and any(meat in foods for meat in ["chicken", "beef", "pork"])):
+                # Wrap: 100g wrap + 200g meat = 300g total
+                wrap_protein = (self.protein_database.get("wrap", 12.0) * 100.0) / 100.0
+                meat_food = next(meat for meat in ["chicken", "beef", "pork"] if meat in foods)
+                meat_protein = (self.protein_database.get(meat_food, 5.0) * 200.0) / 100.0
+                total_protein = wrap_protein + meat_protein
+                
             else:
-                # Default: distribute equally
-                grams_per_item = 300.0 / len(foods)
+                # Default: use realistic portions for each food type
                 for food in foods:
+                    portion_size = self._get_realistic_portion_size(food)
                     protein_per_100g = self.protein_database.get(food, 5.0)
-                    protein_for_this_item = (protein_per_100g * grams_per_item) / 100.0
+                    protein_for_this_item = (protein_per_100g * portion_size) / 100.0
                     total_protein += protein_for_this_item
+                    
         else:
-            # For 3+ items or other combinations: distribute equally
-            total_protein = 0.0  # Initialize for 3+ items case
-            grams_per_item = 300.0 / len(foods)
+            # For 3+ items: use realistic portions for each
+            total_protein = 0.0
             for food in foods:
+                portion_size = self._get_realistic_portion_size(food)
                 protein_per_100g = self.protein_database.get(food, 5.0)
-                protein_for_this_item = (protein_per_100g * grams_per_item) / 100.0
+                protein_for_this_item = (protein_per_100g * portion_size) / 100.0
                 total_protein += protein_for_this_item
         
         return round(total_protein, 1)
+    
+    def _get_realistic_portion_size(self, food: str) -> float:
+        """Get realistic portion size in grams for a given food item"""
+        # Define realistic portion sizes based on typical servings
+        portion_sizes = {
+            # Proteins (typical serving sizes)
+            "beef": 150.0, "steak": 150.0, "chicken": 150.0, "chicken breast": 150.0,
+            "pork": 150.0, "pork chop": 150.0, "lamb": 150.0, "turkey": 150.0,
+            "salmon": 150.0, "tuna": 150.0, "cod": 150.0, "tilapia": 150.0,
+            "shrimp": 120.0, "crab": 120.0, "lobster": 120.0, "sashimi": 100.0,
+            
+            # Eggs and dairy
+            "egg": 50.0, "eggs": 100.0, "bacon": 50.0, "ham": 100.0,
+            "sausage": 100.0, "pepperoni": 50.0, "salami": 50.0,
+            "cheese": 50.0, "milk": 250.0, "yogurt": 200.0,
+            
+            # Grains and carbs
+            "pasta": 200.0, "spaghetti": 200.0, "rice": 180.0, "white rice": 180.0,
+            "bread": 80.0, "toast": 80.0, "wrap": 100.0, "tortilla": 80.0,
+            "pizza": 250.0, "sandwich": 200.0, "burger": 200.0,
+            
+            # Vegetables and fruits
+            "salad": 150.0, "cucumber": 100.0, "tomato": 100.0, "broccoli": 150.0,
+            "spinach": 100.0, "lettuce": 100.0, "carrot": 100.0, "potato": 150.0,
+            
+            # Legumes and nuts
+            "beans": 150.0, "lentils": 150.0, "chickpeas": 150.0,
+            "almonds": 30.0, "walnuts": 30.0, "peanuts": 30.0,
+            
+            # Composite dishes
+            "cassoulet": 300.0, "curry": 300.0, "stew": 300.0, "soup": 300.0,
+            "lasagna": 300.0, "casserole": 300.0, "paella": 300.0,
+            
+            # Breakfast items
+            "oatmeal": 200.0, "cereal": 100.0, "granola": 100.0,
+            "pancakes": 150.0, "waffles": 150.0, "french toast": 150.0
+        }
+        
+        # Return realistic portion size, or default to 100g if not specified
+        return portion_sizes.get(food.lower(), 100.0)
 
     def _canonicalize_food_list(self, foods: List[str]) -> List[str]:
         """Map detected items to canonical keys used in the nutrition databases and de-duplicate.
