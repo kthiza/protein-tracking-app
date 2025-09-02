@@ -10,6 +10,14 @@ try:
 except Exception:
     pass
 
+FD_VERSION = "food-detect-v8: labels 0.70/0.55/0.45, web 0.65/0.55/0.45, crops:on"
+
+try:
+    from PIL import Image
+    _PIL_AVAILABLE = True
+except Exception:
+    _PIL_AVAILABLE = False
+
 class GoogleVisionFoodDetector:
     def __init__(self, service_account_path: str = None):
         """Initialize Google Vision API client with service account authentication.
@@ -468,6 +476,7 @@ class GoogleVisionFoodDetector:
             raise RuntimeError("Google Vision API client not initialized")
         
         try:
+            print(f"[FD] {FD_VERSION}")
             print(f"🔍 Analyzing image with Google Cloud Vision API: {image_path}")
             
             # Read the image file
@@ -476,14 +485,78 @@ class GoogleVisionFoodDetector:
             
             image = vision.Image(content=content)
             
-            # Perform label detection with higher max results
+            # Perform label detection
             response = self.client.label_detection(image=image)
             labels = response.label_annotations
             
-            # Perform web detection for better food identification
+            # Perform web detection
             response_web = self.client.web_detection(image=image)
             web_detection = response_web.web_detection
-            
+
+            # Perform object localization to find distinct regions (helps multi-item plates)
+            localized_objects = []
+            try:
+                obj_resp = self.client.object_localization(image=image)
+                localized_objects = getattr(obj_resp, 'localized_object_annotations', []) or []
+                print(f"🧩 Localized {len(localized_objects)} objects")
+            except Exception as _e:
+                print("⚠️ Object localization unavailable; continuing without region crops")
+
+            # Optionally run per-crop label detection on top N likely food regions
+            crop_food_candidates: List[str] = []
+            crop_confidence: Dict[str, float] = {}
+            if localized_objects:
+                try:
+                    crop_limit = 4
+                    if _PIL_AVAILABLE:
+                        base_img = Image.open(image_path).convert('RGB')
+                        w, h = base_img.size
+                        foodish_names = {"Food", "Dish", "Bowl", "Plate", "Fruit", "Vegetable", "Sandwich", "Bread", "Pizza", "Cake"}
+                        # Sort by score desc, take top regions
+                        top_objs = sorted(localized_objects, key=lambda o: getattr(o, 'score', 0.0), reverse=True)[:10]
+                        kept = 0
+                        for obj in top_objs:
+                            if kept >= crop_limit:
+                                break
+                            name = getattr(obj, 'name', '')
+                            score = float(getattr(obj, 'score', 0.0) or 0.0)
+                            if name and (name in foodish_names or score >= 0.60):
+                                # Compute crop box from normalized vertices
+                                vertices = obj.bounding_poly.normalized_vertices
+                                xs = [v.x for v in vertices]
+                                ys = [v.y for v in vertices]
+                                left = max(0, int(min(xs) * w))
+                                top = max(0, int(min(ys) * h))
+                                right = min(w, int(max(xs) * w))
+                                bottom = min(h, int(max(ys) * h))
+                                if right - left < 20 or bottom - top < 20:
+                                    continue
+                                crop = base_img.crop((left, top, right, bottom))
+                                # Encode crop to bytes
+                                from io import BytesIO
+                                buf = BytesIO()
+                                crop.save(buf, format='JPEG', quality=90)
+                                crop_bytes = buf.getvalue()
+                                crop_image = vision.Image(content=crop_bytes)
+                                crop_labels = self.client.label_detection(image=crop_image).label_annotations or []
+                                # Collect candidates from crop labels with slightly lenient thresholds
+                                for cl in crop_labels:
+                                    cl_desc = cl.description.lower().strip()
+                                    cl_conf = float(cl.score or 0.0)
+                                    if cl_conf >= 0.50:
+                                        items = self._extract_food_with_improved_matching(cl_desc, cl_conf, crop_food_candidates)
+                                        for it in items:
+                                            if it not in crop_food_candidates:
+                                                crop_food_candidates.append(it)
+                                                crop_confidence[it] = max(crop_confidence.get(it, 0.0), cl_conf)
+                                kept += 1
+                        if crop_food_candidates:
+                            print(f"🧩 Crops yielded candidates: {crop_food_candidates}")
+                    else:
+                        print("⚠️ Pillow not available; skipping crop-based refinement")
+                except Exception as _e:
+                    print(f"⚠️ Crop-based refinement failed: {_e}")
+
             # Process detected labels with IMPROVED confidence thresholds for better accuracy
             detected_foods = []
             confidence_scores = {}
@@ -566,6 +639,15 @@ class GoogleVisionFoodDetector:
                             print(f"      ⚠️  Skipped generic web entity: {entity_desc}")
                     else:
                         print(f"   ❌ Skipped web entity: {entity_desc} (score: {confidence:.3f} < 0.45)")
+
+            # Merge crop-based candidates with main detections (boost consensus)
+            if crop_food_candidates:
+                for it in crop_food_candidates:
+                    if it not in detected_foods:
+                        detected_foods.append(it)
+                    # Boost confidence if present in both sources
+                    confidence_scores[it] = max(confidence_scores.get(it, 0.0), crop_confidence.get(it, 0.55))
+                print(f"🧩 After crop fusion, candidates: {detected_foods}")
             
             # Enhanced confidence-based filtering with IMPROVED thresholds
             print(f"🎯 Pre-filtering: {len(detected_foods)} foods detected")
