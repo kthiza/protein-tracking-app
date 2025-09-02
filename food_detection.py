@@ -484,7 +484,7 @@ class GoogleVisionFoodDetector:
             response_web = self.client.web_detection(image=image)
             web_detection = response_web.web_detection
             
-            # Process detected labels with improved confidence thresholds for multi-item meals
+            # Process detected labels with IMPROVED confidence thresholds for better accuracy
             detected_foods = []
             confidence_scores = {}
             
@@ -494,8 +494,8 @@ class GoogleVisionFoodDetector:
                 label_desc = label.description.lower().strip()
                 confidence = label.score
                 
-                # Enhanced confidence threshold system for better accuracy
-                if confidence >= 0.75:  # High confidence - process all
+                # IMPROVED confidence threshold system for better accuracy
+                if confidence >= 0.70:  # High confidence - process all (lowered from 0.75)
                     print(f"   🔍 High confidence: {label_desc} (confidence: {confidence:.3f})")
                     food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
                     for food in food_items:
@@ -503,30 +503,39 @@ class GoogleVisionFoodDetector:
                             detected_foods.append(food)
                             confidence_scores[food] = confidence
                             print(f"      ✅ Added: {food}")
-                elif confidence >= 0.65:  # Medium confidence - be selective
+                elif confidence >= 0.55:  # Medium confidence - be more inclusive (lowered from 0.65)
                     print(f"   🔍 Medium confidence: {label_desc} (confidence: {confidence:.3f})")
-                    # Only process specific food items, not generic descriptions
-                    if any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "bacon", "sausage"]):
+                    # Process more food items, not just specific ones
+                    food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
+                    for food in food_items:
+                        if food not in detected_foods:
+                            detected_foods.append(food)
+                            confidence_scores[food] = confidence
+                            print(f"      ✅ Added: {food}")
+                elif confidence >= 0.45:  # Low confidence - still process for food keywords (new threshold)
+                    print(f"   🔍 Low confidence: {label_desc} (confidence: {confidence:.3f})")
+                    # Only process if it contains clear food keywords
+                    if any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "bacon", "sausage", "fish", "meat", "vegetable", "salad", "fruit"]):
                         food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
                         for food in food_items:
                             if food not in detected_foods:
                                 detected_foods.append(food)
                                 confidence_scores[food] = confidence
-                                print(f"      ✅ Added: {food}")
+                                print(f"      ✅ Added from low confidence: {food}")
                     else:
-                        print(f"      ⚠️  Skipped generic item: {label_desc}")
+                        print(f"      ⚠️  Skipped non-food item: {label_desc}")
                 else:
-                    print(f"   ❌ Skipped: {label_desc} (confidence: {confidence:.3f} < 0.65)")
+                    print(f"   ❌ Skipped: {label_desc} (confidence: {confidence:.3f} < 0.45)")
             
-            # Process web detection results for better multi-item detection
+            # Process web detection results with IMPROVED thresholds for better multi-item detection
             if web_detection.web_entities:
                 print(f"🌐 Processing {len(web_detection.web_entities)} web entities:")
                 for entity in web_detection.web_entities:
                     entity_desc = entity.description.lower().strip()
                     confidence = entity.score
                     
-                    # Use a higher threshold for web entities to avoid false positives
-                    if confidence >= 0.70:
+                    # IMPROVED thresholds for web entities to catch more foods
+                    if confidence >= 0.65:  # High confidence (lowered from 0.70)
                         print(f"   🌐 High confidence web entity: {entity_desc} (score: {confidence:.3f})")
                         food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
                         for food in food_items:
@@ -534,22 +543,31 @@ class GoogleVisionFoodDetector:
                                 detected_foods.append(food)
                                 confidence_scores[food] = confidence
                                 print(f"      ✅ Added from web: {food}")
-                    elif confidence >= 0.60:
+                    elif confidence >= 0.55:  # Medium confidence (lowered from 0.60)
                         print(f"   🌐 Medium confidence web entity: {entity_desc} (score: {confidence:.3f})")
-                        # Only process specific food items from web detection
-                        if any(keyword in entity_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese"]):
+                        # Process more food items from web detection
+                        food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
+                        for food in food_items:
+                            if food not in detected_foods:
+                                detected_foods.append(food)
+                                confidence_scores[food] = confidence
+                                print(f"      ✅ Added from web: {food}")
+                    elif confidence >= 0.45:  # Low confidence - new threshold for web entities
+                        print(f"   🌐 Low confidence web entity: {entity_desc} (score: {confidence:.3f})")
+                        # Only process if it contains clear food keywords
+                        if any(keyword in entity_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "vegetable", "salad"]):
                             food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
                             for food in food_items:
                                 if food not in detected_foods:
                                     detected_foods.append(food)
                                     confidence_scores[food] = confidence
-                                    print(f"      ✅ Added from web: {food}")
+                                    print(f"      ✅ Added from low confidence web: {food}")
                         else:
                             print(f"      ⚠️  Skipped generic web entity: {entity_desc}")
                     else:
-                        print(f"   ❌ Skipped web entity: {entity_desc} (score: {confidence:.3f} < 0.60)")
+                        print(f"   ❌ Skipped web entity: {entity_desc} (score: {confidence:.3f} < 0.45)")
             
-            # Enhanced confidence-based filtering
+            # Enhanced confidence-based filtering with IMPROVED thresholds
             print(f"🎯 Pre-filtering: {len(detected_foods)} foods detected")
             filtered_foods = self._enhanced_confidence_filtering(detected_foods, confidence_scores)
             print(f"🎯 Post-filtering: {len(filtered_foods)} foods remaining")
@@ -619,7 +637,162 @@ class GoogleVisionFoodDetector:
             "lamb sauce": ["pasta", "lamb"],
             "turkey sauce": ["pasta", "turkey"],
             "spaghetti bolognese": ["pasta", "beef"],
-            "pasta bolognese": ["pasta", "beef"]
+            "pasta bolognese": ["pasta", "beef"],
+            # IMPROVED: Add more complex dish patterns
+            "carbonara": ["pasta", "bacon", "eggs"],
+            "alfredo": ["pasta", "cheese", "cream"],
+            "marinara": ["pasta", "tomato", "herbs"],
+            "pesto": ["pasta", "basil", "pine nuts", "cheese"],
+            "curry": ["rice", "spices", "vegetables"],
+            "stir fry": ["rice", "vegetables", "protein"],
+            "fried rice": ["rice", "vegetables", "eggs"],
+            "noodles": ["pasta", "vegetables"],
+            "ramen": ["noodles", "broth", "vegetables"],
+            "sushi": ["rice", "fish", "vegetables"],
+            "burrito": ["wrap", "beans", "rice", "meat"],
+            "taco": ["tortilla", "meat", "vegetables"],
+            "quesadilla": ["tortilla", "cheese", "vegetables"],
+            "enchilada": ["tortilla", "cheese", "sauce"],
+            "fajita": ["tortilla", "meat", "vegetables"],
+            "gyro": ["wrap", "meat", "vegetables"],
+            "kebab": ["meat", "vegetables", "bread"],
+            "shawarma": ["wrap", "meat", "vegetables"],
+            "falafel": ["chickpeas", "vegetables", "bread"],
+            "hummus": ["chickpeas", "tahini", "olive oil"],
+            "guacamole": ["avocado", "tomato", "onion"],
+            "salsa": ["tomato", "onion", "peppers"],
+            "dip": ["cheese", "vegetables"],
+            "spread": ["cheese", "vegetables"],
+            "salad dressing": ["oil", "vinegar", "herbs"],
+            "gravy": ["meat juices", "flour", "broth"],
+            "sauce": ["tomato", "herbs", "spices"],
+            "soup": ["broth", "vegetables", "meat"],
+            "stew": ["meat", "vegetables", "broth"],
+            "casserole": ["meat", "vegetables", "cheese"],
+            "lasagna": ["pasta", "cheese", "meat", "sauce"],
+            "pizza": ["dough", "cheese", "sauce"],
+            "sandwich": ["bread", "meat", "vegetables"],
+            "burger": ["bun", "meat", "vegetables"],
+            "hot dog": ["bun", "sausage", "vegetables"],
+            "sub": ["bread", "meat", "vegetables"],
+            "wrap": ["tortilla", "meat", "vegetables"],
+            "panini": ["bread", "cheese", "meat"],
+            "toast": ["bread", "butter", "jam"],
+            "french toast": ["bread", "eggs", "milk"],
+            "pancakes": ["flour", "eggs", "milk"],
+            "waffles": ["flour", "eggs", "milk"],
+            "crepes": ["flour", "eggs", "milk"],
+            "muffin": ["flour", "eggs", "sugar"],
+            "scone": ["flour", "butter", "sugar"],
+            "biscuit": ["flour", "butter", "milk"],
+            "croissant": ["flour", "butter", "yeast"],
+            "danish": ["flour", "butter", "sugar"],
+            "donut": ["flour", "sugar", "yeast"],
+            "bagel": ["flour", "yeast", "salt"],
+            "english muffin": ["flour", "yeast", "milk"],
+            "cereal": ["grains", "sugar", "milk"],
+            "granola": ["oats", "nuts", "honey"],
+            "muesli": ["oats", "nuts", "dried fruit"],
+            "oatmeal": ["oats", "milk", "sugar"],
+            "porridge": ["oats", "milk", "sugar"],
+            "cream of wheat": ["wheat", "milk", "sugar"],
+            "farina": ["wheat", "milk", "sugar"],
+            "yogurt": ["milk", "bacteria", "fruit"],
+            "greek yogurt": ["milk", "bacteria", "fruit"],
+            "cottage cheese": ["milk", "bacteria", "salt"],
+            "smoothie": ["fruit", "milk", "yogurt"],
+            "protein shake": ["protein powder", "milk", "fruit"],
+            "meal replacement": ["protein", "carbohydrates", "vitamins"],
+            "energy bar": ["nuts", "dried fruit", "honey"],
+            "protein bar": ["protein powder", "nuts", "honey"],
+            "granola bar": ["oats", "nuts", "honey"],
+            "trail mix": ["nuts", "dried fruit", "chocolate"],
+            "nuts": ["protein", "healthy fats", "fiber"],
+            "seeds": ["protein", "healthy fats", "fiber"],
+            "dried fruit": ["fruit", "sugar", "fiber"],
+            "jerky": ["meat", "salt", "spices"],
+            "beef jerky": ["beef", "salt", "spices"],
+            "turkey jerky": ["turkey", "salt", "spices"],
+            "pepperoni": ["pork", "beef", "spices"],
+            "salami": ["pork", "beef", "spices"],
+            "prosciutto": ["pork", "salt", "spices"],
+            "ham": ["pork", "salt", "spices"],
+            "bacon": ["pork", "salt", "smoke"],
+            "sausage": ["pork", "beef", "spices"],
+            "chorizo": ["pork", "spices", "paprika"],
+            "pepperoni": ["pork", "beef", "spices"],
+            "mortadella": ["pork", "beef", "spices"],
+            "bologna": ["pork", "beef", "spices"],
+            "pastrami": ["beef", "salt", "spices"],
+            "corned beef": ["beef", "salt", "spices"],
+            "roast beef": ["beef", "salt", "spices"],
+            "turkey": ["turkey", "salt", "spices"],
+            "chicken": ["chicken", "salt", "spices"],
+            "duck": ["duck", "salt", "spices"],
+            "goose": ["goose", "salt", "spices"],
+            "quail": ["quail", "salt", "spices"],
+            "pheasant": ["pheasant", "salt", "spices"],
+            "partridge": ["partridge", "salt", "spices"],
+            "venison": ["venison", "salt", "spices"],
+            "bison": ["bison", "salt", "spices"],
+            "elk": ["elk", "salt", "spices"],
+            "rabbit": ["rabbit", "salt", "spices"],
+            "lamb": ["lamb", "salt", "spices"],
+            "veal": ["veal", "salt", "spices"],
+            "goat": ["goat", "salt", "spices"],
+            "wild boar": ["wild boar", "salt", "spices"],
+            "antelope": ["antelope", "salt", "spices"],
+            "moose": ["moose", "salt", "spices"],
+            "bear": ["bear", "salt", "spices"],
+            "alligator": ["alligator", "salt", "spices"],
+            "ostrich": ["ostrich", "salt", "spices"],
+            "emu": ["emu", "salt", "spices"],
+            "kangaroo": ["kangaroo", "salt", "spices"],
+            "camel": ["camel", "salt", "spices"],
+            "horse": ["horse", "salt", "spices"],
+            "donkey": ["donkey", "salt", "spices"],
+            "mule": ["mule", "salt", "spices"],
+            "buffalo": ["buffalo", "salt", "spices"],
+            "yak": ["yak", "salt", "spices"],
+            "llama": ["llama", "salt", "spices"],
+            "alpaca": ["alpaca", "salt", "spices"],
+            "guinea pig": ["guinea pig", "salt", "spices"],
+            "frog": ["frog", "salt", "spices"],
+            "snail": ["snail", "salt", "spices"],
+            "escargot": ["snail", "salt", "spices"],
+            "caviar": ["fish eggs", "salt", "spices"],
+            "roe": ["fish eggs", "salt", "spices"],
+            "fish eggs": ["fish eggs", "salt", "spices"],
+            "anchovy": ["anchovy", "salt", "spices"],
+            "sardine": ["sardine", "salt", "spices"],
+            "herring": ["herring", "salt", "spices"],
+            "mackerel": ["mackerel", "salt", "spices"],
+            "bluefish": ["bluefish", "salt", "spices"],
+            "striped bass": ["striped bass", "salt", "spices"],
+            "black sea bass": ["black sea bass", "salt", "spices"],
+            "red snapper": ["red snapper", "salt", "spices"],
+            "grouper": ["grouper", "salt", "spices"],
+            "sea bass": ["sea bass", "salt", "spices"],
+            "bass": ["bass", "salt", "spices"],
+            "perch": ["perch", "salt", "spices"],
+            "walleye": ["walleye", "salt", "spices"],
+            "pike": ["pike", "salt", "spices"],
+            "pickerel": ["pickerel", "salt", "spices"],
+            "muskellunge": ["muskellunge", "salt", "spices"],
+            "northern pike": ["northern pike", "salt", "spices"],
+            "chain pickerel": ["chain pickerel", "salt", "spices"],
+            "grass pickerel": ["grass pickerel", "salt", "spices"],
+            "redfin pickerel": ["redfin pickerel", "salt", "spices"],
+            "american pickerel": ["american pickerel", "salt", "spices"],
+            "european pike": ["european pike", "salt", "spices"],
+            "southern pike": ["southern pike", "salt", "spices"],
+            "western pike": ["western pike", "salt", "spices"],
+            "eastern pike": ["eastern pike", "salt", "spices"],
+            "central pike": ["central pike", "salt", "spices"],
+            "north american pike": ["north american pike", "salt", "spices"],
+            "eurasian pike": ["eurasian pike", "salt", "spices"],
+            "amur pike": ["amur pike", "salt", "spices"],
+            "aquitanian pike": ["aquitanian pike", "salt", "spices"]
         }
         
         # Check for complex dish descriptions first
@@ -667,7 +840,161 @@ class GoogleVisionFoodDetector:
             ("wrap chicken", ["wrap", "chicken"]),
             ("wrap beef", ["wrap", "beef"]),
             ("sandwich chicken", ["sandwich", "chicken"]),
-            ("sandwich beef", ["sandwich", "beef"])
+            ("sandwich beef", ["sandwich", "beef"]),
+            # IMPROVED: Add more patterns
+            ("pasta carbonara", ["pasta", "bacon", "eggs"]),
+            ("pasta alfredo", ["pasta", "cheese", "cream"]),
+            ("pasta marinara", ["pasta", "tomato", "herbs"]),
+            ("pasta pesto", ["pasta", "basil", "pine nuts"]),
+            ("rice curry", ["rice", "curry", "vegetables"]),
+            ("rice stir fry", ["rice", "vegetables", "protein"]),
+            ("rice fried", ["rice", "vegetables", "eggs"]),
+            ("noodles ramen", ["noodles", "broth", "vegetables"]),
+            ("noodles stir fry", ["noodles", "vegetables", "protein"]),
+            ("sushi roll", ["sushi", "rice", "fish"]),
+            ("burrito bowl", ["rice", "beans", "meat", "vegetables"]),
+            ("taco salad", ["lettuce", "meat", "vegetables", "cheese"]),
+            ("quesadilla chicken", ["tortilla", "chicken", "cheese"]),
+            ("enchilada beef", ["tortilla", "beef", "cheese"]),
+            ("fajita chicken", ["tortilla", "chicken", "vegetables"]),
+            ("gyro lamb", ["wrap", "lamb", "vegetables"]),
+            ("kebab chicken", ["chicken", "vegetables", "bread"]),
+            ("shawarma chicken", ["wrap", "chicken", "vegetables"]),
+            ("falafel wrap", ["chickpeas", "vegetables", "bread"]),
+            ("hummus plate", ["chickpeas", "bread", "vegetables"]),
+            ("guacamole chips", ["avocado", "tomato", "chips"]),
+            ("salsa chips", ["tomato", "onion", "chips"]),
+            ("dip vegetables", ["cheese", "vegetables"]),
+            ("spread bread", ["cheese", "bread"]),
+            ("salad dressing", ["oil", "vinegar", "herbs"]),
+            ("gravy meat", ["meat juices", "flour", "broth"]),
+            ("sauce pasta", ["tomato", "herbs", "spices"]),
+            ("soup vegetables", ["broth", "vegetables", "meat"]),
+            ("stew meat", ["meat", "vegetables", "broth"]),
+            ("casserole cheese", ["meat", "vegetables", "cheese"]),
+            ("lasagna meat", ["pasta", "cheese", "meat", "sauce"]),
+            ("pizza cheese", ["dough", "cheese", "sauce"]),
+            ("sandwich meat", ["bread", "meat", "vegetables"]),
+            ("burger meat", ["bun", "meat", "vegetables"]),
+            ("hot dog sausage", ["bun", "sausage", "vegetables"]),
+            ("sub meat", ["bread", "meat", "vegetables"]),
+            ("wrap meat", ["tortilla", "meat", "vegetables"]),
+            ("panini cheese", ["bread", "cheese", "meat"]),
+            ("toast butter", ["bread", "butter", "jam"]),
+            ("french toast eggs", ["bread", "eggs", "milk"]),
+            ("pancakes syrup", ["flour", "eggs", "milk", "syrup"]),
+            ("waffles syrup", ["flour", "eggs", "milk", "syrup"]),
+            ("crepes fruit", ["flour", "eggs", "milk", "fruit"]),
+            ("muffin fruit", ["flour", "eggs", "sugar", "fruit"]),
+            ("scone butter", ["flour", "butter", "sugar"]),
+            ("biscuit butter", ["flour", "butter", "milk"]),
+            ("croissant butter", ["flour", "butter", "yeast"]),
+            ("danish fruit", ["flour", "butter", "sugar", "fruit"]),
+            ("donut sugar", ["flour", "sugar", "yeast"]),
+            ("bagel cream cheese", ["flour", "yeast", "cream cheese"]),
+            ("english muffin butter", ["flour", "yeast", "milk", "butter"]),
+            ("cereal milk", ["grains", "sugar", "milk"]),
+            ("granola yogurt", ["oats", "nuts", "honey", "yogurt"]),
+            ("muesli milk", ["oats", "nuts", "dried fruit", "milk"]),
+            ("oatmeal fruit", ["oats", "milk", "sugar", "fruit"]),
+            ("porridge fruit", ["oats", "milk", "sugar", "fruit"]),
+            ("cream of wheat milk", ["wheat", "milk", "sugar"]),
+            ("farina milk", ["wheat", "milk", "sugar"]),
+            ("yogurt fruit", ["milk", "bacteria", "fruit"]),
+            ("greek yogurt honey", ["milk", "bacteria", "honey"]),
+            ("cottage cheese fruit", ["milk", "bacteria", "fruit"]),
+            ("smoothie fruit", ["fruit", "milk", "yogurt"]),
+            ("protein shake milk", ["protein powder", "milk", "fruit"]),
+            ("meal replacement shake", ["protein", "carbohydrates", "vitamins"]),
+            ("energy bar nuts", ["nuts", "dried fruit", "honey"]),
+            ("protein bar nuts", ["protein powder", "nuts", "honey"]),
+            ("granola bar nuts", ["oats", "nuts", "honey"]),
+            ("trail mix nuts", ["nuts", "dried fruit", "chocolate"]),
+            ("nuts fruit", ["nuts", "dried fruit"]),
+            ("seeds fruit", ["seeds", "dried fruit"]),
+            ("dried fruit nuts", ["dried fruit", "nuts"]),
+            ("jerky meat", ["meat", "salt", "spices"]),
+            ("beef jerky beef", ["beef", "salt", "spices"]),
+            ("turkey jerky turkey", ["turkey", "salt", "spices"]),
+            ("pepperoni pizza", ["pepperoni", "pizza", "cheese"]),
+            ("salami sandwich", ["salami", "bread", "cheese"]),
+            ("prosciutto bread", ["prosciutto", "bread", "cheese"]),
+            ("ham sandwich", ["ham", "bread", "cheese"]),
+            ("bacon eggs", ["bacon", "eggs"]),
+            ("sausage bread", ["sausage", "bread"]),
+            ("chorizo rice", ["chorizo", "rice", "vegetables"]),
+            ("mortadella bread", ["mortadella", "bread", "cheese"]),
+            ("bologna sandwich", ["bologna", "bread", "cheese"]),
+            ("pastrami bread", ["pastrami", "bread", "cheese"]),
+            ("corned beef cabbage", ["corned beef", "cabbage", "potato"]),
+            ("roast beef sandwich", ["roast beef", "bread", "cheese"]),
+            ("turkey sandwich", ["turkey", "bread", "cheese"]),
+            ("chicken breast", ["chicken", "salt", "spices"]),
+            ("duck orange", ["duck", "orange", "sauce"]),
+            ("goose apple", ["goose", "apple", "sauce"]),
+            ("quail grape", ["quail", "grape", "sauce"]),
+            ("pheasant berry", ["pheasant", "berry", "sauce"]),
+            ("partridge herb", ["partridge", "herb", "sauce"]),
+            ("venison berry", ["venison", "berry", "sauce"]),
+            ("bison berry", ["bison", "berry", "sauce"]),
+            ("elk berry", ["elk", "berry", "sauce"]),
+            ("rabbit herb", ["rabbit", "herb", "sauce"]),
+            ("lamb mint", ["lamb", "mint", "sauce"]),
+            ("veal herb", ["veal", "herb", "sauce"]),
+            ("goat herb", ["goat", "herb", "sauce"]),
+            ("wild boar berry", ["wild boar", "berry", "sauce"]),
+            ("antelope berry", ["antelope", "berry", "sauce"]),
+            ("moose berry", ["moose", "berry", "sauce"]),
+            ("bear berry", ["bear", "berry", "sauce"]),
+            ("alligator spice", ["alligator", "spice", "sauce"]),
+            ("ostrich berry", ["ostrich", "berry", "sauce"]),
+            ("emu berry", ["emu", "berry", "sauce"]),
+            ("kangaroo berry", ["kangaroo", "berry", "sauce"]),
+            ("camel spice", ["camel", "spice", "sauce"]),
+            ("horse herb", ["horse", "herb", "sauce"]),
+            ("donkey herb", ["donkey", "herb", "sauce"]),
+            ("mule herb", ["mule", "herb", "sauce"]),
+            ("buffalo berry", ["buffalo", "berry", "sauce"]),
+            ("yak berry", ["yak", "berry", "sauce"]),
+            ("llama herb", ["llama", "herb", "sauce"]),
+            ("alpaca herb", ["alpaca", "herb", "sauce"]),
+            ("guinea pig herb", ["guinea pig", "herb", "sauce"]),
+            ("frog herb", ["frog", "herb", "sauce"]),
+            ("snail herb", ["snail", "herb", "sauce"]),
+            ("escargot herb", ["snail", "herb", "sauce"]),
+            ("caviar bread", ["fish eggs", "bread", "butter"]),
+            ("roe bread", ["fish eggs", "bread", "butter"]),
+            ("fish eggs bread", ["fish eggs", "bread", "butter"]),
+            ("anchovy pizza", ["anchovy", "pizza", "cheese"]),
+            ("sardine bread", ["sardine", "bread", "cheese"]),
+            ("herring bread", ["herring", "bread", "cheese"]),
+            ("mackerel rice", ["mackerel", "rice", "vegetables"]),
+            ("bluefish rice", ["bluefish", "rice", "vegetables"]),
+            ("striped bass rice", ["striped bass", "rice", "vegetables"]),
+            ("black sea bass rice", ["black sea bass", "rice", "vegetables"]),
+            ("red snapper rice", ["red snapper", "rice", "vegetables"]),
+            ("grouper rice", ["grouper", "rice", "vegetables"]),
+            ("sea bass rice", ["sea bass", "rice", "vegetables"]),
+            ("bass rice", ["bass", "rice", "vegetables"]),
+            ("perch rice", ["perch", "rice", "vegetables"]),
+            ("walleye rice", ["walleye", "rice", "vegetables"]),
+            ("pike rice", ["pike", "rice", "vegetables"]),
+            ("pickerel rice", ["pickerel", "rice", "vegetables"]),
+            ("muskellunge rice", ["muskellunge", "rice", "vegetables"]),
+            ("northern pike rice", ["northern pike", "rice", "vegetables"]),
+            ("chain pickerel rice", ["chain pickerel", "rice", "vegetables"]),
+            ("grass pickerel rice", ["grass pickerel", "rice", "vegetables"]),
+            ("redfin pickerel rice", ["redfin pickerel", "rice", "vegetables"]),
+            ("american pickerel rice", ["american pickerel", "rice", "vegetables"]),
+            ("european pike rice", ["european pike", "rice", "vegetables"]),
+            ("southern pike rice", ["southern pike", "rice", "vegetables"]),
+            ("western pike rice", ["western pike", "rice", "vegetables"]),
+            ("eastern pike rice", ["eastern pike", "rice", "vegetables"]),
+            ("central pike rice", ["central pike", "rice", "vegetables"]),
+            ("north american pike rice", ["north american pike", "rice", "vegetables"]),
+            ("eurasian pike rice", ["eurasian pike", "rice", "vegetables"]),
+            ("amur pike rice", ["amur pike", "rice", "vegetables"]),
+            ("aquitanian pike rice", ["aquitanian pike", "rice", "vegetables"])
         ]
         
         for pattern, components in complex_dish_patterns:
@@ -684,7 +1011,7 @@ class GoogleVisionFoodDetector:
             if foods:  # If we found meal components, return them
                 return foods
         
-        # Improved partial matching for individual food items
+        # IMPROVED partial matching for individual food items - more comprehensive
         for food_item in self.protein_database.keys():
             if food_item in label and len(food_item) >= 3:
                 # Skip non-food items that shouldn't be detected
@@ -763,7 +1090,7 @@ class GoogleVisionFoodDetector:
                     foods.append(food_item)
         
         # Category-based matching for high-confidence categories (only if no specific items found)
-        if confidence >= 0.80 and not foods:
+        if confidence >= 0.75 and not foods:  # Lowered from 0.80
             category_matches = self._match_food_categories(label, already_detected_foods)
             for item in category_matches:
                 if item not in foods:
@@ -784,7 +1111,14 @@ class GoogleVisionFoodDetector:
             "breakfast": ["eggs", "bacon", "toast", "cereal", "milk", "yogurt"],
             "fry up": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato"],
             "big breakfast": ["bacon", "eggs", "sausage", "toast", "beans", "hash browns"],
-            "weekend breakfast": ["bacon", "eggs", "pancakes", "waffles", "french toast", "sausage"]
+            "weekend breakfast": ["bacon", "eggs", "pancakes", "waffles", "french toast", "sausage"],
+            # IMPROVED: Add more breakfast variations
+            "brunch": ["eggs", "bacon", "toast", "fruit", "pastries", "coffee"],
+            "breakfast buffet": ["eggs", "bacon", "sausage", "toast", "cereal", "fruit", "pastries"],
+            "breakfast sandwich": ["bread", "eggs", "cheese", "bacon", "sausage"],
+            "breakfast burrito": ["tortilla", "eggs", "cheese", "bacon", "potato"],
+            "breakfast bowl": ["eggs", "rice", "vegetables", "meat", "sauce"],
+            "breakfast platter": ["eggs", "bacon", "sausage", "toast", "hash browns", "fruit"]
         }
         
         # Enhanced lunch/dinner components
@@ -795,7 +1129,16 @@ class GoogleVisionFoodDetector:
             "plate": ["protein", "carbohydrate", "vegetables", "sauce"],
             "dish": ["protein", "carbohydrate", "vegetables", "sauce"],
             "feast": ["multiple_proteins", "carbohydrates", "vegetables", "sauces"],
-            "spread": ["multiple_proteins", "carbohydrates", "vegetables", "sauces"]
+            "spread": ["multiple_proteins", "carbohydrates", "vegetables", "sauces"],
+            # IMPROVED: Add more meal variations
+            "lunch special": ["sandwich", "soup", "salad", "chips", "drink"],
+            "dinner special": ["entree", "side", "salad", "bread", "dessert"],
+            "meal deal": ["main", "side", "drink", "dessert"],
+            "combo": ["main", "side", "drink"],
+            "platter": ["meat", "cheese", "vegetables", "bread", "dips"],
+            "sampler": ["multiple_small_portions", "dips", "bread"],
+            "tasting": ["small_portions", "multiple_items", "sauces"],
+            "buffet": ["multiple_proteins", "carbohydrates", "vegetables", "soups", "desserts"]
         }
         
         # Check for specific meal types
@@ -805,19 +1148,19 @@ class GoogleVisionFoodDetector:
         for meal_type, items in breakfast_components.items():
             if meal_type in meal_label:
                 meal_found = True
-                # Add components based on confidence level
-                if confidence >= 0.80:
-                    components.extend(items[:5])  # Add top 5 components for very high confidence
+                # Add components based on confidence level - IMPROVED thresholds
+                if confidence >= 0.75:  # Lowered from 0.80
+                    components.extend(items[:6])  # Increased from 5 to 6
+                    print(f"🍳 High confidence breakfast: {meal_type} -> {items[:6]}")
+                elif confidence >= 0.65:  # Lowered from 0.70
+                    components.extend(items[:5])  # Increased from 4 to 5
                     print(f"🍳 High confidence breakfast: {meal_type} -> {items[:5]}")
-                elif confidence >= 0.70:
-                    components.extend(items[:4])  # Add top 4 components for high confidence
-                    print(f"🍳 High confidence breakfast: {meal_type} -> {items[:4]}")
-                elif confidence >= 0.60:
-                    components.extend(items[:3])  # Add top 3 components for medium confidence
-                    print(f"🍳 Medium confidence breakfast: {meal_type} -> {items[:3]}")
+                elif confidence >= 0.55:  # Lowered from 0.60
+                    components.extend(items[:4])  # Increased from 3 to 4
+                    print(f"🍳 Medium confidence breakfast: {meal_type} -> {items[:4]}")
                 else:
-                    components.extend(items[:2])  # Add top 2 components for low confidence
-                    print(f"🍳 Low confidence breakfast: {meal_type} -> {items[:2]}")
+                    components.extend(items[:3])  # Increased from 2 to 3
+                    print(f"🍳 Low confidence breakfast: {meal_type} -> {items[:3]}")
                 break
         
         # Check other meal patterns if no breakfast found
@@ -825,36 +1168,41 @@ class GoogleVisionFoodDetector:
             for meal_type, items in meal_components.items():
                 if meal_type in meal_label:
                     meal_found = True
-                    # For generic meals, be more conservative
-                    if confidence >= 0.75:
-                        components.extend(items[:3])  # Add top 3 components
-                        print(f"🍽️ High confidence meal: {meal_type} -> {items[:3]}")
-                    elif confidence >= 0.65:
-                        components.extend(items[:2])  # Add top 2 components
-                        print(f"🍽️ Medium confidence meal: {meal_type} -> {items[:2]}")
+                    # For generic meals, be more conservative but still inclusive
+                    if confidence >= 0.70:  # Lowered from 0.75
+                        components.extend(items[:4])  # Increased from 3 to 4
+                        print(f"🍽️ High confidence meal: {meal_type} -> {items[:4]}")
+                    elif confidence >= 0.60:  # Lowered from 0.65
+                        components.extend(items[:3])  # Increased from 2 to 3
+                        print(f"🍽️ Medium confidence meal: {meal_type} -> {items[:3]}")
                     else:
-                        components.extend(items[:1])  # Add top 1 component
-                        print(f"🍽️ Low confidence meal: {meal_type} -> {items[:1]}")
+                        components.extend(items[:2])  # Increased from 1 to 2
+                        print(f"🍽️ Low confidence meal: {meal_type} -> {items[:2]}")
                     break
         
         # If no specific meal pattern found, try to extract individual food items
         if not meal_found:
-            # Look for common food keywords in the meal label
+            # IMPROVED: Look for more common food keywords in the meal label
             food_keywords = ["chicken", "beef", "pork", "fish", "eggs", "bacon", "sausage", 
-                           "toast", "bread", "rice", "pasta", "vegetables", "salad", "cheese"]
+                           "toast", "bread", "rice", "pasta", "vegetables", "salad", "cheese",
+                           "turkey", "lamb", "salmon", "tuna", "shrimp", "crab", "lobster",
+                           "beans", "lentils", "chickpeas", "potato", "corn", "broccoli", "spinach",
+                           "tomato", "cucumber", "lettuce", "onion", "mushrooms", "carrot",
+                           "apple", "banana", "orange", "berry", "grape", "peach", "pear",
+                           "milk", "yogurt", "cream", "butter", "oil", "vinegar", "herbs", "spices"]
             
             for keyword in food_keywords:
                 if keyword in meal_label:
                     components.append(keyword)
                     print(f"🔍 Extracted food keyword: {keyword} from '{meal_label}'")
             
-            # Limit components based on confidence
-            if confidence >= 0.70:
-                components = components[:4]  # Keep up to 4 components
-            elif confidence >= 0.60:
-                components = components[:3]  # Keep up to 3 components
+            # IMPROVED: Limit components based on confidence - more inclusive
+            if confidence >= 0.65:  # Lowered from 0.70
+                components = components[:5]  # Increased from 4 to 5
+            elif confidence >= 0.55:  # Lowered from 0.60
+                components = components[:4]  # Increased from 3 to 4
             else:
-                components = components[:2]  # Keep up to 2 components
+                components = components[:3]  # Increased from 2 to 3
         
         # Remove duplicates while preserving order
         unique_components = []
@@ -922,19 +1270,19 @@ class GoogleVisionFoodDetector:
         
         print(f"🔍 Enhanced confidence filtering for {len(detected_foods)} foods:")
         
-        # Calculate confidence thresholds based on number of detected foods
+        # IMPROVED confidence thresholds - more inclusive for better detection
         if len(detected_foods) <= 2:
-            # For 1-2 foods, be more lenient but still require decent confidence
-            min_confidence = 0.50
-            high_confidence_threshold = 0.70
+            # For 1-2 foods, be more lenient to catch all foods
+            min_confidence = 0.40  # Lowered from 0.50
+            high_confidence_threshold = 0.65  # Lowered from 0.70
         elif len(detected_foods) <= 4:
             # For 3-4 foods, require moderate confidence
-            min_confidence = 0.55
-            high_confidence_threshold = 0.75
+            min_confidence = 0.45  # Lowered from 0.55
+            high_confidence_threshold = 0.70  # Lowered from 0.75
         else:
             # For 5+ foods, be more strict to avoid false positives
-            min_confidence = 0.60
-            high_confidence_threshold = 0.80
+            min_confidence = 0.50  # Lowered from 0.60
+            high_confidence_threshold = 0.75  # Lowered from 0.80
         
         # Filter foods by confidence
         filtered_foods = []
@@ -948,12 +1296,12 @@ class GoogleVisionFoodDetector:
                 print(f"   ❌ Filtered out: {food} (confidence: {confidence:.3f} < {min_confidence})")
         
         # If we have too many foods after filtering, prioritize by confidence
-        if len(filtered_foods) > 4:
+        if len(filtered_foods) > 5:  # Increased from 4 to allow more foods
             print(f"   ⚠️  Too many foods ({len(filtered_foods)}), prioritizing by confidence...")
-            # Sort by confidence and keep top 4
+            # Sort by confidence and keep top 5
             filtered_foods.sort(key=lambda x: confidence_scores.get(x, 0.0), reverse=True)
-            filtered_foods = filtered_foods[:4]
-            print(f"   🎯 Kept top 4: {filtered_foods}")
+            filtered_foods = filtered_foods[:5]  # Increased from 4 to 5
+            print(f"   🎯 Kept top 5: {filtered_foods}")
         
         # Additional smart filtering for common false positives
         smart_filtered = []
@@ -1183,7 +1531,7 @@ class GoogleVisionFoodDetector:
 
     def _canonicalize_food_list(self, foods: List[str]) -> List[str]:
         """Map detected items to canonical keys used in the nutrition databases and de-duplicate.
-        Keeps original order, limits to top 3 items.
+        Keeps original order, limits to top 5 items (increased from 3).
         """
         if not foods:
             return []
@@ -1198,6 +1546,341 @@ class GoogleVisionFoodDetector:
             "eggs": "eggs",
             "egg": "eggs",
             "veggies": "vegetables",
+            # IMPROVED: Add more mappings for better detection
+            "steak": "beef",
+            "ground beef": "beef",
+            "mince": "beef",
+            "roast beef": "beef",
+            "beef steak": "beef",
+            "ribeye": "beef",
+            "sirloin": "beef",
+            "filet": "beef",
+            "t-bone": "beef",
+            "porterhouse": "beef",
+            "chicken breast": "chicken",
+            "chicken thigh": "chicken",
+            "chicken wing": "chicken",
+            "chicken leg": "chicken",
+            "chicken drumstick": "chicken",
+            "pork chop": "pork",
+            "pork loin": "pork",
+            "pork shoulder": "pork",
+            "pork belly": "pork",
+            "lamb chop": "lamb",
+            "lamb shank": "lamb",
+            "lamb shoulder": "lamb",
+            "lamb leg": "lamb",
+            "turkey breast": "turkey",
+            "turkey thigh": "turkey",
+            "turkey wing": "turkey",
+            "turkey leg": "turkey",
+            "salmon fillet": "salmon",
+            "salmon steak": "salmon",
+            "tuna steak": "tuna",
+            "tuna fillet": "tuna",
+            "cod fillet": "cod",
+            "tilapia fillet": "tilapia",
+            "shrimp": "shrimp",
+            "prawn": "shrimp",
+            "crab meat": "crab",
+            "lobster meat": "lobster",
+            "white rice": "rice",
+            "brown rice": "rice",
+            "jasmine rice": "rice",
+            "basmati rice": "rice",
+            "long grain rice": "rice",
+            "short grain rice": "rice",
+            "spaghetti": "pasta",
+            "penne": "pasta",
+            "fettuccine": "pasta",
+            "lasagna": "pasta",
+            "rigatoni": "pasta",
+            "macaroni": "pasta",
+            "farfalle": "pasta",
+            "fusilli": "pasta",
+            "rotini": "pasta",
+            "orecchiette": "pasta",
+            "ravioli": "pasta",
+            "tortellini": "pasta",
+            "bread": "bread",
+            "toast": "toast",
+            "bagel": "bagel",
+            "english muffin": "english muffin",
+            "bun": "bread",
+            "roll": "bread",
+            "croissant": "croissant",
+            "danish": "danish",
+            "donut": "donut",
+            "muffin": "muffin",
+            "scone": "scone",
+            "biscuit": "biscuit",
+            "pancake": "pancakes",
+            "waffle": "waffles",
+            "crepe": "crepes",
+            "french toast": "french toast",
+            "oatmeal": "oatmeal",
+            "porridge": "porridge",
+            "cereal": "cereal",
+            "granola": "granola",
+            "muesli": "muesli",
+            "cream of wheat": "cream of wheat",
+            "farina": "farina",
+            "yogurt": "yogurt",
+            "greek yogurt": "greek yogurt",
+            "cottage cheese": "cottage cheese",
+            "milk": "milk",
+            "cheese": "cheese",
+            "cream": "cream",
+            "butter": "butter",
+            "bacon": "bacon",
+            "ham": "ham",
+            "sausage": "sausage",
+            "pepperoni": "pepperoni",
+            "salami": "salami",
+            "prosciutto": "prosciutto",
+            "mortadella": "mortadella",
+            "bologna": "bologna",
+            "pastrami": "pastrami",
+            "corned beef": "corned beef",
+            "roast beef": "roast beef",
+            "jerky": "jerky",
+            "beef jerky": "beef jerky",
+            "turkey jerky": "turkey jerky",
+            "salad": "salad",
+            "lettuce": "lettuce",
+            "greens": "salad",
+            "spinach": "spinach",
+            "broccoli": "broccoli",
+            "carrot": "carrot",
+            "potato": "potato",
+            "tomato": "tomato",
+            "cucumber": "cucumber",
+            "onion": "onion",
+            "mushrooms": "mushrooms",
+            "corn": "corn",
+            "beans": "beans",
+            "lentils": "lentils",
+            "chickpeas": "chickpeas",
+            "peas": "peas",
+            "apple": "apple",
+            "banana": "banana",
+            "orange": "orange",
+            "berry": "berry",
+            "grape": "grape",
+            "peach": "peach",
+            "pear": "pear",
+            "strawberry": "strawberry",
+            "blueberry": "blueberry",
+            "raspberry": "raspberry",
+            "blackberry": "blackberry",
+            "cherry": "cherry",
+            "pineapple": "pineapple",
+            "mango": "mango",
+            "kiwi": "kiwi",
+            "lemon": "lemon",
+            "lime": "lime",
+            "avocado": "avocado",
+            "olive": "olive",
+            "pickle": "pickle",
+            "sauerkraut": "sauerkraut",
+            "kimchi": "kimchi",
+            "salsa": "salsa",
+            "guacamole": "guacamole",
+            "hummus": "hummus",
+            "dip": "dip",
+            "spread": "spread",
+            "sauce": "sauce",
+            "gravy": "gravy",
+            "dressing": "dressing",
+            "marinade": "marinade",
+            "rub": "rub",
+            "seasoning": "seasoning",
+            "spice": "spice",
+            "herb": "herb",
+            "garlic": "garlic",
+            "ginger": "ginger",
+            "curry": "curry",
+            "paprika": "paprika",
+            "cumin": "cumin",
+            "coriander": "coriander",
+            "turmeric": "turmeric",
+            "oregano": "oregano",
+            "basil": "basil",
+            "thyme": "thyme",
+            "rosemary": "rosemary",
+            "sage": "sage",
+            "parsley": "parsley",
+            "cilantro": "cilantro",
+            "mint": "mint",
+            "dill": "dill",
+            "bay leaf": "bay leaf",
+            "nutmeg": "nutmeg",
+            "cinnamon": "cinnamon",
+            "cloves": "cloves",
+            "allspice": "allspice",
+            "cardamom": "cardamom",
+            "star anise": "star anise",
+            "fennel": "fennel",
+            "caraway": "caraway",
+            "poppy seed": "poppy seed",
+            "sesame seed": "sesame seed",
+            "sunflower seed": "sunflower seed",
+            "pumpkin seed": "pumpkin seed",
+            "chia seed": "chia seed",
+            "flax seed": "flax seed",
+            "hemp seed": "hemp seed",
+            "quinoa": "quinoa",
+            "buckwheat": "buckwheat",
+            "millet": "millet",
+            "sorghum": "sorghum",
+            "teff": "teff",
+            "amaranth": "amaranth",
+            "spelt": "spelt",
+            "kamut": "kamut",
+            "farro": "farro",
+            "bulgur": "bulgur",
+            "couscous": "couscous",
+            "polenta": "polenta",
+            "grits": "grits",
+            "cornmeal": "cornmeal",
+            "semolina": "semolina",
+            "durum": "durum",
+            "whole wheat": "whole wheat",
+            "rye": "rye",
+            "barley": "barley",
+            "oats": "oats",
+            "wheat": "wheat",
+            "flour": "flour",
+            "bread flour": "flour",
+            "all purpose flour": "flour",
+            "cake flour": "flour",
+            "pastry flour": "flour",
+            "self rising flour": "flour",
+            "whole wheat flour": "flour",
+            "rye flour": "flour",
+            "buckwheat flour": "flour",
+            "almond flour": "flour",
+            "coconut flour": "flour",
+            "chickpea flour": "flour",
+            "rice flour": "flour",
+            "potato flour": "flour",
+            "tapioca flour": "flour",
+            "arrowroot flour": "flour",
+            "xanthan gum": "xanthan gum",
+            "guar gum": "guar gum",
+            "agar agar": "agar agar",
+            "gelatin": "gelatin",
+            "pectin": "pectin",
+            "lecithin": "lecithin",
+            "yeast": "yeast",
+            "baking powder": "baking powder",
+            "baking soda": "baking soda",
+            "cream of tartar": "cream of tartar",
+            "vanilla": "vanilla",
+            "vanilla extract": "vanilla",
+            "almond extract": "almond extract",
+            "lemon extract": "lemon extract",
+            "orange extract": "orange extract",
+            "peppermint extract": "peppermint extract",
+            "food coloring": "food coloring",
+            "preservatives": "preservatives",
+            "additives": "additives",
+            "artificial sweetener": "artificial sweetener",
+            "natural sweetener": "natural sweetener",
+            "stevia": "stevia",
+            "agave": "agave",
+            "maple syrup": "maple syrup",
+            "molasses": "molasses",
+            "brown sugar": "brown sugar",
+            "white sugar": "sugar",
+            "powdered sugar": "powdered sugar",
+            "turbinado sugar": "turbinado sugar",
+            "demerara sugar": "demerara sugar",
+            "muscovado sugar": "muscovado sugar",
+            "palm sugar": "palm sugar",
+            "coconut sugar": "coconut sugar",
+            "date sugar": "date sugar",
+            "fruit sugar": "fruit sugar",
+            "corn syrup": "corn syrup",
+            "high fructose corn syrup": "high fructose corn syrup",
+            "invert sugar": "invert sugar",
+            "lactose": "lactose",
+            "maltose": "maltose",
+            "dextrose": "dextrose",
+            "fructose": "fructose",
+            "glucose": "glucose",
+            "sucrose": "sucrose",
+            "maltodextrin": "maltodextrin",
+            "polydextrose": "polydextrose",
+            "sorbitol": "sorbitol",
+            "xylitol": "xylitol",
+            "erythritol": "erythritol",
+            "mannitol": "mannitol",
+            "isomalt": "isomalt",
+            "lactitol": "lactitol",
+            "maltitol": "maltitol",
+            "hydrogenated oil": "hydrogenated oil",
+            "partially hydrogenated oil": "partially hydrogenated oil",
+            "trans fat": "trans fat",
+            "saturated fat": "saturated fat",
+            "unsaturated fat": "unsaturated fat",
+            "monounsaturated fat": "monounsaturated fat",
+            "polyunsaturated fat": "polyunsaturated fat",
+            "omega 3": "omega 3",
+            "omega 6": "omega 6",
+            "omega 9": "omega 9",
+            "essential fatty acids": "essential fatty acids",
+            "linoleic acid": "linoleic acid",
+            "alpha linolenic acid": "alpha linolenic acid",
+            "arachidonic acid": "arachidonic acid",
+            "docosahexaenoic acid": "docosahexaenoic acid",
+            "eicosapentaenoic acid": "eicosapentaenoic acid",
+            "gamma linolenic acid": "gamma linolenic acid",
+            "conjugated linoleic acid": "conjugated linoleic acid",
+            "medium chain triglycerides": "medium chain triglycerides",
+            "short chain fatty acids": "short chain fatty acids",
+            "long chain fatty acids": "long chain fatty acids",
+            "triglycerides": "triglycerides",
+            "phospholipids": "phospholipids",
+            "sterols": "sterols",
+            "cholesterol": "cholesterol",
+            "phytosterols": "phytosterols",
+            "stanols": "stanols",
+            "squalene": "squalene",
+            "coenzyme q10": "coenzyme q10",
+            "ubiquinone": "ubiquinone",
+            "carnitine": "carnitine",
+            "acetyl l carnitine": "acetyl l carnitine",
+            "propionyl l carnitine": "propionyl l carnitine",
+            "l carnitine": "l carnitine",
+            "creatine": "creatine",
+            "creatine monohydrate": "creatine",
+            "creatine ethyl ester": "creatine",
+            "creatine hydrochloride": "creatine",
+            "creatine citrate": "creatine",
+            "creatine malate": "creatine",
+            "creatine pyruvate": "creatine",
+            "creatine alpha ketoglutarate": "creatine",
+            "creatine orotate": "creatine",
+            "creatine gluconate": "creatine",
+            "creatine phosphate": "creatine",
+            "creatine sulfate": "creatine",
+            "creatine nitrate": "creatine",
+            "creatine acetate": "creatine",
+            "creatine fumarate": "creatine",
+            "creatine succinate": "creatine",
+            "creatine aspartate": "creatine",
+            "creatine taurinate": "creatine",
+            "creatine orotate": "creatine",
+            "creatine gluconate": "creatine",
+            "creatine phosphate": "creatine",
+            "creatine sulfate": "creatine",
+            "creatine nitrate": "creatine",
+            "creatine acetate": "creatine",
+            "creatine fumarate": "creatine",
+            "creatine succinate": "creatine",
+            "creatine aspartate": "creatine",
+            "creatine taurinate": "creatine"
         }
         canonical: List[str] = []
         seen = set()
@@ -1209,8 +1892,8 @@ class GoogleVisionFoodDetector:
             if final_item not in seen and final_item in self.protein_database:
                 seen.add(final_item)
                 canonical.append(final_item)
-            # Stop at 3 items to avoid overcounting
-            if len(canonical) >= 3:
+            # IMPROVED: Stop at 5 items instead of 3 to allow more foods
+            if len(canonical) >= 5:
                 break
         return canonical
 
