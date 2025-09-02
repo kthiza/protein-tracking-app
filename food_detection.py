@@ -494,13 +494,29 @@ class GoogleVisionFoodDetector:
                 label_desc = label.description.lower().strip()
                 confidence = label.score
                 
-                if confidence >= 0.60:
-                    # Check if this label matches any food items with improved matching
+                # Enhanced confidence threshold system for better accuracy
+                if confidence >= 0.75:  # High confidence - process all
+                    print(f"   🔍 High confidence: {label_desc} (confidence: {confidence:.3f})")
                     food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
                     for food in food_items:
                         if food not in detected_foods:
                             detected_foods.append(food)
                             confidence_scores[food] = confidence
+                            print(f"      ✅ Added: {food}")
+                elif confidence >= 0.65:  # Medium confidence - be selective
+                    print(f"   🔍 Medium confidence: {label_desc} (confidence: {confidence:.3f})")
+                    # Only process specific food items, not generic descriptions
+                    if any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "bacon", "sausage"]):
+                        food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
+                        for food in food_items:
+                            if food not in detected_foods:
+                                detected_foods.append(food)
+                                confidence_scores[food] = confidence
+                                print(f"      ✅ Added: {food}")
+                    else:
+                        print(f"      ⚠️  Skipped generic item: {label_desc}")
+                else:
+                    print(f"   ❌ Skipped: {label_desc} (confidence: {confidence:.3f} < 0.65)")
             
             # Process web detection results for better multi-item detection
             if web_detection.web_entities:
@@ -509,14 +525,29 @@ class GoogleVisionFoodDetector:
                     entity_desc = entity.description.lower().strip()
                     confidence = entity.score
                     
-                    # Use a lower threshold for web entities as they can be more specific
-                    if confidence >= 0.55:
-                        print(f"   - {entity_desc} (score: {confidence:.3f})")
+                    # Use a higher threshold for web entities to avoid false positives
+                    if confidence >= 0.70:
+                        print(f"   🌐 High confidence web entity: {entity_desc} (score: {confidence:.3f})")
                         food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
                         for food in food_items:
                             if food not in detected_foods:
                                 detected_foods.append(food)
                                 confidence_scores[food] = confidence
+                                print(f"      ✅ Added from web: {food}")
+                    elif confidence >= 0.60:
+                        print(f"   🌐 Medium confidence web entity: {entity_desc} (score: {confidence:.3f})")
+                        # Only process specific food items from web detection
+                        if any(keyword in entity_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese"]):
+                            food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
+                            for food in food_items:
+                                if food not in detected_foods:
+                                    detected_foods.append(food)
+                                    confidence_scores[food] = confidence
+                                    print(f"      ✅ Added from web: {food}")
+                        else:
+                            print(f"      ⚠️  Skipped generic web entity: {entity_desc}")
+                    else:
+                        print(f"   ❌ Skipped web entity: {entity_desc} (score: {confidence:.3f} < 0.60)")
             
             # Enhanced confidence-based filtering
             print(f"🎯 Pre-filtering: {len(detected_foods)} foods detected")
@@ -538,7 +569,7 @@ class GoogleVisionFoodDetector:
                     "detection_method": "google_vision_api"
                 }
             
-            # Calculate total protein content using the 300g normalization (for logs only)
+            # Calculate total protein content using the new 250g total system
             total_protein = self.calculate_protein_content(filtered_foods)
             
             print(f"🎯 Successfully detected {len(filtered_foods)} food items:")
@@ -548,15 +579,15 @@ class GoogleVisionFoodDetector:
                 print(f"   - {food} (confidence: {conf:.3f}, protein: {protein}g/100g)")
             
             if len(filtered_foods) == 1:
-                print(f"📊 Single food item: {filtered_foods[0]}, 300g")
+                print(f"📊 Single food item: {filtered_foods[0]}, 250g total")
             else:
-                grams_per_item = 300.0 / len(filtered_foods)
-                print(f"📊 Multiple food items: {len(filtered_foods)} items, {grams_per_item:.0f}g each")
+                grams_per_item = 250.0 / len(filtered_foods)
+                print(f"📊 Multiple food items: {len(filtered_foods)} items, {grams_per_item:.0f}g each (250g total)")
             print(f"📊 Total protein content: {total_protein:.1f}g")
             
             return {
                 "foods": filtered_foods,
-                "protein_per_100g": total_protein,  # Now represents protein for 120g total food
+                "protein_per_100g": total_protein,  # Now represents protein for 250g total food
                 "confidence_scores": {k: v for k, v in confidence_scores.items() if k in filtered_foods},
                 "detection_method": "google_vision_api"
             }
@@ -997,66 +1028,28 @@ class GoogleVisionFoodDetector:
         if not foods:
             return 0.0
         
-        # For single food item: use realistic portion size
+        # For single food item: use exactly 250g as requested
         if len(foods) == 1:
             food = foods[0]
             protein_per_100g = self.protein_database.get(food, 5.0)
             
-            # Determine realistic portion size based on food type
-            portion_size = self._get_realistic_portion_size(food)
+            # Fixed portion size: exactly 250g as requested
+            portion_size = 250.0
             total_protein = (protein_per_100g * portion_size) / 100.0
             # Validate and cap protein at realistic levels
             validated_protein = self._validate_protein_content(total_protein, 1)
             return round(validated_protein, 1)
         
-        # For multiple food items: use realistic dish proportions
+        # For multiple food items: use exactly 250g total as requested
         if len(foods) == 2:
             total_protein = 0.0
             
-            # Check for specific dish patterns with realistic portions
-            if ("pasta" in foods and "beef" in foods) or ("pasta" in foods and "chicken" in foods):
-                # Pasta dishes: 200g pasta + 100g meat = 300g total
-                pasta_food = "pasta" if "pasta" in foods else "spaghetti"
-                meat_food = "beef" if "beef" in foods else "chicken"
-                
-                pasta_protein = (self.protein_database.get(pasta_food, 5.0) * 200.0) / 100.0
-                meat_protein = (self.protein_database.get(meat_food, 5.0) * 100.0) / 100.0
-                total_protein = pasta_protein + meat_protein
-                
-            elif ("rice" in foods and "chicken" in foods) or ("rice" in foods and "beef" in foods):
-                # Rice dishes: 180g rice + 120g meat = 300g total
-                rice_protein = (self.protein_database.get("rice", 2.7) * 180.0) / 100.0
-                meat_food = "chicken" if "chicken" in foods else "beef"
-                meat_protein = (self.protein_database.get(meat_food, 5.0) * 120.0) / 100.0
-                total_protein = rice_protein + meat_protein
-                
-            elif ("bread" in foods and any(meat in foods for meat in ["chicken", "beef", "pork"])):
-                # Sandwich/wrap: 120g bread + 180g meat = 300g total
-                bread_protein = (self.protein_database.get("bread", 8.0) * 120.0) / 100.0
-                meat_food = next(meat for meat in ["chicken", "beef", "pork"] if meat in foods)
-                meat_protein = (self.protein_database.get(meat_food, 5.0) * 180.0) / 100.0
-                total_protein = bread_protein + meat_protein
-                
-            elif ("pizza" in foods and "pepperoni" in foods):
-                # Pizza with pepperoni: 250g pizza base + 50g pepperoni = 300g total
-                pizza_protein = (self.protein_database.get("pizza", 12.0) * 250.0) / 100.0
-                pepperoni_protein = (self.protein_database.get("pepperoni", 25.0) * 50.0) / 100.0
-                total_protein = pizza_protein + pepperoni_protein
-                
-            elif ("wrap" in foods and any(meat in foods for meat in ["chicken", "beef", "pork"])):
-                # Wrap: 100g wrap + 200g meat = 300g total
-                wrap_protein = (self.protein_database.get("wrap", 12.0) * 100.0) / 100.0
-                meat_food = next(meat for meat in ["chicken", "beef", "pork"] if meat in foods)
-                meat_protein = (self.protein_database.get(meat_food, 5.0) * 200.0) / 100.0
-                total_protein = wrap_protein + meat_protein
-                
-            else:
-                # Default: use realistic portions for each food type
-                for food in foods:
-                    portion_size = self._get_realistic_portion_size(food)
-                    protein_per_100g = self.protein_database.get(food, 5.0)
-                    protein_for_this_item = (protein_per_100g * portion_size) / 100.0
-                    total_protein += protein_for_this_item
+            # Fixed portion sizes: 125g each for 2 foods = 250g total
+            for food in foods:
+                portion_size = 125.0  # Exactly 125g each as requested
+                protein_per_100g = self.protein_database.get(food, 5.0)
+                protein_for_this_item = (protein_per_100g * portion_size) / 100.0
+                total_protein += protein_for_this_item
                     
         else:
             # For 3+ items: use SMART portion distribution
@@ -1117,44 +1110,42 @@ class GoogleVisionFoodDetector:
         return portion_sizes.get(food.lower(), 100.0)
     
     def _get_total_plate_weight(self, num_foods: int) -> float:
-        """Get realistic total plate weight for multi-item meals"""
-        # More realistic plate weights - typical restaurant/home meal portions
-        base_weights = {
-            3: 300.0,   # 3 items: 300g total (more realistic)
-            4: 350.0,   # 4 items: 350g total  
-            5: 400.0,   # 5 items: 400g total
-            6: 450.0,   # 6+ items: 450g total
-        }
-        return base_weights.get(num_foods, 400.0)
+        """Get total plate weight - fixed at 250g as requested"""
+        # Fixed total plate weight: 250g as requested by user
+        return 250.0
     
     def _get_adjusted_portion_for_plate(self, food: str, all_foods: List[str], total_plate_weight: float) -> float:
-        """Get adjusted portion size for multi-item plates considering food importance"""
+        """Get adjusted portion size for multi-item plates - fixed at 250g total"""
         # Food priority categories (higher priority = larger portion)
         high_priority = ["chicken", "beef", "pork", "salmon", "tuna", "eggs", "tofu", "beans"]
         medium_priority = ["rice", "pasta", "quinoa", "bread", "toast", "wrap", "pizza"]
         low_priority = ["vegetables", "salad", "tomato", "cucumber", "lettuce", "sauce", "gravy", "lemon"]
         
-        # More realistic portion multipliers for multi-item plates
-        if food in high_priority:
-            portion_multiplier = 0.7  # Reduced from 1.0 - protein sources get smaller portions when sharing plate
-        elif food in medium_priority:
-            portion_multiplier = 0.6  # Reduced from 0.8 - carbs get even smaller portions
-        elif food in low_priority:
-            portion_multiplier = 0.3  # Reduced from 0.5 - sides get very small portions
+        # Calculate portion based on priority and total plate weight (250g)
+        num_foods = len(all_foods)
+        
+        if num_foods == 2:
+            # 2 foods: 125g each
+            return 125.0
+        elif num_foods == 3:
+            # 3 foods: prioritize protein, then carbs, then sides
+            if food in high_priority:
+                return 100.0  # Protein gets 100g
+            elif food in medium_priority:
+                return 100.0  # Carbs get 100g  
+            else:
+                return 50.0   # Sides get 50g
+        elif num_foods == 4:
+            # 4 foods: distribute evenly with protein priority
+            if food in high_priority:
+                return 75.0   # Protein gets 75g
+            elif food in medium_priority:
+                return 75.0   # Carbs get 75g
+            else:
+                return 50.0   # Sides get 50g
         else:
-            portion_multiplier = 0.5  # Default for unknown foods
-        
-        # Get base portion size
-        base_portion = self._get_realistic_portion_size(food)
-        
-        # Apply multiplier and ensure it fits within plate constraints
-        adjusted_portion = base_portion * portion_multiplier
-        
-        # For very small portions, ensure minimum size but keep it realistic
-        if adjusted_portion < 15.0:
-            adjusted_portion = 15.0
-        
-        return adjusted_portion
+            # 5+ foods: distribute evenly
+            return total_plate_weight / num_foods
     
     def _validate_protein_content(self, calculated_protein: float, num_foods: int) -> float:
         """Validate and cap protein content at realistic levels for typical meals"""
