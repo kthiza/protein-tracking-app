@@ -518,8 +518,13 @@ class GoogleVisionFoodDetector:
                                 detected_foods.append(food)
                                 confidence_scores[food] = confidence
             
+            # Enhanced confidence-based filtering
+            print(f"🎯 Pre-filtering: {len(detected_foods)} foods detected")
+            filtered_foods = self._enhanced_confidence_filtering(detected_foods, confidence_scores)
+            print(f"🎯 Post-filtering: {len(filtered_foods)} foods remaining")
+            
             # Apply improved filtering for multi-item meals
-            filtered_foods = self._filter_and_prioritize_foods(detected_foods, confidence_scores)
+            filtered_foods = self._filter_and_prioritize_foods(filtered_foods, confidence_scores)
 
             # Canonicalize outputs to database-friendly items
             filtered_foods = self._canonicalize_food_list(filtered_foods)
@@ -736,28 +741,98 @@ class GoogleVisionFoodDetector:
         return foods
 
     def _extract_meal_components(self, meal_label: str, confidence: float) -> List[str]:
-        """Extract individual food components from meal descriptions"""
+        """Extract individual food components from meal descriptions with enhanced accuracy"""
         components = []
         
-        # Common breakfast components
+        # Enhanced breakfast components with confidence-based selection
         breakfast_components = {
             "english breakfast": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato"],
             "full breakfast": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato"],
             "american breakfast": ["bacon", "eggs", "pancakes", "toast", "sausage"],
             "continental breakfast": ["bread", "cheese", "yogurt", "fruit", "cereal"],
-            "breakfast": ["eggs", "bacon", "toast", "cereal", "milk", "yogurt"]
+            "breakfast": ["eggs", "bacon", "toast", "cereal", "milk", "yogurt"],
+            "fry up": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato"],
+            "big breakfast": ["bacon", "eggs", "sausage", "toast", "beans", "hash browns"],
+            "weekend breakfast": ["bacon", "eggs", "pancakes", "waffles", "french toast", "sausage"]
+        }
+        
+        # Enhanced lunch/dinner components
+        meal_components = {
+            "lunch": ["sandwich", "salad", "soup", "pasta", "rice", "chicken", "beef"],
+            "dinner": ["steak", "chicken", "fish", "pasta", "rice", "vegetables", "salad"],
+            "meal": ["protein", "carbohydrate", "vegetables", "sauce"],
+            "plate": ["protein", "carbohydrate", "vegetables", "sauce"],
+            "dish": ["protein", "carbohydrate", "vegetables", "sauce"],
+            "feast": ["multiple_proteins", "carbohydrates", "vegetables", "sauces"],
+            "spread": ["multiple_proteins", "carbohydrates", "vegetables", "sauces"]
         }
         
         # Check for specific meal types
+        meal_found = False
+        
+        # Check breakfast patterns first (most specific)
         for meal_type, items in breakfast_components.items():
             if meal_type in meal_label:
+                meal_found = True
                 # Add components based on confidence level
-                if confidence >= 0.75:
+                if confidence >= 0.80:
+                    components.extend(items[:5])  # Add top 5 components for very high confidence
+                    print(f"🍳 High confidence breakfast: {meal_type} -> {items[:5]}")
+                elif confidence >= 0.70:
                     components.extend(items[:4])  # Add top 4 components for high confidence
-                elif confidence >= 0.65:
-                    components.extend(items[:2])  # Add top 2 components for medium confidence
+                    print(f"🍳 High confidence breakfast: {meal_type} -> {items[:4]}")
+                elif confidence >= 0.60:
+                    components.extend(items[:3])  # Add top 3 components for medium confidence
+                    print(f"🍳 Medium confidence breakfast: {meal_type} -> {items[:3]}")
+                else:
+                    components.extend(items[:2])  # Add top 2 components for low confidence
+                    print(f"🍳 Low confidence breakfast: {meal_type} -> {items[:2]}")
+                break
         
-        return components
+        # Check other meal patterns if no breakfast found
+        if not meal_found:
+            for meal_type, items in meal_components.items():
+                if meal_type in meal_label:
+                    meal_found = True
+                    # For generic meals, be more conservative
+                    if confidence >= 0.75:
+                        components.extend(items[:3])  # Add top 3 components
+                        print(f"🍽️ High confidence meal: {meal_type} -> {items[:3]}")
+                    elif confidence >= 0.65:
+                        components.extend(items[:2])  # Add top 2 components
+                        print(f"🍽️ Medium confidence meal: {meal_type} -> {items[:2]}")
+                    else:
+                        components.extend(items[:1])  # Add top 1 component
+                        print(f"🍽️ Low confidence meal: {meal_type} -> {items[:1]}")
+                    break
+        
+        # If no specific meal pattern found, try to extract individual food items
+        if not meal_found:
+            # Look for common food keywords in the meal label
+            food_keywords = ["chicken", "beef", "pork", "fish", "eggs", "bacon", "sausage", 
+                           "toast", "bread", "rice", "pasta", "vegetables", "salad", "cheese"]
+            
+            for keyword in food_keywords:
+                if keyword in meal_label:
+                    components.append(keyword)
+                    print(f"🔍 Extracted food keyword: {keyword} from '{meal_label}'")
+            
+            # Limit components based on confidence
+            if confidence >= 0.70:
+                components = components[:4]  # Keep up to 4 components
+            elif confidence >= 0.60:
+                components = components[:3]  # Keep up to 3 components
+            else:
+                components = components[:2]  # Keep up to 2 components
+        
+        # Remove duplicates while preserving order
+        unique_components = []
+        for component in components:
+            if component not in unique_components:
+                unique_components.append(component)
+        
+        print(f"🍽️ Final meal components: {unique_components}")
+        return unique_components
 
     def _match_food_categories(self, label: str, already_detected_foods: List[str]) -> List[str]:
         """Match food categories to specific items"""
@@ -809,22 +884,113 @@ class GoogleVisionFoodDetector:
         
         return category_matches
 
-
-
+    def _enhanced_confidence_filtering(self, detected_foods: List[str], confidence_scores: Dict[str, float]) -> List[str]:
+        """Enhanced confidence-based filtering to improve detection accuracy"""
+        if not detected_foods:
+            return []
         
-
+        print(f"🔍 Enhanced confidence filtering for {len(detected_foods)} foods:")
         
-
+        # Calculate confidence thresholds based on number of detected foods
+        if len(detected_foods) <= 2:
+            # For 1-2 foods, be more lenient but still require decent confidence
+            min_confidence = 0.50
+            high_confidence_threshold = 0.70
+        elif len(detected_foods) <= 4:
+            # For 3-4 foods, require moderate confidence
+            min_confidence = 0.55
+            high_confidence_threshold = 0.75
+        else:
+            # For 5+ foods, be more strict to avoid false positives
+            min_confidence = 0.60
+            high_confidence_threshold = 0.80
         
-
+        # Filter foods by confidence
+        filtered_foods = []
+        for food in detected_foods:
+            confidence = confidence_scores.get(food, 0.5)
+            
+            if confidence >= min_confidence:
+                filtered_foods.append(food)
+                print(f"   ✅ Kept: {food} (confidence: {confidence:.3f})")
+            else:
+                print(f"   ❌ Filtered out: {food} (confidence: {confidence:.3f} < {min_confidence})")
         
-
+        # If we have too many foods after filtering, prioritize by confidence
+        if len(filtered_foods) > 4:
+            print(f"   ⚠️  Too many foods ({len(filtered_foods)}), prioritizing by confidence...")
+            # Sort by confidence and keep top 4
+            filtered_foods.sort(key=lambda x: confidence_scores.get(x, 0.0), reverse=True)
+            filtered_foods = filtered_foods[:4]
+            print(f"   🎯 Kept top 4: {filtered_foods}")
         
-
+        # Additional smart filtering for common false positives
+        smart_filtered = []
+        for food in filtered_foods:
+            confidence = confidence_scores.get(food, 0.5)
+            
+            # High confidence foods are always kept
+            if confidence >= high_confidence_threshold:
+                smart_filtered.append(food)
+                continue
+            
+            # For medium confidence foods, apply additional checks
+            if confidence >= min_confidence:
+                # Check if this food makes sense with other detected foods
+                if self._is_food_compatible(food, smart_filtered):
+                    smart_filtered.append(food)
+                else:
+                    print(f"   ⚠️  Filtered out incompatible: {food} (confidence: {confidence:.3f})")
         
-
+        print(f"   🎯 Final filtered foods: {smart_filtered}")
+        return smart_filtered
+    
+    def _is_food_compatible(self, food: str, existing_foods: List[str]) -> bool:
+        """Check if a food item is compatible with already detected foods"""
+        if not existing_foods:
+            return True
         
-
+        # Define food compatibility groups
+        protein_groups = {
+            "meat": ["beef", "chicken", "pork", "lamb", "turkey", "steak", "burger"],
+            "fish": ["salmon", "tuna", "cod", "tilapia", "shrimp", "crab", "lobster"],
+            "dairy": ["milk", "cheese", "yogurt", "cream", "butter"],
+            "eggs": ["egg", "eggs", "omelet", "scrambled"]
+        }
+        
+        # Check if this food conflicts with existing foods
+        for group_name, group_foods in protein_groups.items():
+            if food in group_foods:
+                # Check if we already have a food from this group
+                for existing_food in existing_foods:
+                    if existing_food in group_foods and existing_food != food:
+                        # If this is a different protein source, it's usually compatible
+                        if group_name == "meat" and len([f for f in existing_foods if f in group_foods]) < 2:
+                            return True  # Allow up to 2 meat types
+                        elif group_name == "fish" and len([f for f in existing_foods if f in group_foods]) < 2:
+                            return True  # Allow up to 2 fish types
+                        else:
+                            return False  # Too many proteins from same group
+        
+        # Check for common meal patterns
+        meal_patterns = {
+            "breakfast": ["eggs", "bacon", "sausage", "toast", "beans", "mushroom", "tomato"],
+            "pasta_dish": ["pasta", "spaghetti", "penne", "beef", "chicken", "sauce"],
+            "rice_dish": ["rice", "chicken", "beef", "vegetables", "curry"],
+            "salad": ["salad", "lettuce", "cucumber", "tomato", "cheese", "chickpeas"],
+            "sandwich": ["bread", "toast", "chicken", "beef", "cheese", "lettuce", "tomato"]
+        }
+        
+        # Check if this food fits any meal pattern
+        for pattern_name, pattern_foods in meal_patterns.items():
+            if food in pattern_foods:
+                # Count how many foods from this pattern we already have
+                pattern_count = len([f for f in existing_foods if f in pattern_foods])
+                if pattern_count < 3:  # Allow up to 3 foods from same pattern
+                    return True
+        
+        # If no conflicts found, food is compatible
+        return True
 
     def calculate_protein_content(self, foods: List[str]) -> float:
         """Calculate total protein content for detected foods using realistic portion sizes"""
