@@ -454,7 +454,7 @@ class GoogleVisionFoodDetector:
             "peanuts": 567, "walnuts": 654, "cashews": 553,
             
             # Default for unknown foods (raised for more realistic average density)
-            "default": 150
+            "default": 180
         }
         
         # High-confidence food keywords that should trigger detection
@@ -2219,7 +2219,14 @@ class GoogleVisionFoodDetector:
             # Build food weights
             food_weights: Dict[str, float] = {}
             for food in foods:
-                food_weights[food] = max(0.05, conf.get(food, 0.5))
+                base = max(0.05, conf.get(food, 0.5))
+                # Penalize high-protein categories so grams don't over-allocate to meats
+                if food in self.food_categories.get('meat', set()) or food in self.food_categories.get('fish', set()) or food in {"eggs", "egg"}:
+                    base *= 0.75
+                # Slightly boost carbs/veg to improve kcal
+                if food in self.food_categories.get('carb', set()) or food in self.food_categories.get('vegetable', set()):
+                    base *= 1.15
+                food_weights[food] = base
             # Normalize food weights
             sw = sum(food_weights.values())
             if sw <= 0:
@@ -2242,7 +2249,7 @@ class GoogleVisionFoodDetector:
                 share = 0.5 * region_share + 0.5 * conf_share
                 grams = share * est_total_g
                 # Per-food portion caps to avoid extremes
-                grams = max(20.0, min(grams, 220.0))
+                grams = max(15.0, min(grams, 170.0))
                 portions[food] = round(grams, 1)
 
             # Ensure total grams are not excessive
