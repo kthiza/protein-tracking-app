@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from google.cloud import vision
 from google.oauth2 import service_account
 
@@ -453,8 +453,8 @@ class GoogleVisionFoodDetector:
             "beans": 127, "lentils": 116, "chickpeas": 164, "almonds": 579,
             "peanuts": 567, "walnuts": 654, "cashews": 553,
             
-            # Default for unknown foods
-            "default": 100
+            # Default for unknown foods (raised for more realistic average density)
+            "default": 150
         }
         
         # High-confidence food keywords that should trigger detection
@@ -480,6 +480,17 @@ class GoogleVisionFoodDetector:
             "generic": ["object", "item", "thing", "stuff", "material", "product", "goods"],
             "actions": ["eating", "cooking", "serving", "preparing", "dining", "meal time"],
             "places": ["restaurant", "kitchen", "dining room", "cafeteria", "food court"]
+        }
+
+        # Broad category mappings for consensus and conflict checks
+        self.food_categories = {
+            "meat": {"chicken", "beef", "pork", "lamb", "turkey", "ham", "bacon", "sausage", "pepperoni", "salami"},
+            "fish": {"salmon", "tuna", "cod", "tilapia", "shrimp", "crab", "lobster", "fish"},
+            "dairy": {"cheese", "milk", "yogurt", "cream", "butter"},
+            "eggs": {"egg", "eggs", "omelet"},
+            "carb": {"rice", "pasta", "bread", "toast", "pizza", "quinoa", "oats"},
+            "vegetable": {"vegetables", "salad", "broccoli", "spinach", "tomato", "cucumber", "lettuce", "onion", "carrot", "mushrooms"},
+            "fruit": {"apple", "banana", "orange", "strawberry", "berry", "grape"}
         }
 
     def _is_food_item(self, label: str) -> bool:
@@ -733,6 +744,9 @@ class GoogleVisionFoodDetector:
                     confidence_scores[it] = max(confidence_scores.get(it, 0.0), crop_confidence.get(it, 0.55))
                 print(f"🧩 After crop fusion, candidates: {detected_foods}")
             
+            # Category consensus filter to prevent outlier misclassifications
+            detected_foods, confidence_scores = self._apply_category_consensus(detected_foods, confidence_scores)
+
             # Enhanced confidence-based filtering with IMPROVED thresholds
             print(f"🎯 Pre-filtering: {len(detected_foods)} foods detected")
             filtered_foods = self._enhanced_confidence_filtering(detected_foods, confidence_scores)
@@ -1585,32 +1599,32 @@ class GoogleVisionFoodDetector:
         if not foods:
             return 0.0
         
-        # For single food item: use exactly 250g as requested
+        # For single food item: use a realistic single-serving size (~350g cooked meal equivalent)
         if len(foods) == 1:
             food = foods[0]
             protein_per_100g = self.protein_database.get(food, 5.0)
             
-            # Fixed portion size: exactly 250g as requested
-            portion_size = 250.0
+            # Realistic portion size for a single main dish
+            portion_size = 350.0
             total_protein = (protein_per_100g * portion_size) / 100.0
             # Validate and cap protein at realistic levels
             validated_protein = self._validate_protein_content(total_protein, 1)
             return round(validated_protein, 1)
         
-        # For multiple food items: use exactly 250g total as requested
+        # For two food items: share a realistic total (~400g)
         if len(foods) == 2:
             total_protein = 0.0
             
-            # Fixed portion sizes: 125g each for 2 foods = 250g total
+            # Fixed portion sizes: 200g each for 2 foods = 400g total
             for food in foods:
-                portion_size = 125.0  # Exactly 125g each as requested
+                portion_size = 200.0
                 protein_per_100g = self.protein_database.get(food, 5.0)
                 protein_for_this_item = (protein_per_100g * portion_size) / 100.0
                 total_protein += protein_for_this_item
                     
         else:
             # For 3+ items: use SMART portion distribution
-            # Total plate should be around 400-500g for a full meal
+            # Total plate should scale with number of foods for realistic calories
             total_plate_weight = self._get_total_plate_weight(len(foods))
             
             # Distribute portions intelligently based on food type and importance
@@ -1667,9 +1681,19 @@ class GoogleVisionFoodDetector:
         return portion_sizes.get(food.lower(), 100.0)
     
     def _get_total_plate_weight(self, num_foods: int) -> float:
-        """Get total plate weight - fixed at 250g as requested"""
-        # Fixed total plate weight: 250g as requested by user
-        return 250.0
+        """Get total plate weight based on number of foods (realistic cooked weights)."""
+        if num_foods <= 1:
+            return 350.0  # Single entree
+        if num_foods == 2:
+            return 400.0  # Entree + side
+        if num_foods == 3:
+            return 600.0  # Protein + carb + veg
+        if num_foods == 4:
+            return 700.0
+        if num_foods == 5:
+            return 850.0
+        # 6 or more items (buffet/tapas style)
+        return 1000.0
     
     def _get_adjusted_portion_for_plate(self, food: str, all_foods: List[str], total_plate_weight: float) -> float:
         """Get adjusted portion size for multi-item plates - fixed at 250g total"""
@@ -1678,31 +1702,32 @@ class GoogleVisionFoodDetector:
         medium_priority = ["rice", "pasta", "quinoa", "bread", "toast", "wrap", "pizza"]
         low_priority = ["vegetables", "salad", "tomato", "cucumber", "lettuce", "sauce", "gravy", "lemon"]
         
-        # Calculate portion based on priority and total plate weight (250g)
+        # Calculate portion based on priority and total plate weight
         num_foods = len(all_foods)
         
         if num_foods == 2:
-            # 2 foods: 125g each
-            return 125.0
-        elif num_foods == 3:
+            # 2 foods: even split
+            return total_plate_weight / 2.0
+        if num_foods == 3:
             # 3 foods: prioritize protein, then carbs, then sides
             if food in high_priority:
-                return 100.0  # Protein gets 100g
-            elif food in medium_priority:
-                return 100.0  # Carbs get 100g  
-            else:
-                return 50.0   # Sides get 50g
-        elif num_foods == 4:
-            # 4 foods: distribute evenly with protein priority
+                return total_plate_weight * 0.40
+            if food in medium_priority:
+                return total_plate_weight * 0.40
+            return total_plate_weight * 0.20
+        if num_foods == 4:
+            # 4 foods: 35% protein, 35% carb, 30% others split
             if food in high_priority:
-                return 75.0   # Protein gets 75g
-            elif food in medium_priority:
-                return 75.0   # Carbs get 75g
-            else:
-                return 50.0   # Sides get 50g
-        else:
-            # 5+ foods: distribute evenly
-            return total_plate_weight / num_foods
+                return total_plate_weight * 0.35
+            if food in medium_priority:
+                return total_plate_weight * 0.35
+            return total_plate_weight * 0.30 / max(1, len([f for f in all_foods if f not in high_priority and f not in medium_priority]))
+        # 5+ foods: distribute with slight preference to protein and carbs
+        if food in high_priority:
+            return total_plate_weight * 0.30 / max(1, len([f for f in all_foods if f in high_priority]))
+        if food in medium_priority:
+            return total_plate_weight * 0.30 / max(1, len([f for f in all_foods if f in medium_priority]))
+        return total_plate_weight * 0.40 / max(1, len([f for f in all_foods if f not in high_priority and f not in medium_priority]))
     
     def _validate_protein_content(self, calculated_protein: float, num_foods: int) -> float:
         """Validate and cap protein content at realistic levels for typical meals"""
@@ -2105,6 +2130,68 @@ class GoogleVisionFoodDetector:
             if len(canonical) >= 5:
                 break
         return canonical
+
+    def _apply_category_consensus(self, foods: List[str], conf: Dict[str, float]) -> Tuple[List[str], Dict[str, float]]:
+        """Require consensus across broad categories and suppress improbable outliers.
+        Example: if most signals point to vegetables/carb, suppress a lone meat term at low confidence.
+        """
+        if not foods:
+            return foods, conf
+
+        # Count categories
+        category_counts: Dict[str, int] = {}
+        food_to_category: Dict[str, str] = {}
+        for f in foods:
+            cat = None
+            for c, items in self.food_categories.items():
+                if f in items:
+                    cat = c
+                    break
+            if cat:
+                category_counts[cat] = category_counts.get(cat, 0) + 1
+                food_to_category[f] = cat
+
+        if not category_counts:
+            # No category info; return as-is
+            return foods, conf
+
+        # Dominant category = the one with max count
+        dominant_category = max(category_counts.items(), key=lambda kv: kv[1])[0]
+
+        kept: List[str] = []
+        new_conf: Dict[str, float] = {}
+        for f in foods:
+            cval = conf.get(f, 0.5)
+            cat = food_to_category.get(f)
+
+            if not cat:
+                # Unknown category: keep if decent confidence
+                if cval >= 0.60:
+                    kept.append(f)
+                    new_conf[f] = cval
+                continue
+
+            if cat == dominant_category:
+                kept.append(f)
+                new_conf[f] = cval
+                continue
+
+            # Outlier category: require higher confidence to keep
+            # Prevent salad->pork style errors by requiring strong evidence for outliers
+            if cval >= 0.80:
+                kept.append(f)
+                new_conf[f] = cval
+            else:
+                print(f"   ⚠️  Suppressed outlier '{f}' in category '{cat}' (confidence {cval:.2f}) vs dominant '{dominant_category}'")
+
+        # Ensure at least one item remains
+        if not kept:
+            # Keep the highest confidence original item
+            top = max(foods, key=lambda x: conf.get(x, 0.0))
+            kept = [top]
+            new_conf[top] = conf.get(top, 0.5)
+
+        return kept, new_conf
 
     def _filter_and_prioritize_foods(self, foods: List[str], confidence_scores: Dict[str, float]) -> List[str]:
         """Filter and prioritize detected foods using improved logic for complex dishes"""

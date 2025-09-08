@@ -319,16 +319,29 @@ def generate_verification_token() -> str:
 def calculate_protein_goal(weight_kg: float, activity_level: str = "moderate") -> float:
     """Calculate protein goal based on weight and activity level"""
     # Calculate protein needs based on activity level (g per kg body weight)
+    # Slightly elevated to better align with calorie needs
     protein_multipliers = {
-        'sedentary': 0.8,
-        'light': 1.0,
-        'moderate': 1.2,
-        'active': 1.6,
+        'sedentary': 1.0,
+        'light': 1.2,
+        'moderate': 1.4,
+        'active': 1.7,
         'athlete': 2.0
     }
-    
-    multiplier = protein_multipliers.get(activity_level, 1.2)
-    return round(weight_kg * multiplier, 1)
+
+    multiplier = protein_multipliers.get(activity_level, 1.4)
+    weight_based = weight_kg * multiplier
+
+    # Ensure protein isn't disproportionately low relative to calories
+    # Use at least ~18% of estimated calories as protein (cal/4 = grams)
+    estimated_calories = calculate_calorie_goal(weight_kg, activity_level)
+    calorie_floor_g = 0.18 * estimated_calories / 4.0
+
+    # Cap for safety at ~2.2 g/kg upper bound commonly recommended
+    upper_cap = 2.2 * weight_kg
+
+    goal = max(weight_based, calorie_floor_g)
+    goal = min(goal, upper_cap)
+    return round(goal, 1)
 
 def calculate_calorie_goal(weight_kg: float, activity_level: str = "moderate") -> float:
     """Calculate calorie goal based on weight and activity level"""
