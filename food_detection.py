@@ -758,6 +758,17 @@ class GoogleVisionFoodDetector:
             # Canonicalize outputs to database-friendly items
             filtered_foods = self._canonicalize_food_list(filtered_foods)
 
+            # If a strong pizza signal exists, correct cheese-only cases
+            try:
+                if web_detection and getattr(web_detection, 'web_entities', None):
+                    wd = [getattr(e, 'description', '').lower() for e in web_detection.web_entities or []]
+                    if 'pizza' in wd or any('pizza' in (d or '') for d in wd):
+                        if 'pizza' not in filtered_foods and 'cheese' in filtered_foods:
+                            print("   🍕 Detected pizza context in web entities; mapping cheese → pizza")
+                            filtered_foods = [f for f in filtered_foods if f != 'cheese'] + ['pizza']
+            except Exception:
+                pass
+
             # Estimate portions directly from image using object localization area and confidences
             portions_g, total_estimated = self._estimate_portions_from_image(localized_objects, filtered_foods, confidence_scores, image_path)
             
@@ -2192,16 +2203,17 @@ class GoogleVisionFoodDetector:
             # Heuristic: map total relative area to grams range depending on zoom
             # Use piecewise mapping to avoid extremes
             avg_rel_area = min(1.0, max(0.0, total_rel_area))
+            # Calibrated to avoid unrealistic gram totals
             if avg_rel_area > 0.35:
-                est_total_g = 600.0
+                est_total_g = 350.0
             elif avg_rel_area > 0.20:
-                est_total_g = 450.0
+                est_total_g = 250.0
             elif avg_rel_area > 0.10:
-                est_total_g = 300.0
+                est_total_g = 180.0
             elif avg_rel_area > 0.05:
-                est_total_g = 200.0
-            else:
                 est_total_g = 120.0
+            else:
+                est_total_g = 80.0
 
             # Distribute grams across foods by combining food confidence and region prominence
             # Build food weights
@@ -2228,9 +2240,20 @@ class GoogleVisionFoodDetector:
                 region_share = region_weights[idx % len(region_weights)]
                 conf_share = food_weights[food]
                 share = 0.5 * region_share + 0.5 * conf_share
-                portions[food] = round(share * est_total_g, 1)
+                grams = share * est_total_g
+                # Per-food portion caps to avoid extremes
+                grams = max(20.0, min(grams, 220.0))
+                portions[food] = round(grams, 1)
 
-            return portions, round(est_total_g, 1)
+            # Ensure total grams are not excessive
+            total_grams = sum(portions.values())
+            if total_grams > 450.0:
+                scale = 450.0 / total_grams
+                for k in portions:
+                    portions[k] = round(portions[k] * scale, 1)
+                total_grams = round(450.0, 1)
+
+            return portions, round(total_grams, 1)
         except Exception as _e:
             print(f"⚠️ Portion estimation failed: {_e}")
             return {}, 0.0

@@ -1731,7 +1731,10 @@ async def upload_meal(
                         result = None
                 except Exception:
                     result = None
-                detected_foods = identify_food_with_vision(file_path)
+                # Use the structured result foods if present; otherwise fallback
+                detected_foods = result.get('foods', []) if isinstance(result, dict) else []
+                if not detected_foods:
+                    detected_foods = identify_food_with_vision(file_path)
                 ai_detection_status["successful"] = len(detected_foods) > 0
                 print(f"🎯 Multi-Item AI Detection Results: {detected_foods}")
                 print(f"✅ AI Detection Success: {ai_detection_status['successful']}")
