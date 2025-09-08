@@ -757,6 +757,9 @@ class GoogleVisionFoodDetector:
 
             # Canonicalize outputs to database-friendly items
             filtered_foods = self._canonicalize_food_list(filtered_foods)
+
+            # Estimate portions directly from image using object localization area and confidences
+            portions_g, total_estimated = self._estimate_portions_from_image(localized_objects, filtered_foods, confidence_scores, image_path)
             
             if not filtered_foods:
                 print("⚠️  No food items detected in image")
@@ -767,8 +770,11 @@ class GoogleVisionFoodDetector:
                     "detection_method": "google_vision_api"
                 }
             
-            # Calculate total protein content using the new 250g total system
-            total_protein = self.calculate_protein_content(filtered_foods)
+            # Calculate total protein content using estimated portions when available
+            if portions_g:
+                total_protein = self._calculate_protein_from_portions(filtered_foods, portions_g)
+            else:
+                total_protein = self.calculate_protein_content(filtered_foods)
             
             print(f"🎯 Successfully detected {len(filtered_foods)} food items:")
             for food in filtered_foods:
@@ -787,6 +793,8 @@ class GoogleVisionFoodDetector:
                 "foods": filtered_foods,
                 "protein_per_100g": total_protein,  # Now represents protein for 250g total food
                 "confidence_scores": {k: v for k, v in confidence_scores.items() if k in filtered_foods},
+                "portions_g": portions_g,
+                "estimated_total_g": total_estimated,
                 "detection_method": "google_vision_api"
             }
             
@@ -2130,6 +2138,110 @@ class GoogleVisionFoodDetector:
             if len(canonical) >= 5:
                 break
         return canonical
+
+    def _estimate_portions_from_image(self, localized_objects, foods: List[str], conf: Dict[str, float], image_path: str) -> Tuple[Dict[str, float], float]:
+        """Estimate per-food portions (grams) using object areas and confidences.
+        - Sum areas of foodish objects; map areas to foods by confidence order
+        - Convert relative area → grams using image size and heuristic density
+        """
+        try:
+            if not localized_objects or not foods:
+                return {}, 0.0
+            if not _PIL_AVAILABLE:
+                return {}, 0.0
+            base_img = Image.open(image_path).convert('RGB')
+            w, h = base_img.size
+            image_area = float(w * h)
+            if image_area <= 0:
+                return {}, 0.0
+
+            # Collect foodish object areas
+            foodish_names = {"Food", "Dish", "Bowl", "Plate", "Fruit", "Vegetable", "Sandwich", "Bread", "Pizza", "Cake"}
+            regions = []
+            for obj in localized_objects:
+                name = getattr(obj, 'name', '')
+                score = float(getattr(obj, 'score', 0.0) or 0.0)
+                vertices = getattr(obj, 'bounding_poly', None)
+                if not vertices:
+                    continue
+                vs = getattr(vertices, 'normalized_vertices', [])
+                if not vs:
+                    continue
+                xs = [v.x for v in vs]
+                ys = [v.y for v in vs]
+                left = max(0.0, min(xs))
+                top = max(0.0, min(ys))
+                right = min(1.0, max(xs))
+                bottom = min(1.0, max(ys))
+                area = max(0.0, (right - left) * (bottom - top))
+                if area <= 0.0:
+                    continue
+                # Prefer explicitly foodish objects or high score
+                if name in foodish_names or score >= 0.60:
+                    regions.append({"area": area, "score": score, "name": name})
+
+            if not regions:
+                return {}, 0.0
+
+            # Sort regions by area*score (proxy for food mass prominence)
+            regions.sort(key=lambda r: r["area"] * (0.5 + 0.5 * r["score"]), reverse=True)
+            total_rel_area = sum(r["area"] for r in regions)
+            if total_rel_area <= 0.0:
+                return {}, 0.0
+
+            # Heuristic: map total relative area to grams range depending on zoom
+            # Use piecewise mapping to avoid extremes
+            avg_rel_area = min(1.0, max(0.0, total_rel_area))
+            if avg_rel_area > 0.35:
+                est_total_g = 600.0
+            elif avg_rel_area > 0.20:
+                est_total_g = 450.0
+            elif avg_rel_area > 0.10:
+                est_total_g = 300.0
+            elif avg_rel_area > 0.05:
+                est_total_g = 200.0
+            else:
+                est_total_g = 120.0
+
+            # Distribute grams across foods by combining food confidence and region prominence
+            # Build food weights
+            food_weights: Dict[str, float] = {}
+            for food in foods:
+                food_weights[food] = max(0.05, conf.get(food, 0.5))
+            # Normalize food weights
+            sw = sum(food_weights.values())
+            if sw <= 0:
+                return {}, 0.0
+            for k in food_weights:
+                food_weights[k] /= sw
+
+            # Multiply by region prominence to reflect amount on plate
+            # Use top-N regions equal to number of foods
+            top_regions = regions[:len(foods)]
+            region_weights = [r["area"] for r in top_regions]
+            sr = sum(region_weights) or 1.0
+            region_weights = [rw / sr for rw in region_weights]
+
+            # Final per-food share: average of food confidence share and region share
+            portions: Dict[str, float] = {}
+            for idx, food in enumerate(foods):
+                region_share = region_weights[idx % len(region_weights)]
+                conf_share = food_weights[food]
+                share = 0.5 * region_share + 0.5 * conf_share
+                portions[food] = round(share * est_total_g, 1)
+
+            return portions, round(est_total_g, 1)
+        except Exception as _e:
+            print(f"⚠️ Portion estimation failed: {_e}")
+            return {}, 0.0
+
+    def _calculate_protein_from_portions(self, foods: List[str], portions: Dict[str, float]) -> float:
+        total = 0.0
+        for f in foods:
+            grams = float(portions.get(f, 0.0))
+            per100 = float(self.protein_database.get(f, 5.0))
+            total += per100 * grams / 100.0
+        return round(total, 1)
 
     def _apply_category_consensus(self, foods: List[str], conf: Dict[str, float]) -> Tuple[List[str], Dict[str, float]]:
         """Require consensus across broad categories and suppress improbable outliers.

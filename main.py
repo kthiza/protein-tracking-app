@@ -5,7 +5,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse, HTMLResponse
 from sqlmodel import SQLModel, create_engine, Session, select, Field, func
 from sqlalchemy import text
-from typing import List, Optional
+from typing import List, Optional, Dict
 import os
 from datetime import datetime, timedelta
 import json
@@ -597,58 +597,15 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
     """Calculate total protein content for detected foods with realistic portion sizing"""
     matched_foods = []
     
-    # For single food item: use realistic portion sizing
-    if len(food_items) == 1:
-        food_lower = food_items[0].lower().strip()
-        protein_per_100g = 0.0
-        
-        if food_lower in PROTEIN_DATABASE:
-            protein_per_100g = PROTEIN_DATABASE[food_lower]
-            matched_foods.append(food_items[0])
-            print(f"   ✅ Matched '{food_items[0]}' -> {protein_per_100g}g protein/100g")
-        else:
-            # Try to find a match
-            for db_item, protein_value in PROTEIN_DATABASE.items():
-                if db_item in food_lower or food_lower in db_item:
-                    protein_per_100g = protein_value
-                    matched_foods.append(food_items[0])
-                    print(f"   ✅ Matched '{food_items[0]}' -> {protein_value}g protein/100g (via '{db_item}')")
-                    break
-            if protein_per_100g == 0.0:
-                protein_per_100g = _estimate_protein_from_food_name(food_lower)
-                print(f"   ⚠️  No exact match for '{food_items[0]}' -> {protein_per_100g}g protein/100g (estimated)")
-        
-        # Calculate realistic portion size based on food density
-        realistic_portion = _get_realistic_portion_size(food_lower)
-        total_protein = (protein_per_100g * realistic_portion) / 100.0
-        
-        print(f"📊 Single food item: {food_items[0]}, {realistic_portion}g (realistic portion)")
-        print(f"📊 Protein calculation: {total_protein:.1f}g from {realistic_portion}g of {food_items[0]}")
-        return round(total_protein, 1), matched_foods
-    
-    # For multiple food items: use weighted distribution based on food density
-    total_weight = 0.0
-    food_weights = {}
-    
-    # Calculate appropriate weights for each food item
-    for food_item in food_items:
-        food_lower = food_item.lower().strip()
-        realistic_portion = _get_realistic_portion_size(food_lower)
-        food_weights[food_item] = realistic_portion
-        total_weight += realistic_portion
-    
-    # Normalize to 450g total for realistic plate size
-    if total_weight > 0:
-        scale_factor = 450.0 / total_weight
-        for food_item in food_weights:
-            food_weights[food_item] *= scale_factor
-    
+    # Compute unified portion weights for both protein and calories
+    food_weights, normalized_total = _compute_portion_weights(food_items)
     total_protein = 0.0
     
+    # Single or multi-item path now uses identical weights
     for food_item in food_items:
         food_lower = food_item.lower().strip()
         protein_per_100g = 0.0
-        portion_weight = food_weights.get(food_item, 250.0 / len(food_items))
+        portion_weight = food_weights.get(food_item, 0.0)
         
         if food_lower in PROTEIN_DATABASE:
             protein_per_100g = PROTEIN_DATABASE[food_lower]
@@ -670,66 +627,22 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
         total_protein += protein_for_this_item
         print(f"   📊 {food_item}: {portion_weight:.0f}g → {protein_for_this_item:.1f}g protein")
     
-    print(f"📊 Multiple food items: {len(food_items)} items, {total_weight:.0f}g total → 450g normalized")
-    print(f"📊 Protein calculation: {total_protein:.1f}g from 450g total")
+    print(f"📊 Protein calculation: {total_protein:.1f}g from {normalized_total:.0f}g total (unified)")
     return round(total_protein, 1), matched_foods
 
 def calculate_calories_enhanced(food_items: List[str]) -> tuple[float, List[str]]:
     """Calculate total calories for detected foods with realistic portion sizing"""
     matched_foods = []
     
-    # For single food item: use realistic portion sizing
-    if len(food_items) == 1:
-        food_lower = food_items[0].lower().strip()
-        calories_per_100g = 0.0
-        
-        if food_lower in CALORIE_DATABASE:
-            calories_per_100g = CALORIE_DATABASE[food_lower]
-            matched_foods.append(food_items[0])
-            print(f"   ✅ Matched '{food_items[0]}' -> {calories_per_100g} calories/100g")
-        else:
-            # Try to find a match
-            for db_item, calorie_value in CALORIE_DATABASE.items():
-                if db_item in food_lower or food_lower in db_item:
-                    calories_per_100g = calorie_value
-                    matched_foods.append(food_items[0])
-                    print(f"   ✅ Matched '{food_items[0]}' -> {calorie_value} calories/100g (via '{db_item}')")
-                    break
-            if calories_per_100g == 0.0:
-                calories_per_100g = _estimate_calories_from_food_name(food_lower)
-                print(f"   ⚠️  No exact match for '{food_items[0]}' -> {calories_per_100g} calories/100g (estimated)")
-        
-        # Calculate realistic portion size based on food density
-        realistic_portion = _get_realistic_portion_size(food_lower)
-        total_calories = (calories_per_100g * realistic_portion) / 100.0
-        
-        print(f"📊 Single food item: {food_items[0]}, {realistic_portion}g (realistic portion)")
-        print(f"📊 Calorie calculation: {total_calories:.1f} calories from {realistic_portion}g of {food_items[0]}")
-        return round(total_calories, 1), matched_foods
-    
-    # For multiple food items: use weighted distribution based on food density
-    total_weight = 0.0
-    food_weights = {}
-    
-    # Calculate appropriate weights for each food item
-    for food_item in food_items:
-        food_lower = food_item.lower().strip()
-        realistic_portion = _get_realistic_portion_size(food_lower)
-        food_weights[food_item] = realistic_portion
-        total_weight += realistic_portion
-    
-    # Normalize to 700g total for realistic plate size (supports higher-calorie uploads)
-    if total_weight > 0:
-        scale_factor = 700.0 / total_weight
-        for food_item in food_weights:
-            food_weights[food_item] *= scale_factor
+    # Use the same unified portion weights as protein calculation
+    food_weights, normalized_total = _compute_portion_weights(food_items)
     
     total_calories = 0.0
     
     for food_item in food_items:
         food_lower = food_item.lower().strip()
         calories_per_100g = 0.0
-        portion_weight = food_weights.get(food_item, 250.0 / len(food_items))
+        portion_weight = food_weights.get(food_item, 0.0)
         
         if food_lower in CALORIE_DATABASE:
             calories_per_100g = CALORIE_DATABASE[food_lower]
@@ -751,9 +664,38 @@ def calculate_calories_enhanced(food_items: List[str]) -> tuple[float, List[str]
         total_calories += calories_for_this_item
         print(f"   📊 {food_item}: {portion_weight:.0f}g → {calories_for_this_item:.1f} calories")
     
-    print(f"📊 Multiple food items: {len(food_items)} items, {total_weight:.0f}g total → 700g normalized")
-    print(f"📊 Calorie calculation: {total_calories:.1f} calories from 700g total")
+    print(f"📊 Calorie calculation: {total_calories:.1f} calories from {normalized_total:.0f}g total (unified)")
     return round(total_calories, 1), matched_foods
+
+def _compute_portion_weights(food_items: List[str]) -> tuple[Dict[str, float], float]:
+    """Compute unified portion weights for protein and calorie calculations.
+    - Start from realistic per-item portions
+    - Normalize total weight based on number of items
+    """
+    total_weight = 0.0
+    food_weights: Dict[str, float] = {}
+    for food_item in food_items:
+        food_lower = food_item.lower().strip()
+        realistic_portion = _get_realistic_portion_size(food_lower)
+        food_weights[food_item] = realistic_portion
+        total_weight += realistic_portion
+
+    # Choose normalization target by number of items to balance protein:calorie ratio
+    if len(food_items) <= 1:
+        target_total = 400.0
+    elif len(food_items) == 2:
+        target_total = 600.0
+    elif len(food_items) <= 4:
+        target_total = 800.0
+    else:
+        target_total = 1000.0
+
+    if total_weight > 0:
+        scale_factor = target_total / total_weight
+        for key in food_weights:
+            food_weights[key] *= scale_factor
+
+    return food_weights, target_total
 
 def _estimate_protein_from_food_name(food_name: str) -> float:
     """
@@ -1776,9 +1718,19 @@ async def upload_meal(
         print(f"📁 Uploaded file: {filename}")
         print(f"📁 File path: {file_path}")
         
+        result = None
         if use_ai_detection:
             try:
                 print(f"🔍 Starting AI detection for: {file_path}")
+                # Call detection and capture structured result if available
+                try:
+                    from food_detection import GoogleVisionFoodDetector
+                    if GOOGLE_VISION_AVAILABLE:
+                        result = GoogleVisionFoodDetector().detect_food_in_image(file_path)
+                    else:
+                        result = None
+                except Exception:
+                    result = None
                 detected_foods = identify_food_with_vision(file_path)
                 ai_detection_status["successful"] = len(detected_foods) > 0
                 print(f"🎯 Multi-Item AI Detection Results: {detected_foods}")
@@ -1830,8 +1782,24 @@ async def upload_meal(
             
             raise HTTPException(status_code=400, detail=error_message)
         
-        total_protein, matched_foods = calculate_protein_enhanced(food_list)
-        total_calories, _ = calculate_calories_enhanced(food_list)
+        # Use portions estimated by detector when available
+        portions_g = result.get('portions_g') if isinstance(result, dict) else None
+        if portions_g:
+            # Keep list order weights
+            ordered_portions = [float(portions_g.get(f, 0.0)) for f in food_list]
+            total_protein = 0.0
+            total_calories = 0.0
+            for f, grams in zip(food_list, ordered_portions):
+                f_lower = f.lower().strip()
+                per100_p = PROTEIN_DATABASE.get(f_lower, _estimate_protein_from_food_name(f_lower))
+                per100_c = CALORIE_DATABASE.get(f_lower, _estimate_calories_from_food_name(f_lower))
+                total_protein += per100_p * grams / 100.0
+                total_calories += per100_c * grams / 100.0
+            total_protein = round(total_protein, 1)
+            total_calories = round(total_calories, 1)
+        else:
+            total_protein, matched_foods = calculate_protein_enhanced(food_list)
+            total_calories, _ = calculate_calories_enhanced(food_list)
         
         with Session(engine) as session:
             meal = Meal(
