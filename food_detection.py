@@ -459,16 +459,66 @@ class GoogleVisionFoodDetector:
         
         # High-confidence food keywords that should trigger detection
         self.food_keywords = {
-            "meat": ["chicken", "beef", "pork", "lamb", "turkey", "duck", "steak", "meat"],
-            "fish": ["salmon", "tuna", "cod", "tilapia", "fish", "seafood"],
-            "dairy": ["milk", "cheese", "yogurt", "cream", "butter"],
-            "eggs": ["egg", "eggs", "omelet", "scrambled"],
-            "legumes": ["beans", "lentils", "chickpeas", "peas"],
-            "nuts": ["almonds", "walnuts", "peanuts", "cashews", "nuts"],
-            "grains": ["rice", "bread", "pasta", "oats", "quinoa", "cereal"],
-            "vegetables": ["broccoli", "spinach", "carrot", "potato", "tomato"],
-            "fruits": ["apple", "banana", "orange", "berry", "fruit"]
+            "meat": ["chicken", "beef", "pork", "lamb", "turkey", "duck", "steak", "meat", "bacon", "ham", "sausage"],
+            "fish": ["salmon", "tuna", "cod", "tilapia", "fish", "seafood", "shrimp", "crab", "lobster"],
+            "dairy": ["milk", "cheese", "yogurt", "cream", "butter", "cottage cheese", "greek yogurt"],
+            "eggs": ["egg", "eggs", "omelet", "scrambled", "fried egg", "boiled egg"],
+            "legumes": ["beans", "lentils", "chickpeas", "peas", "soy", "tofu"],
+            "nuts": ["almonds", "walnuts", "peanuts", "cashews", "nuts", "pistachio"],
+            "grains": ["rice", "bread", "pasta", "oats", "quinoa", "cereal", "noodles", "spaghetti"],
+            "vegetables": ["broccoli", "spinach", "carrot", "potato", "tomato", "onion", "pepper", "lettuce"],
+            "fruits": ["apple", "banana", "orange", "berry", "fruit", "grape", "strawberry", "blueberry"]
         }
+        
+        # Non-food items that should be filtered out
+        self.non_food_keywords = {
+            "containers": ["plate", "bowl", "dish", "cup", "glass", "mug", "container", "plateware"],
+            "utensils": ["fork", "knife", "spoon", "chopstick", "chopsticks", "utensil", "cutlery"],
+            "furniture": ["table", "chair", "counter", "surface", "desk", "furniture"],
+            "appliances": ["microwave", "oven", "stove", "refrigerator", "appliance", "kitchen"],
+            "materials": ["ceramic", "plastic", "metal", "wood", "glass", "fabric", "paper"],
+            "generic": ["object", "item", "thing", "stuff", "material", "product", "goods"],
+            "actions": ["eating", "cooking", "serving", "preparing", "dining", "meal time"],
+            "places": ["restaurant", "kitchen", "dining room", "cafeteria", "food court"]
+        }
+
+    def _is_food_item(self, label: str) -> bool:
+        """Validate if a detected label is actually a food item"""
+        label_lower = label.lower().strip()
+        
+        # Check if it's explicitly a non-food item
+        for category, keywords in self.non_food_keywords.items():
+            if any(keyword in label_lower for keyword in keywords):
+                return False
+        
+        # Check if it contains food keywords
+        for category, keywords in self.food_keywords.items():
+            if any(keyword in label_lower for keyword in keywords):
+                return True
+        
+        # Check if it's in our protein database (direct food match)
+        if label_lower in self.protein_database:
+            return True
+        
+        # Check for common food patterns
+        food_patterns = [
+            "food", "meal", "dish", "cuisine", "recipe", "ingredient",
+            "breakfast", "lunch", "dinner", "snack", "dessert",
+            "soup", "salad", "sandwich", "pizza", "burger", "pasta",
+            "cake", "pie", "cookie", "bread", "roll", "muffin"
+        ]
+        
+        if any(pattern in label_lower for pattern in food_patterns):
+            return True
+        
+        # If it's a single word and not obviously non-food, be more lenient
+        if len(label_lower.split()) == 1 and len(label_lower) > 3:
+            # Avoid obvious non-food single words
+            non_food_single_words = ["plate", "bowl", "cup", "glass", "fork", "knife", "spoon", "table", "chair"]
+            if label_lower not in non_food_single_words:
+                return True
+        
+        return False
 
     def detect_food_in_image(self, image_path: str) -> Dict:
         """Detect food items in an image using Google Vision API with multi-item meal support"""
@@ -567,38 +617,55 @@ class GoogleVisionFoodDetector:
                 label_desc = label.description.lower().strip()
                 confidence = label.score
                 
-                # IMPROVED confidence threshold system for better accuracy
-                if confidence >= 0.70:  # High confidence - process all (lowered from 0.75)
-                    print(f"   🔍 High confidence: {label_desc} (confidence: {confidence:.3f})")
-                    food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
-                    for food in food_items:
-                        if food not in detected_foods:
-                            detected_foods.append(food)
-                            confidence_scores[food] = confidence
-                            print(f"      ✅ Added: {food}")
-                elif confidence >= 0.55:  # Medium confidence - be more inclusive (lowered from 0.65)
-                    print(f"   🔍 Medium confidence: {label_desc} (confidence: {confidence:.3f})")
-                    # Process more food items, not just specific ones
-                    food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
-                    for food in food_items:
-                        if food not in detected_foods:
-                            detected_foods.append(food)
-                            confidence_scores[food] = confidence
-                            print(f"      ✅ Added: {food}")
-                elif confidence >= 0.45:  # Low confidence - still process for food keywords (new threshold)
-                    print(f"   🔍 Low confidence: {label_desc} (confidence: {confidence:.3f})")
-                    # Only process if it contains clear food keywords
-                    if any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "bacon", "sausage", "fish", "meat", "vegetable", "salad", "fruit"]):
+                # IMPROVED confidence threshold system with food validation
+                if confidence >= 0.75:  # Very high confidence - process all
+                    print(f"   🔍 Very high confidence: {label_desc} (confidence: {confidence:.3f})")
+                    if self._is_food_item(label_desc):
                         food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
                         for food in food_items:
                             if food not in detected_foods:
                                 detected_foods.append(food)
                                 confidence_scores[food] = confidence
-                                print(f"      ✅ Added from low confidence: {food}")
+                                print(f"      ✅ Added: {food}")
                     else:
-                        print(f"      ⚠️  Skipped non-food item: {label_desc}")
+                        print(f"      ❌ Filtered out non-food: {label_desc}")
+                elif confidence >= 0.65:  # High confidence - process with validation
+                    print(f"   🔍 High confidence: {label_desc} (confidence: {confidence:.3f})")
+                    if self._is_food_item(label_desc):
+                        food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
+                        for food in food_items:
+                            if food not in detected_foods:
+                                detected_foods.append(food)
+                                confidence_scores[food] = confidence
+                                print(f"      ✅ Added: {food}")
+                    else:
+                        print(f"      ❌ Filtered out non-food: {label_desc}")
+                elif confidence >= 0.55:  # Medium confidence - strict validation
+                    print(f"   🔍 Medium confidence: {label_desc} (confidence: {confidence:.3f})")
+                    # Only process if it's clearly food and contains specific food keywords
+                    if self._is_food_item(label_desc) and any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "vegetable", "salad", "fruit", "soup", "sandwich", "pizza", "burger", "noodle", "grain", "dairy"]):
+                        food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
+                        for food in food_items:
+                            if food not in detected_foods:
+                                detected_foods.append(food)
+                                confidence_scores[food] = confidence
+                                print(f"      ✅ Added: {food}")
+                    else:
+                        print(f"      ❌ Filtered out unclear/non-food: {label_desc}")
+                elif confidence >= 0.50:  # Low confidence - very strict validation
+                    print(f"   🔍 Low confidence: {label_desc} (confidence: {confidence:.3f})")
+                    # Only process if it's very clearly food with high-confidence keywords
+                    if self._is_food_item(label_desc) and any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat"]):
+                        food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
+                        for food in food_items:
+                            if food not in detected_foods:
+                                detected_foods.append(food)
+                                confidence_scores[food] = confidence
+                                print(f"      ✅ Added: {food}")
+                    else:
+                        print(f"      ❌ Filtered out low confidence: {label_desc}")
                 else:
-                    print(f"   ❌ Skipped: {label_desc} (confidence: {confidence:.3f} < 0.45)")
+                    print(f"   ❌ Skipped: {label_desc} (confidence: {confidence:.3f} < 0.50)")
             
             # Process web detection results with IMPROVED thresholds for better multi-item detection
             if web_detection.web_entities:
@@ -607,28 +674,45 @@ class GoogleVisionFoodDetector:
                     entity_desc = entity.description.lower().strip()
                     confidence = entity.score
                     
-                    # IMPROVED thresholds for web entities to catch more foods
-                    if confidence >= 0.65:  # High confidence (lowered from 0.70)
+                    # IMPROVED thresholds for web entities with food validation
+                    if confidence >= 0.70:  # Very high confidence web entities
+                        print(f"   🌐 Very high confidence web entity: {entity_desc} (score: {confidence:.3f})")
+                        if self._is_food_item(entity_desc):
+                            food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
+                            for food in food_items:
+                                if food not in detected_foods:
+                                    detected_foods.append(food)
+                                    confidence_scores[food] = confidence
+                                    print(f"      ✅ Added from web: {food}")
+                        else:
+                            print(f"      ❌ Filtered out non-food web entity: {entity_desc}")
+                    elif confidence >= 0.60:  # High confidence web entities
                         print(f"   🌐 High confidence web entity: {entity_desc} (score: {confidence:.3f})")
-                        food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
-                        for food in food_items:
-                            if food not in detected_foods:
-                                detected_foods.append(food)
-                                confidence_scores[food] = confidence
-                                print(f"      ✅ Added from web: {food}")
-                    elif confidence >= 0.55:  # Medium confidence (lowered from 0.60)
+                        if self._is_food_item(entity_desc):
+                            food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
+                            for food in food_items:
+                                if food not in detected_foods:
+                                    detected_foods.append(food)
+                                    confidence_scores[food] = confidence
+                                    print(f"      ✅ Added from web: {food}")
+                        else:
+                            print(f"      ❌ Filtered out non-food web entity: {entity_desc}")
+                    elif confidence >= 0.55:  # Medium confidence web entities
                         print(f"   🌐 Medium confidence web entity: {entity_desc} (score: {confidence:.3f})")
-                        # Process more food items from web detection
-                        food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
-                        for food in food_items:
-                            if food not in detected_foods:
-                                detected_foods.append(food)
-                                confidence_scores[food] = confidence
-                                print(f"      ✅ Added from web: {food}")
-                    elif confidence >= 0.45:  # Low confidence - new threshold for web entities
+                        # Only process if it's clearly food and contains specific food keywords
+                        if self._is_food_item(entity_desc) and any(keyword in entity_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "vegetable", "salad", "fruit", "soup", "sandwich", "pizza", "burger"]):
+                            food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
+                            for food in food_items:
+                                if food not in detected_foods:
+                                    detected_foods.append(food)
+                                    confidence_scores[food] = confidence
+                                    print(f"      ✅ Added from web: {food}")
+                        else:
+                            print(f"      ❌ Filtered out unclear/non-food web entity: {entity_desc}")
+                    elif confidence >= 0.50:  # Low confidence web entities
                         print(f"   🌐 Low confidence web entity: {entity_desc} (score: {confidence:.3f})")
-                        # Only process if it contains clear food keywords
-                        if any(keyword in entity_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "vegetable", "salad"]):
+                        # Only process if it's very clearly food with high-confidence keywords
+                        if self._is_food_item(entity_desc) and any(keyword in entity_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat"]):
                             food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
                             for food in food_items:
                                 if food not in detected_foods:
@@ -636,9 +720,9 @@ class GoogleVisionFoodDetector:
                                     confidence_scores[food] = confidence
                                     print(f"      ✅ Added from low confidence web: {food}")
                         else:
-                            print(f"      ⚠️  Skipped generic web entity: {entity_desc}")
+                            print(f"      ❌ Filtered out low confidence web entity: {entity_desc}")
                     else:
-                        print(f"   ❌ Skipped web entity: {entity_desc} (score: {confidence:.3f} < 0.45)")
+                        print(f"   ❌ Skipped web entity: {entity_desc} (score: {confidence:.3f} < 0.50)")
 
             # Merge crop-based candidates with main detections (boost consensus)
             if crop_food_candidates:
@@ -808,6 +892,44 @@ class GoogleVisionFoodDetector:
             "pastrami": ["beef", "salt", "spices"],
             "corned beef": ["beef", "salt", "spices"],
             "roast beef": ["beef", "salt", "spices"],
+            # Additional complex dishes for better detection
+            "chicken parmesan": ["chicken", "cheese", "pasta"],
+            "chicken alfredo": ["chicken", "pasta", "cheese"],
+            "beef stroganoff": ["beef", "pasta", "cream"],
+            "chicken teriyaki": ["chicken", "rice", "vegetables"],
+            "beef and broccoli": ["beef", "broccoli", "rice"],
+            "chicken fried rice": ["chicken", "rice", "eggs", "vegetables"],
+            "beef fried rice": ["beef", "rice", "eggs", "vegetables"],
+            "shrimp fried rice": ["shrimp", "rice", "eggs", "vegetables"],
+            "chicken noodle soup": ["chicken", "noodles", "vegetables"],
+            "beef stew": ["beef", "vegetables", "potatoes"],
+            "chicken pot pie": ["chicken", "vegetables", "pastry"],
+            "fish and chips": ["fish", "potatoes", "batter"],
+            "chicken wings": ["chicken", "sauce", "spices"],
+            "buffalo wings": ["chicken", "hot sauce", "butter"],
+            "chicken tenders": ["chicken", "breading", "oil"],
+            "chicken nuggets": ["chicken", "breading", "oil"],
+            "meatballs": ["meat", "breadcrumbs", "eggs"],
+            "chicken meatballs": ["chicken", "breadcrumbs", "eggs"],
+            "beef meatballs": ["beef", "breadcrumbs", "eggs"],
+            "turkey meatballs": ["turkey", "breadcrumbs", "eggs"],
+            "chicken salad": ["chicken", "vegetables", "dressing"],
+            "tuna salad": ["tuna", "vegetables", "dressing"],
+            "egg salad": ["eggs", "vegetables", "dressing"],
+            "potato salad": ["potatoes", "vegetables", "dressing"],
+            "mac and cheese": ["pasta", "cheese", "milk"],
+            "chicken and rice": ["chicken", "rice", "vegetables"],
+            "beef and rice": ["beef", "rice", "vegetables"],
+            "pork and rice": ["pork", "rice", "vegetables"],
+            "salmon and rice": ["salmon", "rice", "vegetables"],
+            "chicken and vegetables": ["chicken", "vegetables"],
+            "beef and vegetables": ["beef", "vegetables"],
+            "pork and vegetables": ["pork", "vegetables"],
+            "fish and vegetables": ["fish", "vegetables"],
+            "chicken and potatoes": ["chicken", "potatoes"],
+            "beef and potatoes": ["beef", "potatoes"],
+            "pork and potatoes": ["pork", "potatoes"],
+            "fish and potatoes": ["fish", "potatoes"],
             "turkey": ["turkey", "salt", "spices"],
             "chicken": ["chicken", "salt", "spices"],
             "duck": ["duck", "salt", "spices"],
@@ -1352,19 +1474,19 @@ class GoogleVisionFoodDetector:
         
         print(f"🔍 Enhanced confidence filtering for {len(detected_foods)} foods:")
         
-        # IMPROVED confidence thresholds - more inclusive for better detection
+        # IMPROVED confidence thresholds - balanced for accuracy vs recall
         if len(detected_foods) <= 2:
             # For 1-2 foods, be more lenient to catch all foods
-            min_confidence = 0.40  # Lowered from 0.50
-            high_confidence_threshold = 0.65  # Lowered from 0.70
+            min_confidence = 0.50  # Raised from 0.40 for better accuracy
+            high_confidence_threshold = 0.70  # Raised from 0.65
         elif len(detected_foods) <= 4:
             # For 3-4 foods, require moderate confidence
-            min_confidence = 0.45  # Lowered from 0.55
-            high_confidence_threshold = 0.70  # Lowered from 0.75
+            min_confidence = 0.55  # Raised from 0.45
+            high_confidence_threshold = 0.75  # Raised from 0.70
         else:
             # For 5+ foods, be more strict to avoid false positives
-            min_confidence = 0.50  # Lowered from 0.60
-            high_confidence_threshold = 0.75  # Lowered from 0.80
+            min_confidence = 0.60  # Raised from 0.50
+            high_confidence_threshold = 0.80  # Raised from 0.75
         
         # Filter foods by confidence
         filtered_foods = []
@@ -1397,6 +1519,11 @@ class GoogleVisionFoodDetector:
             
             # For medium confidence foods, apply additional checks
             if confidence >= min_confidence:
+                # Additional validation: ensure it's actually a food item
+                if not self._is_food_item(food):
+                    print(f"   ❌ Filtered out non-food: {food} (confidence: {confidence:.3f})")
+                    continue
+                
                 # Check if this food makes sense with other detected foods
                 if self._is_food_compatible(food, smart_filtered):
                     smart_filtered.append(food)
