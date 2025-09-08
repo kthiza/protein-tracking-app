@@ -637,9 +637,9 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
         food_weights[food_item] = realistic_portion
         total_weight += realistic_portion
     
-    # Normalize to 300g total for realistic plate size
+    # Normalize to 450g total for realistic plate size
     if total_weight > 0:
-        scale_factor = 300.0 / total_weight
+        scale_factor = 450.0 / total_weight
         for food_item in food_weights:
             food_weights[food_item] *= scale_factor
     
@@ -670,8 +670,8 @@ def calculate_protein_enhanced(food_items: List[str]) -> tuple[float, List[str]]
         total_protein += protein_for_this_item
         print(f"   📊 {food_item}: {portion_weight:.0f}g → {protein_for_this_item:.1f}g protein")
     
-    print(f"📊 Multiple food items: {len(food_items)} items, {total_weight:.0f}g total → 300g normalized")
-    print(f"📊 Protein calculation: {total_protein:.1f}g from 300g total")
+    print(f"📊 Multiple food items: {len(food_items)} items, {total_weight:.0f}g total → 450g normalized")
+    print(f"📊 Protein calculation: {total_protein:.1f}g from 450g total")
     return round(total_protein, 1), matched_foods
 
 def calculate_calories_enhanced(food_items: List[str]) -> tuple[float, List[str]]:
@@ -718,9 +718,9 @@ def calculate_calories_enhanced(food_items: List[str]) -> tuple[float, List[str]
         food_weights[food_item] = realistic_portion
         total_weight += realistic_portion
     
-    # Normalize to 300g total for realistic plate size
+    # Normalize to 700g total for realistic plate size (supports higher-calorie uploads)
     if total_weight > 0:
-        scale_factor = 300.0 / total_weight
+        scale_factor = 700.0 / total_weight
         for food_item in food_weights:
             food_weights[food_item] *= scale_factor
     
@@ -751,8 +751,8 @@ def calculate_calories_enhanced(food_items: List[str]) -> tuple[float, List[str]
         total_calories += calories_for_this_item
         print(f"   📊 {food_item}: {portion_weight:.0f}g → {calories_for_this_item:.1f} calories")
     
-    print(f"📊 Multiple food items: {len(food_items)} items, {total_weight:.0f}g total → 300g normalized")
-    print(f"📊 Calorie calculation: {total_calories:.1f} calories from 300g total")
+    print(f"📊 Multiple food items: {len(food_items)} items, {total_weight:.0f}g total → 700g normalized")
+    print(f"📊 Calorie calculation: {total_calories:.1f} calories from 700g total")
     return round(total_calories, 1), matched_foods
 
 def _estimate_protein_from_food_name(food_name: str) -> float:

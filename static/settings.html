@@ -1841,14 +1841,15 @@
             const bmi = weight / (heightInM * heightInM);
             
             // Calculate protein needs based on activity level and gender (g per kg body weight)
+            // Aligned with backend
             let proteinMultiplier;
             switch(activityLevel) {
-                case 'sedentary': proteinMultiplier = 0.8; break;
-                case 'light': proteinMultiplier = 1.0; break;
-                case 'moderate': proteinMultiplier = 1.2; break;
-                case 'active': proteinMultiplier = 1.6; break;
+                case 'sedentary': proteinMultiplier = 1.0; break;
+                case 'light': proteinMultiplier = 1.2; break;
+                case 'moderate': proteinMultiplier = 1.4; break;
+                case 'active': proteinMultiplier = 1.7; break;
                 case 'athlete': proteinMultiplier = 2.0; break;
-                default: proteinMultiplier = 1.2;
+                default: proteinMultiplier = 1.4;
             }
             
             // Adjust protein needs slightly based on gender (women may need slightly less due to body composition)
