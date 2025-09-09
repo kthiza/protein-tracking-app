@@ -80,7 +80,7 @@ class GoogleVisionFoodDetector:
             "chicken": 35.0, "chicken breast": 35.0, "chicken thigh": 30.8, "chicken wing": 33.6,
             "chicken nuggets": 9.8, "chicken tenders": 14.0, "fried chicken": 14.0, "roasted chicken": 17.5,
             "chicken soup": 4.2, "chicken salad": 8.4, "chicken curry": 9.8, "chicken marsala": 11.2,
-            "beef": 29.4, "steak": 29.4, "ground beef": 29.4, "beef steak": 29.4, "ribeye": 29.4, "sirloin": 29.4,
+            "beef": 36.4, "steak": 36.4, "ground beef": 36.4, "beef steak": 36.4, "ribeye": 36.4, "sirloin": 36.4,
             "filet mignon": 14.7, "t-bone": 14.7, "porterhouse": 14.7, "beef burger": 14.7, "hamburger": 14.7,
             "beef stew": 8.4, "beef stroganoff": 9.8, "beef tacos": 8.4, "beef chili": 9.8,
             "pork": 28.0, "pork chop": 28.0, "bacon": 42.0, "ham": 25.2, "pork loin": 28.0, "pork tenderloin": 28.0,
@@ -154,7 +154,7 @@ class GoogleVisionFoodDetector:
             "sushi": 8.0, "sashimi": 20.0, "ramen": 8.0,
             "pasta": 5.0, "spaghetti": 5.0, "lasagna": 8.0, "mac and cheese": 12.0, "penne": 5.0,
             "bean stew": 12.0, "vegetable stew": 8.0, "meat stew": 15.0, "chili": 15.0, "casserole": 12.0, "goulash": 12.0,
-            "salad": 8.0, "caesar salad": 12.0, "greek salad": 10.0, "cobb salad": 15.0,
+            "salad": 4.0, "caesar salad": 12.0, "greek salad": 10.0, "cobb salad": 15.0,
             "steak": 26.0, "grilled chicken": 31.0, "fried chicken": 25.0, "fish and chips": 15.0,
             "meatballs": 18.0, "meatloaf": 18.0, "roast beef": 26.0, "pulled pork": 25.0,
             "barbecue": 20.0, "bbq": 20.0, "kebab": 18.0, "gyro": 18.0, "shawarma": 18.0,
@@ -1716,29 +1716,22 @@ class GoogleVisionFoodDetector:
             validated_protein = self._validate_protein_content(total_protein, 1)
             return round(validated_protein, 1)
         
-        # For two food items: share a realistic total (~300g)
-        if len(foods) == 2:
+        # For multiple food items: use EQUAL SPLIT that adds up to 100%
+        else:
             total_protein = 0.0
+            num_foods = len(foods)
             
-            # Fixed portion sizes: 100g each for 2 foods = 200g total (more realistic portions)
+            # Equal split: each food gets 1/num_foods of the total (e.g., 4 foods = 25% each)
+            equal_share = 1.0 / num_foods
+            
+            # Total plate weight scales with number of foods
+            total_plate_weight = self._get_total_plate_weight(num_foods)
+            
             for food in foods:
-                portion_size = 100.0
+                # Each food gets equal portion of total plate
+                portion_size = total_plate_weight * equal_share
                 protein_per_100g = self.protein_database.get(food, 5.0)
                 protein_for_this_item = (protein_per_100g * portion_size) / 100.0
-                total_protein += protein_for_this_item
-                    
-        else:
-            # For 3+ items: use SMART portion distribution
-            # Total plate should scale with number of foods for realistic calories
-            total_plate_weight = self._get_total_plate_weight(len(foods))
-            
-            # Distribute portions intelligently based on food type and importance
-            total_protein = 0.0
-            for food in foods:
-                # Get adjusted portion size for multi-item plates
-                adjusted_portion = self._get_adjusted_portion_for_plate(food, foods, total_plate_weight)
-                protein_per_100g = self.protein_database.get(food, 5.0)
-                protein_for_this_item = (protein_per_100g * adjusted_portion) / 100.0
                 total_protein += protein_for_this_item
         
         # Validate and cap protein at realistic levels for typical meals
@@ -1836,14 +1829,14 @@ class GoogleVisionFoodDetector:
     
     def _validate_protein_content(self, calculated_protein: float, num_foods: int) -> float:
         """Validate and cap protein content at realistic levels for typical meals"""
-        # Realistic protein limits based on meal type and number of items (much more realistic)
+        # Loosened protein limits - only cap above 60g for single items
         protein_limits = {
-            1: 25.0,   # Single food: max 25g protein (e.g., normal portion)
-            2: 22.0,   # Two foods: max 22g protein (e.g., pasta + meat)
-            3: 20.0,   # Three foods: max 20g protein (e.g., protein + carb + veg)
-            4: 18.0,   # Four foods: max 18g protein (e.g., breakfast plate)
-            5: 16.0,   # Five foods: max 16g protein
-            6: 15.0,   # Six+ foods: max 15g protein (e.g., buffet style)
+            1: 60.0,   # Single food: max 60g protein (loosened from 25g)
+            2: 50.0,   # Two foods: max 50g protein (loosened from 22g)
+            3: 45.0,   # Three foods: max 45g protein (loosened from 20g)
+            4: 40.0,   # Four foods: max 40g protein (loosened from 18g)
+            5: 35.0,   # Five foods: max 35g protein (loosened from 16g)
+            6: 30.0,   # Six+ foods: max 30g protein (loosened from 15g)
         }
         
         max_protein = protein_limits.get(num_foods, 25.0)

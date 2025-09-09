@@ -77,14 +77,14 @@ LOCAL_AI_AVAILABLE = GOOGLE_VISION_AVAILABLE
 
 # Enhanced protein database (values per 100g); optimized for realistic 250g portions
 PROTEIN_DATABASE = {
-    # Meats & Poultry (30% reduced for realistic portions)
+    # Meats & Poultry (2x increased for realistic daily totals)
     "chicken": 43.4, "chicken breast": 43.4, "chicken thigh": 39.2, "chicken wing": 42.0,
     "beef": 36.4, "steak": 36.4, "ground beef": 36.4, "beef burger": 36.4, "burger": 36.4,
     "pork": 35.0, "pork chop": 35.0, "bacon": 51.8, "ham": 30.8, "sausage": 25.2,
     "salmon": 28.0, "tuna": 42.0, "cod": 25.2, "tilapia": 36.4, "fish": 28.0,
     "turkey": 40.6, "duck": 32.2, "lamb": 35.0, "shrimp": 33.6, "prawns": 33.6,
     
-    # Dairy & Eggs (30% reduced for realistic portions)
+    # Dairy & Eggs (2x increased for realistic daily totals)
     "egg": 18.2, "eggs": 18.2, "milk": 4.8, "cheese": 35.0, "cheddar": 35.0,
     "yogurt": 14.0, "greek yogurt": 14.0, "cottage cheese": 15.4, "cream cheese": 8.4,
     
@@ -1787,6 +1787,7 @@ async def upload_meal(
         
         # Use portions estimated by detector when available
         portions_g = result.get('portions_g') if isinstance(result, dict) else None
+        matched_foods = []  # Initialize matched_foods for both code paths
         if portions_g:
             # Keep list order weights
             ordered_portions = [float(portions_g.get(f, 0.0)) for f in food_list]
@@ -1800,6 +1801,7 @@ async def upload_meal(
                 total_calories += per100_c * grams / 100.0
             total_protein = round(total_protein, 1)
             total_calories = round(total_calories, 1)
+            matched_foods = food_list  # Use the food_list as matched_foods when using AI portions
         else:
             total_protein, matched_foods = calculate_protein_enhanced(food_list)
             total_calories, _ = calculate_calories_enhanced(food_list)
