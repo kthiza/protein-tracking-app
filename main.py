@@ -77,32 +77,32 @@ LOCAL_AI_AVAILABLE = GOOGLE_VISION_AVAILABLE
 
 # Enhanced protein database (values per 100g); optimized for realistic 250g portions
 PROTEIN_DATABASE = {
-    # Meats & Poultry (realistic values for typical servings)
-    "chicken": 31.0, "chicken breast": 31.0, "chicken thigh": 28.0, "chicken wing": 30.0,
-    "beef": 26.0, "steak": 26.0, "ground beef": 26.0, "beef burger": 26.0, "burger": 26.0,
-    "pork": 25.0, "pork chop": 25.0, "bacon": 37.0, "ham": 22.0, "sausage": 18.0,
-    "salmon": 20.0, "tuna": 30.0, "cod": 18.0, "tilapia": 26.0, "fish": 20.0,
-    "turkey": 29.0, "duck": 23.0, "lamb": 25.0, "shrimp": 24.0, "prawns": 24.0,
+lking about    # Meats & Poultry (30% reduced for realistic portions)
+    "chicken": 21.7, "chicken breast": 21.7, "chicken thigh": 19.6, "chicken wing": 21.0,
+    "beef": 18.2, "steak": 18.2, "ground beef": 18.2, "beef burger": 18.2, "burger": 18.2,
+    "pork": 17.5, "pork chop": 17.5, "bacon": 25.9, "ham": 15.4, "sausage": 12.6,
+    "salmon": 14.0, "tuna": 21.0, "cod": 12.6, "tilapia": 18.2, "fish": 14.0,
+    "turkey": 20.3, "duck": 16.1, "lamb": 17.5, "shrimp": 16.8, "prawns": 16.8,
     
-    # Dairy & Eggs (adjusted for realistic portions)
-    "egg": 13.0, "eggs": 13.0, "milk": 3.4, "cheese": 25.0, "cheddar": 25.0,
-    "yogurt": 10.0, "greek yogurt": 10.0, "cottage cheese": 11.0, "cream cheese": 6.0,
+    # Dairy & Eggs (30% reduced for realistic portions)
+    "egg": 9.1, "eggs": 9.1, "milk": 2.4, "cheese": 17.5, "cheddar": 17.5,
+    "yogurt": 7.0, "greek yogurt": 7.0, "cottage cheese": 7.7, "cream cheese": 4.2,
     
-    # Nuts & Seeds (high density foods - realistic for smaller portions)
-    "peanut butter": 25.0, "almonds": 21.0, "walnuts": 15.0, "cashews": 18.0,
-    "sunflower seeds": 21.0, "chia seeds": 17.0, "pumpkin seeds": 19.0,
+    # Nuts & Seeds (30% reduced for realistic portions)
+    "peanut butter": 17.5, "almonds": 14.7, "walnuts": 10.5, "cashews": 12.6,
+    "sunflower seeds": 14.7, "chia seeds": 11.9, "pumpkin seeds": 13.3,
     
-    # Plant-based Proteins (FIXED: More realistic values)
-    "tofu": 8.0, "tempeh": 20.0, "lentils": 9.0, "beans": 9.0, "black beans": 9.0,
-    "kidney beans": 9.0, "chickpeas": 9.0, "edamame": 11.0, "hummus": 8.0,
-    "seitan": 25.0,  # FIXED: Was 75g, now realistic 25g/100g
-    "pea protein": 25.0,  # FIXED: Was 80g, now realistic 25g/100g (for pea protein isolate)
-    "spirulina": 57.0,  # This is actually accurate for spirulina powder
-    "nutritional yeast": 50.0,  # This is accurate for nutritional yeast flakes
+    # Plant-based Proteins (30% reduced for realistic portions)
+    "tofu": 5.6, "tempeh": 14.0, "lentils": 6.3, "beans": 6.3, "black beans": 6.3,
+    "kidney beans": 6.3, "chickpeas": 6.3, "edamame": 7.7, "hummus": 5.6,
+    "seitan": 17.5,  # 30% reduced from 25g
+    "pea protein": 17.5,  # 30% reduced from 25g
+    "spirulina": 39.9,  # 30% reduced from 57g
+    "nutritional yeast": 35.0,  # 30% reduced from 50g
     
-    # Grains & Cereals (adjusted for realistic portions)
-    "quinoa": 14.0, "rice": 2.7, "brown rice": 2.7, "bread": 9.0, "whole wheat bread": 13.0,
-    "pasta": 5.5, "spaghetti": 5.5, "oatmeal": 6.0, "oats": 6.0, "cereal": 10.0,
+    # Grains & Cereals (30% reduced for realistic portions)
+    "quinoa": 9.8, "rice": 1.9, "brown rice": 1.9, "bread": 6.3, "whole wheat bread": 9.1,
+    "pasta": 3.9, "spaghetti": 3.9, "oatmeal": 4.2, "oats": 4.2, "cereal": 7.0,
     
     # Vegetables (low density - realistic for larger portions)
     "broccoli": 2.8, "spinach": 2.9, "kale": 4.3, "asparagus": 2.2, "brussels sprouts": 3.4,
@@ -680,15 +680,15 @@ def _compute_portion_weights(food_items: List[str]) -> tuple[Dict[str, float], f
         food_weights[food_item] = realistic_portion
         total_weight += realistic_portion
 
-    # Choose normalization target by number of items to balance protein:calorie ratio
+    # Choose normalization target by number of items - MUCH MORE REALISTIC PORTIONS
     if len(food_items) <= 1:
-        target_total = 400.0
+        target_total = 120.0  # Reduced from 400g to 120g
     elif len(food_items) == 2:
-        target_total = 600.0
+        target_total = 200.0  # Reduced from 600g to 200g
     elif len(food_items) <= 4:
-        target_total = 800.0
+        target_total = 300.0  # Reduced from 800g to 300g
     else:
-        target_total = 1000.0
+        target_total = 400.0  # Reduced from 1000g to 400g
 
     if total_weight > 0:
         scale_factor = target_total / total_weight
