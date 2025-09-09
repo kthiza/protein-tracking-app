@@ -74,35 +74,35 @@ class GoogleVisionFoodDetector:
             print(f"❌ Failed to initialize Google Vision API: {e}")
             raise e
         
-        # Comprehensive protein database with accurate values from USDA and nutrition databases
+        # Comprehensive protein database with realistic values (20% reduced from USDA values)
         self.protein_database = {
-            # Meat & Fish (High Protein) - Values per 100g cooked
-            "chicken": 31.0, "chicken breast": 31.0, "chicken thigh": 28.0, "chicken wing": 30.0,
-            "chicken nuggets": 18.0, "chicken tenders": 25.0, "fried chicken": 25.0, "roasted chicken": 31.0,
-            "chicken soup": 8.0, "chicken salad": 15.0, "chicken curry": 18.0, "chicken marsala": 20.0,
-            "beef": 26.0, "steak": 26.0, "ground beef": 26.0, "beef steak": 26.0, "ribeye": 26.0, "sirloin": 26.0,
-            "filet mignon": 26.0, "t-bone": 26.0, "porterhouse": 26.0, "beef burger": 26.0, "hamburger": 26.0,
-            "beef stew": 15.0, "beef stroganoff": 18.0, "beef tacos": 15.0, "beef chili": 18.0,
-            "pork": 25.0, "pork chop": 25.0, "bacon": 37.0, "ham": 22.0, "pork loin": 25.0, "pork tenderloin": 25.0,
-            "pork belly": 25.0, "pulled pork": 25.0, "pork ribs": 25.0, "pork shoulder": 25.0,
-            "sausage": 18.0, "pepperoni": 25.0, "salami": 22.0, "prosciutto": 28.0, "mortadella": 22.0,
-            "chorizo": 22.0, "kielbasa": 18.0, "bratwurst": 15.0, "italian sausage": 18.0,
-            "salmon": 20.0, "tuna": 30.0, "cod": 18.0, "tilapia": 26.0, "trout": 20.0, "mackerel": 19.0,
-            "halibut": 20.0, "sea bass": 20.0, "red snapper": 20.0, "grouper": 20.0, "swordfish": 20.0,
-            "shrimp": 24.0, "crab": 19.0, "lobster": 20.0, "oysters": 9.0, "mussels": 12.0, "clams": 12.0,
-            "scallops": 20.0, "calamari": 18.0, "octopus": 18.0, "crayfish": 18.0,
-            "turkey": 29.0, "turkey breast": 29.0, "duck": 23.0, "goose": 22.0, "quail": 22.0,
-            "pheasant": 22.0, "partridge": 22.0, "turkey bacon": 25.0, "turkey sausage": 18.0,
-            "lamb": 25.0, "veal": 24.0, "venison": 30.0, "bison": 28.0, "elk": 30.0, "rabbit": 28.0,
-            "goat": 25.0, "wild boar": 25.0, "antelope": 30.0, "moose": 30.0,
+            # Meat & Fish (High Protein) - Values per 100g cooked (reduced by 20%)
+            "chicken": 25.0, "chicken breast": 25.0, "chicken thigh": 22.0, "chicken wing": 24.0,
+            "chicken nuggets": 14.0, "chicken tenders": 20.0, "fried chicken": 20.0, "roasted chicken": 25.0,
+            "chicken soup": 6.0, "chicken salad": 12.0, "chicken curry": 14.0, "chicken marsala": 16.0,
+            "beef": 21.0, "steak": 21.0, "ground beef": 21.0, "beef steak": 21.0, "ribeye": 21.0, "sirloin": 21.0,
+            "filet mignon": 21.0, "t-bone": 21.0, "porterhouse": 21.0, "beef burger": 21.0, "hamburger": 21.0,
+            "beef stew": 12.0, "beef stroganoff": 14.0, "beef tacos": 12.0, "beef chili": 14.0,
+            "pork": 20.0, "pork chop": 20.0, "bacon": 30.0, "ham": 18.0, "pork loin": 20.0, "pork tenderloin": 20.0,
+            "pork belly": 20.0, "pulled pork": 20.0, "pork ribs": 20.0, "pork shoulder": 20.0,
+            "sausage": 14.0, "pepperoni": 20.0, "salami": 18.0, "prosciutto": 22.0, "mortadella": 18.0,
+            "chorizo": 18.0, "kielbasa": 14.0, "bratwurst": 12.0, "italian sausage": 14.0,
+            "salmon": 16.0, "tuna": 24.0, "cod": 14.0, "tilapia": 21.0, "trout": 16.0, "mackerel": 15.0,
+            "halibut": 16.0, "sea bass": 16.0, "red snapper": 16.0, "grouper": 16.0, "swordfish": 16.0,
+            "shrimp": 19.0, "crab": 15.0, "lobster": 16.0, "oysters": 7.0, "mussels": 10.0, "clams": 10.0,
+            "scallops": 16.0, "calamari": 14.0, "octopus": 14.0, "crayfish": 14.0,
+            "turkey": 23.0, "turkey breast": 23.0, "duck": 18.0, "goose": 18.0, "quail": 18.0,
+            "pheasant": 18.0, "partridge": 18.0, "turkey bacon": 20.0, "turkey sausage": 14.0,
+            "lamb": 20.0, "veal": 19.0, "venison": 24.0, "bison": 22.0, "elk": 24.0, "rabbit": 22.0,
+            "goat": 20.0, "wild boar": 20.0, "antelope": 24.0, "moose": 24.0,
             
-            # Dairy & Eggs (High Protein)
-            "egg": 13.0, "eggs": 13.0, "scrambled eggs": 13.0, "fried eggs": 13.0, "fried egg": 13.0, "boiled eggs": 13.0,
-            "omelet": 13.0, "omelette": 13.0, "poached eggs": 13.0, "deviled eggs": 13.0, "yolk": 16.0,
-            "milk": 3.4, "cheese": 25.0, "cheddar": 25.0, "mozzarella": 22.0, "parmesan": 38.0,
-            "feta": 14.0, "blue cheese": 21.0, "swiss": 27.0, "gouda": 25.0, "brie": 20.0,
-            "yogurt": 10.0, "greek yogurt": 10.0, "cottage cheese": 11.0, "cream cheese": 6.0,
-            "butter": 0.9, "cream": 2.1, "sour cream": 2.4, "whipping cream": 2.1,
+            # Dairy & Eggs (High Protein) - 20% reduced
+            "egg": 10.0, "eggs": 10.0, "scrambled eggs": 10.0, "fried eggs": 10.0, "fried egg": 10.0, "boiled eggs": 10.0,
+            "omelet": 10.0, "omelette": 10.0, "poached eggs": 10.0, "deviled eggs": 10.0, "yolk": 13.0,
+            "milk": 2.7, "cheese": 20.0, "cheddar": 20.0, "mozzarella": 18.0, "parmesan": 30.0,
+            "feta": 11.0, "blue cheese": 17.0, "swiss": 22.0, "gouda": 20.0, "brie": 16.0,
+            "yogurt": 8.0, "greek yogurt": 8.0, "cottage cheese": 9.0, "cream cheese": 5.0,
+            "butter": 0.7, "cream": 1.7, "sour cream": 1.9, "whipping cream": 1.7,
             
             # Plant-based Proteins (Medium-High Protein)
             "tofu": 8.0, "tempeh": 20.0, "edamame": 11.0, "soybeans": 36.0, "soy milk": 3.3,
@@ -653,8 +653,8 @@ class GoogleVisionFoodDetector:
                         print(f"      ❌ Filtered out non-food: {label_desc}")
                 elif confidence >= 0.55:  # Medium confidence - strict validation
                     print(f"   🔍 Medium confidence: {label_desc} (confidence: {confidence:.3f})")
-                    # Only process if it's clearly food and contains specific food keywords
-                    if self._is_food_item(label_desc) and any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "vegetable", "salad", "fruit", "soup", "sandwich", "pizza", "burger", "noodle", "grain", "dairy"]):
+                    # Only process if it's clearly food and contains specific food keywords (including breakfast items)
+                    if self._is_food_item(label_desc) and any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "vegetable", "salad", "fruit", "soup", "sandwich", "pizza", "burger", "noodle", "grain", "dairy", "sausage", "bacon", "toast", "beans", "mushrooms", "tomato", "breakfast"]):
                         food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
                         for food in food_items:
                             if food not in detected_foods:
@@ -665,8 +665,8 @@ class GoogleVisionFoodDetector:
                         print(f"      ❌ Filtered out unclear/non-food: {label_desc}")
                 elif confidence >= 0.50:  # Low confidence - very strict validation
                     print(f"   🔍 Low confidence: {label_desc} (confidence: {confidence:.3f})")
-                    # Only process if it's very clearly food with high-confidence keywords
-                    if self._is_food_item(label_desc) and any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat"]):
+                    # Only process if it's very clearly food with high-confidence keywords (including breakfast items)
+                    if self._is_food_item(label_desc) and any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "sausage", "bacon", "toast", "beans"]):
                         food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
                         for food in food_items:
                             if food not in detected_foods:
@@ -710,8 +710,8 @@ class GoogleVisionFoodDetector:
                             print(f"      ❌ Filtered out non-food web entity: {entity_desc}")
                     elif confidence >= 0.55:  # Medium confidence web entities
                         print(f"   🌐 Medium confidence web entity: {entity_desc} (score: {confidence:.3f})")
-                        # Only process if it's clearly food and contains specific food keywords
-                        if self._is_food_item(entity_desc) and any(keyword in entity_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "vegetable", "salad", "fruit", "soup", "sandwich", "pizza", "burger"]):
+                        # Only process if it's clearly food and contains specific food keywords (including breakfast items)
+                        if self._is_food_item(entity_desc) and any(keyword in entity_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "vegetable", "salad", "fruit", "soup", "sandwich", "pizza", "burger", "sausage", "bacon", "toast", "beans", "mushrooms", "tomato", "breakfast"]):
                             food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
                             for food in food_items:
                                 if food not in detected_foods:
@@ -1248,6 +1248,46 @@ class GoogleVisionFoodDetector:
             if foods:  # If we found meal components, return them
                 return foods
         
+        # IMPROVED: Special handling for breakfast items that suggest a full breakfast
+        breakfast_indicators = ["sausage", "bacon", "eggs", "toast", "beans", "mushrooms", "tomato"]
+        if any(indicator in label for indicator in breakfast_indicators):
+            # If we detect a breakfast item, check if it might be part of a full breakfast
+            if confidence >= 0.60:  # Medium confidence threshold
+                # Add common breakfast companions
+                breakfast_companions = []
+                if "sausage" in label:
+                    breakfast_companions = ["eggs", "bacon", "toast", "beans"]
+                elif "bacon" in label:
+                    breakfast_companions = ["eggs", "sausage", "toast"]
+                elif "eggs" in label:
+                    breakfast_companions = ["bacon", "sausage", "toast"]
+                
+                # Add companions if they're not already detected
+                for companion in breakfast_companions:
+                    if companion not in foods:
+                        foods.append(companion)
+                        print(f"🍳 Added breakfast companion: {companion} (detected with {label})")
+        
+        # IMPROVED: Special handling for breakfast items that suggest a full breakfast
+        breakfast_indicators = ["sausage", "bacon", "eggs", "toast", "beans", "mushrooms", "tomato"]
+        if any(indicator in label for indicator in breakfast_indicators):
+            # If we detect a breakfast item, check if it might be part of a full breakfast
+            if confidence >= 0.60:  # Medium confidence threshold
+                # Add common breakfast companions
+                breakfast_companions = []
+                if "sausage" in label:
+                    breakfast_companions = ["eggs", "bacon", "toast", "beans"]
+                elif "bacon" in label:
+                    breakfast_companions = ["eggs", "sausage", "toast"]
+                elif "eggs" in label:
+                    breakfast_companions = ["bacon", "sausage", "toast"]
+                
+                # Add companions if they're not already detected
+                for companion in breakfast_companions:
+                    if companion not in foods:
+                        foods.append(companion)
+                        print(f"🍳 Added breakfast companion: {companion} (detected with {label})")
+        
         # IMPROVED partial matching for individual food items - more comprehensive
         for food_item in self.protein_database.keys():
             if food_item in label and len(food_item) >= 3:
@@ -1342,6 +1382,7 @@ class GoogleVisionFoodDetector:
         # Enhanced breakfast components with confidence-based selection
         breakfast_components = {
             "english breakfast": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato"],
+            "full english": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato"],
             "full breakfast": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato"],
             "american breakfast": ["bacon", "eggs", "pancakes", "toast", "sausage"],
             "continental breakfast": ["bread", "cheese", "yogurt", "fruit", "cereal"],
@@ -1355,7 +1396,9 @@ class GoogleVisionFoodDetector:
             "breakfast sandwich": ["bread", "eggs", "cheese", "bacon", "sausage"],
             "breakfast burrito": ["tortilla", "eggs", "cheese", "bacon", "potato"],
             "breakfast bowl": ["eggs", "rice", "vegetables", "meat", "sauce"],
-            "breakfast platter": ["eggs", "bacon", "sausage", "toast", "hash browns", "fruit"]
+            "breakfast platter": ["eggs", "bacon", "sausage", "toast", "hash browns", "fruit"],
+            # Add sausage-specific breakfast detection
+            "sausage": ["sausage", "eggs", "bacon", "toast", "beans"]
         }
         
         # Enhanced lunch/dinner components
@@ -1618,25 +1661,25 @@ class GoogleVisionFoodDetector:
         if not foods:
             return 0.0
         
-        # For single food item: use a realistic single-serving size (~350g cooked meal equivalent)
+        # For single food item: use a realistic single-serving size (~200g cooked meal equivalent)
         if len(foods) == 1:
             food = foods[0]
             protein_per_100g = self.protein_database.get(food, 5.0)
             
-            # Realistic portion size for a single main dish
-            portion_size = 350.0
+            # Realistic portion size for a single main dish (reduced from 350g to 200g)
+            portion_size = 200.0
             total_protein = (protein_per_100g * portion_size) / 100.0
             # Validate and cap protein at realistic levels
             validated_protein = self._validate_protein_content(total_protein, 1)
             return round(validated_protein, 1)
         
-        # For two food items: share a realistic total (~400g)
+        # For two food items: share a realistic total (~300g)
         if len(foods) == 2:
             total_protein = 0.0
             
-            # Fixed portion sizes: 200g each for 2 foods = 400g total
+            # Fixed portion sizes: 150g each for 2 foods = 300g total (reduced from 200g each)
             for food in foods:
-                portion_size = 200.0
+                portion_size = 150.0
                 protein_per_100g = self.protein_database.get(food, 5.0)
                 protein_for_this_item = (protein_per_100g * portion_size) / 100.0
                 total_protein += protein_for_this_item
@@ -1700,19 +1743,19 @@ class GoogleVisionFoodDetector:
         return portion_sizes.get(food.lower(), 100.0)
     
     def _get_total_plate_weight(self, num_foods: int) -> float:
-        """Get total plate weight based on number of foods (realistic cooked weights)."""
+        """Get total plate weight based on number of foods (realistic cooked weights - reduced by 20%)."""
         if num_foods <= 1:
-            return 350.0  # Single entree
+            return 200.0  # Single entree (reduced from 350g)
         if num_foods == 2:
-            return 400.0  # Entree + side
+            return 300.0  # Entree + side (reduced from 400g)
         if num_foods == 3:
-            return 600.0  # Protein + carb + veg
+            return 450.0  # Protein + carb + veg (reduced from 600g)
         if num_foods == 4:
-            return 700.0
+            return 550.0  # Reduced from 700g
         if num_foods == 5:
-            return 850.0
+            return 650.0  # Reduced from 850g
         # 6 or more items (buffet/tapas style)
-        return 1000.0
+        return 800.0  # Reduced from 1000g
     
     def _get_adjusted_portion_for_plate(self, food: str, all_foods: List[str], total_plate_weight: float) -> float:
         """Get adjusted portion size for multi-item plates - fixed at 250g total"""
