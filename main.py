@@ -77,7 +77,7 @@ LOCAL_AI_AVAILABLE = GOOGLE_VISION_AVAILABLE
 
 # Enhanced protein database (values per 100g); optimized for realistic 250g portions
 PROTEIN_DATABASE = {
-lking about    # Meats & Poultry (30% reduced for realistic portions)
+    # Meats & Poultry (30% reduced for realistic portions)
     "chicken": 21.7, "chicken breast": 21.7, "chicken thigh": 19.6, "chicken wing": 21.0,
     "beef": 18.2, "steak": 18.2, "ground beef": 18.2, "beef burger": 18.2, "burger": 18.2,
     "pork": 17.5, "pork chop": 17.5, "bacon": 25.9, "ham": 15.4, "sausage": 12.6,
