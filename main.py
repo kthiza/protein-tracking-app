@@ -680,15 +680,15 @@ def _compute_portion_weights(food_items: List[str]) -> tuple[Dict[str, float], f
         food_weights[food_item] = realistic_portion
         total_weight += realistic_portion
 
-    # Choose normalization target by number of items - MUCH MORE REALISTIC PORTIONS
+    # Choose normalization target by number of items - REALISTIC PORTIONS (30% reduced)
     if len(food_items) <= 1:
-        target_total = 120.0  # Reduced from 400g to 120g
+        target_total = 84.0  # Reduced from 120g to 84g (30% reduction)
     elif len(food_items) == 2:
-        target_total = 200.0  # Reduced from 600g to 200g
+        target_total = 140.0  # Reduced from 200g to 140g (30% reduction)
     elif len(food_items) <= 4:
-        target_total = 300.0  # Reduced from 800g to 300g
+        target_total = 210.0  # Reduced from 300g to 210g (30% reduction)
     else:
-        target_total = 400.0  # Reduced from 1000g to 400g
+        target_total = 280.0  # Reduced from 400g to 280g (30% reduction)
 
     if total_weight > 0:
         scale_factor = target_total / total_weight

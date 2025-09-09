@@ -1807,19 +1807,19 @@ class GoogleVisionFoodDetector:
     
     def _get_total_plate_weight(self, num_foods: int) -> float:
         """Get total plate weight based on number of food items"""
-        # Realistic total weights for different numbers of foods
+        # Realistic total weights for different numbers of foods (30% reduced)
         if num_foods == 1:
-            return 150.0  # Single food: 150g
+            return 105.0  # Single food: 105g (was 150g)
         elif num_foods == 2:
-            return 250.0  # Two foods: 250g total
+            return 175.0  # Two foods: 175g total (was 250g)
         elif num_foods == 3:
-            return 300.0  # Three foods: 300g total
+            return 210.0  # Three foods: 210g total (was 300g)
         elif num_foods == 4:
-            return 350.0  # Four foods: 350g total
+            return 245.0  # Four foods: 245g total (was 350g)
         elif num_foods == 5:
-            return 400.0  # Five foods: 400g total
+            return 280.0  # Five foods: 280g total (was 400g)
         else:
-            return 450.0  # Six+ foods: 450g total
+            return 315.0  # Six+ foods: 315g total (was 450g)
     
     def calculate_protein_content(self, foods: List[str]) -> float:
         """Calculate protein content for a list of foods with realistic portion sizes"""
@@ -1828,7 +1828,7 @@ class GoogleVisionFoodDetector:
         
         # For single food item: use realistic portion size
         if len(foods) == 1:
-            portion_size = 150.0  # Single food: 150g
+            portion_size = 105.0  # Single food: 105g (30% reduced from 150g)
             protein_per_100g = self.protein_database.get(foods[0], 5.0)
             total_protein = (protein_per_100g * portion_size) / 100.0
         # For multiple food items: use EQUAL SPLIT that adds up to 100%
