@@ -79,9 +79,9 @@ class GoogleVisionFoodDetector:
             # Meat & Fish (High Protein) - Values per 100g cooked (reduced by 20%)
             "chicken": 43.4, "chicken breast": 43.4, "chicken thigh": 39.2, "chicken wing": 42.0,
             "chicken nuggets": 9.8, "chicken tenders": 14.0, "fried chicken": 14.0, "roasted chicken": 17.5,
-            "chicken soup": 4.2, "chicken salad": 8.4, "chicken curry": 9.8, "chicken marsala": 11.2,
+            "chicken soup": 4.2, "chicken salad": 8.4, "chicken curry": 25.0, "chicken marsala": 11.2,
             "beef": 36.4, "steak": 36.4, "ground beef": 36.4, "beef steak": 36.4, "ribeye": 36.4, "sirloin": 36.4,
-            "filet mignon": 14.7, "t-bone": 14.7, "porterhouse": 14.7, "beef burger": 14.7, "hamburger": 14.7,
+            "filet mignon": 14.7, "t-bone": 14.7, "porterhouse": 14.7, "beef burger": 36.4, "hamburger": 36.4,
             "beef stew": 8.4, "beef stroganoff": 9.8, "beef tacos": 8.4, "beef chili": 9.8,
             "pork": 35.0, "pork chop": 35.0, "bacon": 51.8, "ham": 30.8, "pork loin": 35.0, "pork tenderloin": 35.0,
             "pork belly": 14.0, "pulled pork": 14.0, "pork ribs": 14.0, "pork shoulder": 14.0,
@@ -132,6 +132,7 @@ class GoogleVisionFoodDetector:
             # Vegetables (Low Protein)
             "broccoli": 5.6, "spinach": 2.9, "kale": 4.3, "peas": 5.4, "green peas": 5.4,
             "corn": 3.3, "potato": 2.0, "sweet potato": 2.0, "carrot": 0.9, "onion": 1.1,
+            "fries": 3.0, "french fries": 3.0, "potato fries": 3.0, "fried potato": 3.0,
             "mushrooms": 3.1, "asparagus": 2.2, "brussels sprouts": 3.4, "cauliflower": 3.8,
             "bell pepper": 1.0, "tomato": 0.9, "cucumber": 0.7, "lettuce": 1.4, "cabbage": 1.3,
             "zucchini": 1.2, "eggplant": 1.0, "squash": 1.2, "pumpkin": 1.0,
@@ -149,7 +150,7 @@ class GoogleVisionFoodDetector:
             "peach": 0.9, "pear": 0.4, "plum": 0.7, "cherry": 1.1, "watermelon": 0.6,
             
             # Popular Dishes & Meals (Composite Protein) - UPDATED WITH ACCURATE VALUES
-            "pizza": 20.0, "hamburger": 26.0, "hot dog": 12.0, "sandwich": 24.0, "sub": 15.0,
+            "pizza": 20.0, "hamburger": 36.4, "burger": 36.4, "cheeseburger": 36.4, "hot dog": 12.0, "sandwich": 24.0, "sub": 15.0,
             "taco": 12.0, "burrito": 15.0, "quesadilla": 18.0, "enchilada": 12.0, "fajita": 15.0, "shawarma": 18.0, "gyro": 18.0, "kebab": 18.0, "wrap": 12.0, "pita": 8.0, "tortilla": 8.0, "flatbread": 8.0, "naan": 8.0, "roti": 8.0, "chapati": 8.0,
             "sushi": 8.0, "sashimi": 20.0, "ramen": 8.0,
             "pasta": 7.8, "spaghetti": 5.0, "lasagna": 8.0, "mac and cheese": 12.0, "penne": 5.0,
@@ -869,9 +870,9 @@ class GoogleVisionFoodDetector:
             "stew": ["meat", "vegetables", "broth"],
             "casserole": ["meat", "vegetables", "cheese"],
             "lasagna": ["pasta", "cheese", "meat", "sauce"],
-            "pizza": ["dough", "cheese", "sauce"],
+            # "pizza": ["dough", "cheese", "sauce"],  # REMOVED: Don't break down into components
             "sandwich": ["bread", "meat", "vegetables"],
-            "burger": ["bun", "meat", "vegetables"],
+            # "burger": ["bun", "meat", "vegetables"],  # REMOVED: Don't break down into components
             "hot dog": ["bun", "sausage", "vegetables"],
             "sub": ["bread", "meat", "vegetables"],
             "wrap": ["tortilla", "meat", "vegetables"],
@@ -1110,9 +1111,9 @@ class GoogleVisionFoodDetector:
             ("stew meat", ["meat", "vegetables", "broth"]),
             ("casserole cheese", ["meat", "vegetables", "cheese"]),
             ("lasagna meat", ["pasta", "cheese", "meat", "sauce"]),
-            ("pizza cheese", ["dough", "cheese", "sauce"]),
+            # ("pizza cheese", ["dough", "cheese", "sauce"]),  # REMOVED: Don't break down into components
             ("sandwich meat", ["bread", "meat", "vegetables"]),
-            ("burger meat", ["bun", "meat", "vegetables"]),
+            # ("burger meat", ["bun", "meat", "vegetables"]),  # REMOVED: Don't break down into components
             ("hot dog sausage", ["bun", "sausage", "vegetables"]),
             ("sub meat", ["bread", "meat", "vegetables"]),
             ("wrap meat", ["tortilla", "meat", "vegetables"]),
@@ -1257,105 +1258,151 @@ class GoogleVisionFoodDetector:
         
         # REMOVED: Meal pattern detection to prevent false positives
         
-        # IMPROVED partial matching for individual food items - more comprehensive
+        # OPTIMIZED DETECTION - Match human-level accuracy
+        # First, try to extract specific food combinations like "burger and fries"
+        if " and " in label:
+            parts = label.split(" and ")
+            for part in parts:
+                part = part.strip()
+                if part in self.protein_database:
+                    if part not in foods:
+                        foods.append(part)
+                        print(f"🍔 Extracted from 'and': {part}")
+            # If we found specific foods with "and", don't do generic extraction
+            if foods:
+                return foods
+        
+        # Also handle "with" patterns like "burger with fries"
+        if " with " in label:
+            parts = label.split(" with ")
+            for part in parts:
+                part = part.strip()
+                if part in self.protein_database:
+                    if part not in foods:
+                        foods.append(part)
+                        print(f"🍔 Extracted from 'with': {part}")
+            # If we found specific foods with "with", don't do generic extraction
+            if foods:
+                return foods
+        
+        # SMART DETECTION - Prioritize specific foods over generic ones
+        food_matches = []
         for food_item in self.protein_database.keys():
             if food_item in label and len(food_item) >= 3:
-                # Skip non-food items that shouldn't be detected
-                non_food_items = [
-                    "salt", "pepper", "black pepper", "white pepper", "salt and pepper",
-                    "sugar", "honey", "syrup", "oil", "olive oil", "vegetable oil",
-                    "vinegar", "lemon juice", "lime juice", "soy sauce", "hot sauce",
-                    "ketchup", "mustard", "mayonnaise", "butter", "margarine",
-                    "flour", "baking powder", "baking soda", "yeast", "breadcrumbs",
-                    "water", "ice", "steam", "smoke", "air", "dust", "dirt"
+                # Only skip obvious non-food items
+                obvious_non_food = [
+                    "salt", "pepper", "sugar", "oil", "vinegar", "water", "ice", "steam", "smoke", "air", "dust", "dirt"
                 ]
                 
-                if food_item in non_food_items:
-                    continue  # Skip non-food items
+                if food_item in obvious_non_food:
+                    continue  # Skip only obvious non-food items
                 
-                # More flexible matching for multi-item detection
-                is_valid_match = (
-                    food_item in label or
-                    label.startswith(food_item + " ") or
-                    label.endswith(" " + food_item) or
-                    food_item in label.split() or
-                    any(word in food_item for word in label.split()) or
-                    (len(food_item) >= 4 and food_item in label)
-                )
-                
-                # Additional validation to prevent false matches
-                is_not_partial_word = (
-                    not any(other_food != food_item and other_food.startswith(food_item) 
-                           for other_food in self.protein_database.keys())
-                )
-                
-                # Additional validation to prevent substring false positives
-                # Check if this is a real word boundary match, not just substring
-                # More flexible matching for multi-word food items like "fried egg", "baked beans"
-                is_word_boundary_match = (
-                    food_item == label or  # Exact match
-                    label.startswith(food_item + " ") or  # Starts with food item + space
-                    label.endswith(" " + food_item) or  # Ends with space + food item
-                    " " + food_item + " " in " " + label + " " or  # Word surrounded by spaces
-                    food_item in label.split() or  # Food item is a separate word
-                    # For multi-word food items, check if all words are present
-                    (len(food_item.split()) > 1 and all(word in label for word in food_item.split())) or
-                    # For single words, check if they're part of the label as a complete word
-                    (len(food_item.split()) == 1 and (
-                        food_item in label.split() or  # Food item is a separate word in the label
-                        label.startswith(food_item + " ") or  # Label starts with food item
-                        label.endswith(" " + food_item) or  # Label ends with food item
-                        " " + food_item + " " in " " + label + " "  # Food item surrounded by spaces
-                    ))
-                )
-                
-                # Prevent overlapping wrap-related detections
-                # If we're about to add a generic wrap but a specific wrap type is already detected (or vice versa), skip
-                wrap_types = ["wrap", "burrito", "taco", "quesadilla", "enchilada", "fajita", "shawarma", "gyro", "kebab"]
-                if food_item in wrap_types:
-                    # Check if any other wrap type is already detected
-                    skip_this_item = False
-                    for existing_food in foods:
-                        if existing_food in wrap_types and existing_food != food_item:
-                            # If we're trying to add "wrap" but a specific type like "burrito" is already detected, skip wrap
-                            if food_item == "wrap" and existing_food != "wrap":
-                                skip_this_item = True
-                                break
-                            # If we're trying to add a specific type but "wrap" is already detected, replace wrap with specific type
-                            elif food_item != "wrap" and existing_food == "wrap":
-                                foods.remove("wrap")  # Remove generic wrap in favor of specific type
-                                break
-                            # If both are specific types, keep the one with higher confidence (handled by filtering later)
-                            elif food_item != "wrap" and existing_food != "wrap":
-                                skip_this_item = True
-                                break
-                    if skip_this_item:
-                        continue
-                
-                if is_valid_match and is_not_partial_word and is_word_boundary_match and food_item not in foods:
-                    foods.append(food_item)
+                food_matches.append((food_item, len(food_item), confidence))
         
-        # Category-based matching for high-confidence categories (only if no specific items found)
-        if confidence >= 0.75 and not foods:  # Lowered from 0.80
-            category_matches = self._match_food_categories(label, already_detected_foods)
-            for item in category_matches:
-                if item not in foods:
-                    foods.append(item)
+        # Sort by length (most specific first) and confidence
+        food_matches.sort(key=lambda x: (-x[1], -x[2]))
+        
+        # Add ONLY the most specific match for this label
+        if food_matches:
+            best_match = food_matches[0][0]
+            if best_match not in foods:
+                # Check for duplicates (e.g., "rice" and "white rice")
+                is_duplicate = False
+                for existing_food in foods:
+                    if (best_match in existing_food or existing_food in best_match) and best_match != existing_food:
+                        is_duplicate = True
+                        break
+                
+                if not is_duplicate:
+                    foods.append(best_match)
+                    print(f"🍔 Extracted: {best_match} (confidence: {confidence:.3f})")
+                else:
+                    print(f"🍔 Skipped duplicate: {best_match} (already have similar food)")
         
         return foods
+
+    def _get_best_food_match(self, label: str, confidence: float) -> Optional[str]:
+        """Get the best single food match for a label"""
+        # First, try to extract specific food combinations like "burger and fries"
+        if " and " in label:
+            parts = label.split(" and ")
+            for part in parts:
+                part = part.strip()
+                if part in self.protein_database:
+                    return part
+        
+        # Also handle "with" patterns like "burger with fries"
+        if " with " in label:
+            parts = label.split(" with ")
+            for part in parts:
+                part = part.strip()
+                if part in self.protein_database:
+                    return part
+        
+        # SMART DETECTION - Find the best single match
+        food_matches = []
+        for food_item in self.protein_database.keys():
+            if food_item in label and len(food_item) >= 3:
+                # Only skip obvious non-food items
+                obvious_non_food = [
+                    "salt", "pepper", "sugar", "oil", "vinegar", "water", "ice", "steam", "smoke", "air", "dust", "dirt"
+                ]
+                
+                if food_item in obvious_non_food:
+                    continue  # Skip only obvious non-food items
+                
+                food_matches.append((food_item, len(food_item), confidence))
+        
+        # Sort by length (most specific first) and confidence
+        food_matches.sort(key=lambda x: (-x[1], -x[2]))
+        
+        # Return the best match
+        if food_matches:
+            return food_matches[0][0]
+        
+        return None
+
+    def _is_not_duplicate(self, food: str, existing_foods: List[str]) -> bool:
+        """Check if a food is not a duplicate of existing foods"""
+        # Define food groups that are similar
+        food_groups = {
+            "pasta_group": ["pasta", "spaghetti", "noodles", "linguine", "penne", "fettuccine", "lasagna", "ravioli", "tortellini"],
+            "rice_group": ["rice", "white rice", "brown rice", "wild rice", "jasmine rice"],
+            "bread_group": ["bread", "toast", "bagel", "sourdough"],
+            "meat_group": ["beef", "steak", "ground beef", "beef steak", "hamburger", "burger"],
+            "chicken_group": ["chicken", "chicken breast", "chicken thigh", "chicken wing", "chicken curry"],
+            "cheese_group": ["cheese", "cheddar", "mozzarella", "parmesan", "feta", "blue cheese", "swiss", "gouda", "brie"],
+            "vegetable_group": ["vegetables", "salad", "lettuce", "tomato", "cucumber", "carrot", "onion", "pepper", "broccoli", "spinach"],
+            "potato_group": ["potato", "fries", "french fries", "potato fries", "fried potato"],
+            "soup_group": ["soup", "broth", "stew"],
+            "sauce_group": ["sauce", "gravy", "marinara", "alfredo", "pesto", "tomato sauce"]
+        }
+        
+        # Check if the food is already in the list
+        if food in existing_foods:
+            return False
+        
+        # Check if the food is in the same group as any existing food
+        for group_name, group_foods in food_groups.items():
+            if food in group_foods:
+                for existing_food in existing_foods:
+                    if existing_food in group_foods:
+                        return False  # Found a duplicate in the same group
+        
+        return True
 
     def _extract_meal_components(self, meal_label: str, confidence: float) -> List[str]:
         """Extract individual food components from meal descriptions with enhanced accuracy"""
         components = []
         
-        # CONSERVATIVE breakfast components - only add what's clearly visible
+        # VERY CONSERVATIVE breakfast components - only add core items
         breakfast_components = {
-            "english breakfast": ["bacon", "eggs", "sausage", "toast", "beans"],
-            "full english": ["bacon", "eggs", "sausage", "toast", "beans"],
-            "full breakfast": ["bacon", "eggs", "sausage", "toast"],
-            "american breakfast": ["bacon", "eggs", "pancakes", "toast"],
-            "continental breakfast": ["bread", "cheese", "yogurt", "fruit"],
-            "breakfast": ["eggs", "bacon", "toast"],
+            "english breakfast": ["bacon", "eggs", "sausage", "toast"],
+            "full english": ["bacon", "eggs", "sausage", "toast"],
+            "full breakfast": ["bacon", "eggs", "sausage"],
+            "american breakfast": ["bacon", "eggs", "toast"],
+            "continental breakfast": ["bread", "cheese"],
+            "breakfast": ["eggs", "bacon"],
             "fry up": ["bacon", "eggs", "sausage", "toast", "beans"],
             "big breakfast": ["bacon", "eggs", "sausage", "toast"],
             "weekend breakfast": ["bacon", "eggs", "pancakes", "sausage"],
@@ -1422,18 +1469,15 @@ class GoogleVisionFoodDetector:
             for meal_type, items in meal_components.items():
                 if meal_type in meal_label:
                     meal_found = True
-                    # For generic meals, be conservative to avoid false positives
-                    if confidence >= 0.80:  # Very high confidence - add most components
-                        components.extend(items[:3])  # Add up to 3 components
-                        print(f"🍽️ Very high confidence meal: {meal_type} -> {items[:3]}")
-                    elif confidence >= 0.70:  # High confidence
-                        components.extend(items[:2])  # Add up to 2 components
-                        print(f"🍽️ High confidence meal: {meal_type} -> {items[:2]}")
-                    elif confidence >= 0.60:  # Medium-high confidence
+                    # VERY conservative to avoid false positives
+                    if confidence >= 0.90:  # Extremely high confidence - add core components only
+                        components.extend(items[:2])  # Add up to 2 core components
+                        print(f"🍽️ Extremely high confidence meal: {meal_type} -> {items[:2]}")
+                    elif confidence >= 0.85:  # Very high confidence
                         components.extend(items[:1])  # Add up to 1 component
-                        print(f"🍽️ Medium-high confidence meal: {meal_type} -> {items[:1]}")
+                        print(f"🍽️ Very high confidence meal: {meal_type} -> {items[:1]}")
                     else:
-                        # Don't add any components at low confidence
+                        # Don't add any components at lower confidence
                         print(f"🍽️ Low confidence meal: {meal_type} -> no components added")
                     break
         
@@ -1761,26 +1805,147 @@ class GoogleVisionFoodDetector:
             return total_plate_weight * 0.30 / max(1, len([f for f in all_foods if f in medium_priority]))
         return total_plate_weight * 0.40 / max(1, len([f for f in all_foods if f not in high_priority and f not in medium_priority]))
     
+    def _get_total_plate_weight(self, num_foods: int) -> float:
+        """Get total plate weight based on number of food items"""
+        # Realistic total weights for different numbers of foods
+        if num_foods == 1:
+            return 150.0  # Single food: 150g
+        elif num_foods == 2:
+            return 250.0  # Two foods: 250g total
+        elif num_foods == 3:
+            return 300.0  # Three foods: 300g total
+        elif num_foods == 4:
+            return 350.0  # Four foods: 350g total
+        elif num_foods == 5:
+            return 400.0  # Five foods: 400g total
+        else:
+            return 450.0  # Six+ foods: 450g total
+    
+    def calculate_protein_content(self, foods: List[str]) -> float:
+        """Calculate protein content for a list of foods with realistic portion sizes"""
+        if not foods:
+            return 0.0
+        
+        # For single food item: use realistic portion size
+        if len(foods) == 1:
+            portion_size = 150.0  # Single food: 150g
+            protein_per_100g = self.protein_database.get(foods[0], 5.0)
+            total_protein = (protein_per_100g * portion_size) / 100.0
+        # For multiple food items: use EQUAL SPLIT that adds up to 100%
+        else:
+            total_protein = 0.0
+            num_foods = len(foods)
+            
+            # Equal split: each food gets 1/num_foods of the total (e.g., 4 foods = 25% each)
+            equal_share = 1.0 / num_foods
+            
+            # Total plate weight scales with number of foods
+            total_plate_weight = self._get_total_plate_weight(num_foods)
+            
+            for food in foods:
+                # Each food gets equal portion of total plate
+                portion_size = total_plate_weight * equal_share
+                protein_per_100g = self.protein_database.get(food, 5.0)
+                protein_for_this_item = (protein_per_100g * portion_size) / 100.0
+                total_protein += protein_for_this_item
+        
+        return round(total_protein, 1)
+    
     def _validate_protein_content(self, calculated_protein: float, num_foods: int) -> float:
         """Validate and cap protein content at realistic levels for typical meals"""
-        # Loosened protein limits - only cap above 60g for single items
-        protein_limits = {
-            1: 60.0,   # Single food: max 60g protein (loosened from 25g)
-            2: 50.0,   # Two foods: max 50g protein (loosened from 22g)
-            3: 45.0,   # Three foods: max 45g protein (loosened from 20g)
-            4: 40.0,   # Four foods: max 40g protein (loosened from 18g)
-            5: 35.0,   # Five foods: max 35g protein (loosened from 16g)
-            6: 30.0,   # Six+ foods: max 30g protein (loosened from 15g)
-        }
-        
-        max_protein = protein_limits.get(num_foods, 25.0)
-        
-        # If calculated protein is unrealistically high, cap it
-        if calculated_protein > max_protein:
-            print(f"⚠️  Protein capped from {calculated_protein:.1f}g to {max_protein:.1f}g (realistic limit for {num_foods} items)")
-            return max_protein
-        
+        # REMOVED: Protein caps - let natural portion sizes determine protein amounts
+        # The portion estimation logic should handle realistic serving sizes
         return calculated_protein
+    
+    def detect_food_in_image(self, image_path: str) -> Dict:
+        """Detect food in image using Google Vision API with optimized logic"""
+        try:
+            if not self.client:
+                raise Exception("Google Vision API client not initialized")
+            
+            # Read image file
+            with open(image_path, 'rb') as image_file:
+                content = image_file.read()
+            
+            image = vision.Image(content=content)
+            
+            # Perform label detection
+            response = self.client.label_detection(image=image)
+            labels = response.label_annotations
+            
+            print(f"🔍 Analyzing image with Google Cloud Vision API: {image_path}")
+            print(f"🏷️  Detected {len(labels)} labels from Vision API:")
+            
+            detected_foods = []
+            confidence_scores = {}
+            
+            # Process labels with optimized confidence thresholds
+            for label_info in labels:
+                label = label_info.description.lower().strip()
+                confidence = label_info.score
+                
+                print(f"   🔍 Processing label: '{label}' (confidence: {confidence:.3f})")
+                
+                # OPTIMIZED confidence thresholds for human-level detection
+                if confidence >= 0.60:  # High confidence labels
+                    print(f"   ✅ High confidence label: {label} (score: {confidence:.3f})")
+                    # Get the best food match for this label
+                    best_food = self._get_best_food_match(label, confidence)
+                    if best_food and self._is_not_duplicate(best_food, detected_foods):
+                        detected_foods.append(best_food)
+                        confidence_scores[best_food] = confidence
+                elif confidence >= 0.50:  # Medium confidence labels
+                    print(f"   🔶 Medium confidence label: {label} (score: {confidence:.3f})")
+                    # Process if it contains food keywords
+                    if any(keyword in label for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "vegetable", "salad", "fruit", "soup", "sandwich", "pizza", "burger", "sausage", "bacon", "toast", "beans", "mushrooms", "tomato", "breakfast", "potato", "onion", "carrot", "broccoli", "spinach", "lettuce", "cucumber", "pepper", "corn", "peas", "lentils", "quinoa", "oats", "cereal", "yogurt", "milk", "butter", "sauce", "gravy", "herbs", "spices", "garlic", "ginger", "curry", "noodle", "grain", "dairy", "ham", "turkey", "lamb", "shrimp", "tuna", "cod", "fries", "french fries", "wings", "celery", "chickpeas", "feta", "pepperoni", "taco", "tortilla", "wrap", "shawarma", "steak", "sashimi", "sushi", "nigiri", "maki"]):
+                        best_food = self._get_best_food_match(label, confidence)
+                        if best_food and self._is_not_duplicate(best_food, detected_foods):
+                            detected_foods.append(best_food)
+                            confidence_scores[best_food] = confidence
+                else:
+                    print(f"   ❌ Low confidence label: {label} (score: {confidence:.3f}) - skipping")
+            
+            if not detected_foods:
+                print("⚠️  No food items detected in image")
+                return {
+                    "foods": [],
+                    "protein_per_100g": 0,
+                    "confidence_scores": {},
+                    "detection_method": "google_vision_api"
+                }
+            
+            # Calculate total protein content using optimized logic
+            total_protein = self.calculate_protein_content(detected_foods)
+            
+            print(f"🎯 Successfully detected {len(detected_foods)} food items:")
+            for food in detected_foods:
+                conf = confidence_scores.get(food, 0.5)
+                protein = self.protein_database.get(food, 5.0)
+                print(f"   - {food} (confidence: {conf:.3f}, protein: {protein}g/100g)")
+            
+            if len(detected_foods) == 1:
+                print(f"📊 Single food item: {detected_foods[0]}, 150g total")
+            else:
+                grams_per_item = 250.0 / len(detected_foods)
+                print(f"📊 Multiple food items: {len(detected_foods)} items, {grams_per_item:.0f}g each (250g total)")
+            print(f"📊 Total protein content: {total_protein:.1f}g")
+            
+            return {
+                "foods": detected_foods,
+                "protein_per_100g": total_protein,
+                "confidence_scores": confidence_scores,
+                "detection_method": "google_vision_api"
+            }
+            
+        except Exception as e:
+            print(f"❌ Food detection failed: {e}")
+            return {
+                "foods": [],
+                "protein_per_100g": 0,
+                "confidence_scores": {},
+                "detection_method": "google_vision_api",
+                "error": str(e)
+            }
     
     def calculate_calories(self, foods: List[str], portions: List[float]) -> float:
         """Calculate total calories for validation"""
@@ -2529,6 +2694,16 @@ def identify_food_with_google_vision(image_path: str) -> List[str]:
         print(f"❌ Food detection failed: {e}")
         raise e
 
+
+def identify_food_with_google_vision(image_path: str) -> List[str]:
+    """Main function to identify food in an image using Google Vision API"""
+    try:
+        detector = GoogleVisionFoodDetector()
+        result = detector.detect_food_in_image(image_path)
+        return result.get('foods', [])
+    except Exception as e:
+        print(f"❌ Food detection failed: {e}")
+        return []
 
 # For backward compatibility - but this will only use Google Vision API
 def identify_food_local(image_path: str) -> List[str]:
