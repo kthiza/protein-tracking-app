@@ -1666,8 +1666,8 @@ class GoogleVisionFoodDetector:
             food = foods[0]
             protein_per_100g = self.protein_database.get(food, 5.0)
             
-            # Realistic portion size for a single main dish (reduced from 350g to 200g)
-            portion_size = 200.0
+            # Realistic portion size for a single main dish (reduced to 120g for more realistic portions)
+            portion_size = 120.0
             total_protein = (protein_per_100g * portion_size) / 100.0
             # Validate and cap protein at realistic levels
             validated_protein = self._validate_protein_content(total_protein, 1)
@@ -1677,9 +1677,9 @@ class GoogleVisionFoodDetector:
         if len(foods) == 2:
             total_protein = 0.0
             
-            # Fixed portion sizes: 150g each for 2 foods = 300g total (reduced from 200g each)
+            # Fixed portion sizes: 100g each for 2 foods = 200g total (more realistic portions)
             for food in foods:
-                portion_size = 150.0
+                portion_size = 100.0
                 protein_per_100g = self.protein_database.get(food, 5.0)
                 protein_for_this_item = (protein_per_100g * portion_size) / 100.0
                 total_protein += protein_for_this_item
@@ -1743,19 +1743,19 @@ class GoogleVisionFoodDetector:
         return portion_sizes.get(food.lower(), 100.0)
     
     def _get_total_plate_weight(self, num_foods: int) -> float:
-        """Get total plate weight based on number of foods (realistic cooked weights - reduced by 20%)."""
+        """Get total plate weight based on number of foods (much more realistic portions)."""
         if num_foods <= 1:
-            return 200.0  # Single entree (reduced from 350g)
+            return 120.0  # Single entree (much more realistic)
         if num_foods == 2:
-            return 300.0  # Entree + side (reduced from 400g)
+            return 200.0  # Entree + side (more realistic)
         if num_foods == 3:
-            return 450.0  # Protein + carb + veg (reduced from 600g)
+            return 300.0  # Protein + carb + veg (more realistic)
         if num_foods == 4:
-            return 550.0  # Reduced from 700g
+            return 350.0  # More realistic
         if num_foods == 5:
-            return 650.0  # Reduced from 850g
+            return 400.0  # More realistic
         # 6 or more items (buffet/tapas style)
-        return 800.0  # Reduced from 1000g
+        return 500.0  # More realistic
     
     def _get_adjusted_portion_for_plate(self, food: str, all_foods: List[str], total_plate_weight: float) -> float:
         """Get adjusted portion size for multi-item plates - fixed at 250g total"""
@@ -1793,14 +1793,14 @@ class GoogleVisionFoodDetector:
     
     def _validate_protein_content(self, calculated_protein: float, num_foods: int) -> float:
         """Validate and cap protein content at realistic levels for typical meals"""
-        # Realistic protein limits based on meal type and number of items
+        # Realistic protein limits based on meal type and number of items (much more realistic)
         protein_limits = {
-            1: 45.0,   # Single food: max 45g protein (e.g., large steak)
-            2: 40.0,   # Two foods: max 40g protein (e.g., pasta + meat)
-            3: 35.0,   # Three foods: max 35g protein (e.g., protein + carb + veg)
-            4: 30.0,   # Four foods: max 30g protein (e.g., breakfast plate)
-            5: 28.0,   # Five foods: max 28g protein
-            6: 25.0,   # Six+ foods: max 25g protein (e.g., buffet style)
+            1: 25.0,   # Single food: max 25g protein (e.g., normal portion)
+            2: 22.0,   # Two foods: max 22g protein (e.g., pasta + meat)
+            3: 20.0,   # Three foods: max 20g protein (e.g., protein + carb + veg)
+            4: 18.0,   # Four foods: max 18g protein (e.g., breakfast plate)
+            5: 16.0,   # Five foods: max 16g protein
+            6: 15.0,   # Six+ foods: max 15g protein (e.g., buffet style)
         }
         
         max_protein = protein_limits.get(num_foods, 25.0)
