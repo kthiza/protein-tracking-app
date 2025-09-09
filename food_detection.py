@@ -77,62 +77,62 @@ class GoogleVisionFoodDetector:
         # Comprehensive protein database with realistic values (20% reduced from USDA values)
         self.protein_database = {
             # Meat & Fish (High Protein) - Values per 100g cooked (reduced by 20%)
-            "chicken": 35.0, "chicken breast": 35.0, "chicken thigh": 30.8, "chicken wing": 33.6,
+            "chicken": 43.4, "chicken breast": 43.4, "chicken thigh": 39.2, "chicken wing": 42.0,
             "chicken nuggets": 9.8, "chicken tenders": 14.0, "fried chicken": 14.0, "roasted chicken": 17.5,
             "chicken soup": 4.2, "chicken salad": 8.4, "chicken curry": 9.8, "chicken marsala": 11.2,
             "beef": 36.4, "steak": 36.4, "ground beef": 36.4, "beef steak": 36.4, "ribeye": 36.4, "sirloin": 36.4,
             "filet mignon": 14.7, "t-bone": 14.7, "porterhouse": 14.7, "beef burger": 14.7, "hamburger": 14.7,
             "beef stew": 8.4, "beef stroganoff": 9.8, "beef tacos": 8.4, "beef chili": 9.8,
-            "pork": 28.0, "pork chop": 28.0, "bacon": 42.0, "ham": 25.2, "pork loin": 28.0, "pork tenderloin": 28.0,
+            "pork": 35.0, "pork chop": 35.0, "bacon": 51.8, "ham": 30.8, "pork loin": 35.0, "pork tenderloin": 35.0,
             "pork belly": 14.0, "pulled pork": 14.0, "pork ribs": 14.0, "pork shoulder": 14.0,
-            "sausage": 19.6, "pepperoni": 28.0, "salami": 25.2, "prosciutto": 30.8, "mortadella": 25.2,
+            "sausage": 25.2, "pepperoni": 28.0, "salami": 25.2, "prosciutto": 30.8, "mortadella": 25.2,
             "chorizo": 12.6, "kielbasa": 9.8, "bratwurst": 8.4, "italian sausage": 9.8,
-            "salmon": 22.4, "tuna": 33.6, "cod": 19.6, "tilapia": 29.4, "trout": 22.4, "mackerel": 21.0,
+            "salmon": 28.0, "tuna": 42.0, "cod": 25.2, "tilapia": 36.4, "trout": 22.4, "mackerel": 21.0,
             "halibut": 22.4, "sea bass": 22.4, "red snapper": 22.4, "grouper": 22.4, "swordfish": 22.4,
-            "shrimp": 26.6, "crab": 21.0, "lobster": 22.4, "oysters": 9.8, "mussels": 14.0, "clams": 14.0,
+            "shrimp": 33.6, "crab": 21.0, "lobster": 22.4, "oysters": 9.8, "mussels": 14.0, "clams": 14.0,
             "scallops": 22.4, "calamari": 19.6, "octopus": 19.6, "crayfish": 19.6,
-            "turkey": 32.2, "turkey breast": 32.2, "duck": 25.2, "goose": 25.2, "quail": 25.2,
+            "turkey": 40.6, "turkey breast": 32.2, "duck": 25.2, "goose": 25.2, "quail": 25.2,
             "pheasant": 25.2, "partridge": 25.2, "turkey bacon": 28.0, "turkey sausage": 19.6,
-            "lamb": 28.0, "veal": 26.6, "venison": 33.6, "bison": 30.8, "elk": 33.6, "rabbit": 30.8,
+            "lamb": 35.0, "veal": 26.6, "venison": 33.6, "bison": 30.8, "elk": 33.6, "rabbit": 30.8,
             "goat": 28.0, "wild boar": 28.0, "antelope": 33.6, "moose": 33.6,
             
             # Dairy & Eggs (High Protein) - 30% reduced from previous values
-            "egg": 14.0, "eggs": 14.0, "scrambled eggs": 14.0, "fried eggs": 14.0, "fried egg": 14.0, "boiled eggs": 14.0,
+            "egg": 18.2, "eggs": 18.2, "scrambled eggs": 18.2, "fried eggs": 18.2, "fried egg": 18.2, "boiled eggs": 18.2,
             "omelet": 14.0, "omelette": 14.0, "poached eggs": 14.0, "deviled eggs": 14.0, "yolk": 18.2,
-            "milk": 3.8, "cheese": 28.0, "cheddar": 28.0, "mozzarella": 25.2, "parmesan": 42.0,
+            "milk": 4.8, "cheese": 35.0, "cheddar": 35.0, "mozzarella": 25.2, "parmesan": 42.0,
             "feta": 15.4, "blue cheese": 23.8, "swiss": 30.8, "gouda": 28.0, "brie": 22.4,
-            "yogurt": 11.2, "greek yogurt": 11.2, "cottage cheese": 12.6, "cream cheese": 7.0,
+            "yogurt": 14.0, "greek yogurt": 14.0, "cottage cheese": 15.4, "cream cheese": 8.4,
             "butter": 1.0, "cream": 2.4, "sour cream": 2.6, "whipping cream": 2.4,
             
             # Plant-based Proteins (Medium-High Protein)
-            "tofu": 8.0, "tempeh": 20.0, "edamame": 11.0, "soybeans": 36.0, "soy milk": 3.3,
-            "lentils": 9.0,             "beans": 9.0, "baked beans": 9.0, "black beans": 9.0, "kidney beans": 9.0, "pinto beans": 9.0,
+            "tofu": 11.2, "tempeh": 20.0, "edamame": 11.0, "soybeans": 36.0, "soy milk": 3.3,
+            "lentils": 9.0,             "beans": 9.0, "baked beans": 9.0, "black beans": 9.0, "kidney beans": 12.6, "pinto beans": 9.0,
             "navy beans": 9.0, "lima beans": 9.0, "cannellini beans": 9.0, "great northern beans": 9.0, "white beans": 9.0, "garbanzo beans": 9.0, "chickpeas": 9.0,
             "hummus": 8.0, "falafel": 8.0,
             "split peas": 9.0, "black eyed peas": 8.0, "adzuki beans": 8.0, "mung beans": 8.0,
-            "quinoa": 14.0, "seitan": 25.0, "spirulina": 57.0, "nutritional yeast": 50.0,
-            "textured vegetable protein": 50.0, "pea protein": 25.0, "rice protein": 25.0,
+            "quinoa": 19.6, "seitan": 35.0, "spirulina": 79.8, "nutritional yeast": 70.0,
+            "textured vegetable protein": 50.0, "pea protein": 35.0, "rice protein": 25.0,
             
             # Nuts & Seeds (Medium Protein)
             "almonds": 21.0, "walnuts": 15.0, "peanuts": 26.0, "cashews": 18.0, "pistachios": 20.0,
             "pecans": 9.0, "macadamia": 8.0, "hazelnuts": 15.0, "brazil nuts": 14.0,
-            "chia seeds": 17.0, "flax seeds": 18.0, "hemp seeds": 32.0, "sunflower seeds": 21.0,
+            "chia seeds": 17.0, "flax seeds": 18.0, "hemp seeds": 32.0, "sunflower seeds": 29.4,
             "pumpkin seeds": 19.0, "sesame seeds": 18.0, "poppy seeds": 18.0,
-            "peanut butter": 25.0, "almond butter": 21.0, "cashew butter": 18.0,
+            "peanut butter": 35.0, "almond butter": 21.0, "cashew butter": 18.0,
             
             # Grains & Carbs (Lower Protein) - Updated with accurate values
-            "rice": 2.7, "white rice": 2.7, "brown rice": 2.7, "wild rice": 4.0, "jasmine rice": 2.7,
-            "bread": 8.0, "white bread": 8.0, "whole wheat bread": 8.0, "sourdough": 8.0, "bagel": 10.0,
-            "pasta": 5.0, "spaghetti": 5.0, "penne": 5.0, "fettuccine": 5.0, "lasagna": 8.0, "linguine": 5.0, "rigatoni": 5.0, "ziti": 5.0, "rotini": 5.0, "farfalle": 5.0, "orecchiette": 5.0, "gnocchi": 5.0, "ravioli": 8.0, "tortellini": 8.0, "manicotti": 8.0, "cannelloni": 8.0,
+            "rice": 3.8, "white rice": 3.8, "brown rice": 3.8, "wild rice": 4.0, "jasmine rice": 3.8,
+            "bread": 12.6, "white bread": 12.6, "whole wheat bread": 12.6, "sourdough": 12.6, "bagel": 10.0,
+            "pasta": 7.8, "spaghetti": 5.0, "penne": 5.0, "fettuccine": 5.0, "lasagna": 8.0, "linguine": 5.0, "rigatoni": 5.0, "ziti": 5.0, "rotini": 5.0, "farfalle": 5.0, "orecchiette": 5.0, "gnocchi": 5.0, "ravioli": 8.0, "tortellini": 8.0, "manicotti": 8.0, "cannelloni": 8.0,
             "bolognese": 8.0, "marinara": 3.0, "alfredo": 6.0, "carbonara": 12.0, "pesto": 4.0,
             "tomato sauce": 2.0,
-            "oats": 17.0, "oatmeal": 17.0, "quinoa": 4.4, "barley": 3.5, "wheat": 13.0,
+            "oats": 17.0, "oatmeal": 17.0, "quinoa": 19.6, "barley": 3.5, "wheat": 13.0,
             "cereal": 8.0, "granola": 10.0, "muesli": 8.0,
             
             # Vegetables (Low Protein)
-            "broccoli": 2.8, "spinach": 2.9, "kale": 4.3, "peas": 5.4, "green peas": 5.4,
+            "broccoli": 5.6, "spinach": 2.9, "kale": 4.3, "peas": 5.4, "green peas": 5.4,
             "corn": 3.3, "potato": 2.0, "sweet potato": 2.0, "carrot": 0.9, "onion": 1.1,
-            "mushrooms": 3.1, "asparagus": 2.2, "brussels sprouts": 3.4, "cauliflower": 1.9,
+            "mushrooms": 3.1, "asparagus": 2.2, "brussels sprouts": 3.4, "cauliflower": 3.8,
             "bell pepper": 1.0, "tomato": 0.9, "cucumber": 0.7, "lettuce": 1.4, "cabbage": 1.3,
             "zucchini": 1.2, "eggplant": 1.0, "squash": 1.2, "pumpkin": 1.0,
             "artichoke": 3.3, "beets": 1.6, "celery": 0.7, "garlic": 6.4, "ginger": 1.8,
@@ -149,19 +149,19 @@ class GoogleVisionFoodDetector:
             "peach": 0.9, "pear": 0.4, "plum": 0.7, "cherry": 1.1, "watermelon": 0.6,
             
             # Popular Dishes & Meals (Composite Protein) - UPDATED WITH ACCURATE VALUES
-            "pizza": 12.0, "hamburger": 26.0, "hot dog": 12.0, "sandwich": 15.0, "sub": 15.0,
+            "pizza": 20.0, "hamburger": 26.0, "hot dog": 12.0, "sandwich": 24.0, "sub": 15.0,
             "taco": 12.0, "burrito": 15.0, "quesadilla": 18.0, "enchilada": 12.0, "fajita": 15.0, "shawarma": 18.0, "gyro": 18.0, "kebab": 18.0, "wrap": 12.0, "pita": 8.0, "tortilla": 8.0, "flatbread": 8.0, "naan": 8.0, "roti": 8.0, "chapati": 8.0,
             "sushi": 8.0, "sashimi": 20.0, "ramen": 8.0,
-            "pasta": 5.0, "spaghetti": 5.0, "lasagna": 8.0, "mac and cheese": 12.0, "penne": 5.0,
+            "pasta": 7.8, "spaghetti": 5.0, "lasagna": 8.0, "mac and cheese": 12.0, "penne": 5.0,
             "bean stew": 12.0, "vegetable stew": 8.0, "meat stew": 15.0, "chili": 15.0, "casserole": 12.0, "goulash": 12.0,
             "salad": 4.0, "caesar salad": 12.0, "greek salad": 10.0, "cobb salad": 15.0,
             "steak": 26.0, "grilled chicken": 31.0, "fried chicken": 25.0, "fish and chips": 15.0,
             "meatballs": 18.0, "meatloaf": 18.0, "roast beef": 26.0, "pulled pork": 25.0,
             "barbecue": 20.0, "bbq": 20.0, "kebab": 18.0, "gyro": 18.0, "shawarma": 18.0,
             "dumplings": 8.0, "spring rolls": 6.0, "egg rolls": 8.0, "wonton": 8.0, "potstickers": 8.0,
-            "noodles": 5.0, "rice": 2.7, "fried rice": 6.0, "risotto": 6.0, "paella": 12.0,
+            "noodles": 11.0, "rice": 3.8, "fried rice": 6.0, "risotto": 6.0, "paella": 12.0,
             "omelet": 13.0, "scrambled eggs": 13.0, "frittata": 12.0, "quiche": 12.0,
-            "pancakes": 6.0, "waffles": 6.0, "french toast": 8.0, "cereal": 8.0,
+            "pancakes": 12.0, "waffles": 6.0, "french toast": 8.0, "cereal": 8.0,
             "oatmeal": 17.0, "granola": 10.0, "yogurt": 10.0, "smoothie": 8.0,
             
             # International Cuisines
@@ -180,11 +180,11 @@ class GoogleVisionFoodDetector:
             
             # Snacks & Treats
             "chips": 6.0, "popcorn": 11.0, "pretzels": 10.0, "crackers": 8.0, "nuts": 20.0,
-            "trail mix": 15.0, "protein bar": 20.0, "energy bar": 8.0, "granola bar": 8.0,
+            "trail mix": 15.0, "protein bar": 40.0, "energy bar": 8.0, "granola bar": 8.0,
             "ice cream": 4.0, "yogurt": 10.0, "pudding": 3.0, "jello": 2.0,
             
             # Beverages
-            "milk": 3.4, "soy milk": 3.3, "almond milk": 1.0, "oat milk": 1.0, "protein shake": 25.0,
+            "milk": 4.8, "soy milk": 3.3, "almond milk": 1.0, "oat milk": 1.0, "protein shake": 25.0,
             "smoothie": 8.0, "juice": 0.5, "coffee": 0.1, "tea": 0.0,
             
             # Condiments & Sauces
@@ -197,7 +197,7 @@ class GoogleVisionFoodDetector:
             
             # ADDITIONAL COMMON FOODS WITH ACCURATE PROTEIN VALUES
             "toast": 8.0, "english muffin": 8.0, "croissant": 8.0, "danish": 6.0,
-            "muffin": 6.0, "donut": 4.0, "cookie": 5.0, "brownie": 4.0,
+            "muffin": 10.0, "donut": 4.0, "cookie": 5.0, "brownie": 4.0,
             "ice cream": 4.0, "yogurt": 10.0, "pudding": 3.0, "jello": 2.0,
             "chocolate": 4.0, "candy": 1.0, "gum": 0.0,
             "coffee": 0.1, "tea": 0.0, "juice": 0.5, "soda": 0.0,
@@ -227,24 +227,24 @@ class GoogleVisionFoodDetector:
             "benedict": 15.0, "florentine": 12.0, "royale": 15.0,
             "hash browns": 3.0, "home fries": 3.0, "breakfast potatoes": 3.0,
             "grits": 3.0, "polenta": 3.0, "cream of wheat": 3.0,
-            "french toast": 8.0, "pancakes": 6.0, "waffles": 6.0, "crepes": 6.0,
-            "muffin": 6.0, "scone": 6.0, "biscuit": 6.0, "croissant": 8.0,
+            "french toast": 8.0, "pancakes": 12.0, "waffles": 6.0, "crepes": 6.0,
+            "muffin": 10.0, "scone": 6.0, "biscuit": 6.0, "croissant": 8.0,
             "danish": 6.0, "donut": 4.0, "bagel": 10.0, "english muffin": 8.0,
             "cereal": 8.0, "granola": 10.0, "muesli": 8.0, "oatmeal": 17.0,
             "porridge": 17.0, "cream of wheat": 3.0, "farina": 3.0,
             "yogurt": 10.0, "greek yogurt": 10.0, "cottage cheese": 11.0,
             "smoothie": 8.0, "protein shake": 25.0, "meal replacement": 20.0,
-            "energy bar": 8.0, "protein bar": 20.0, "granola bar": 8.0,
+            "energy bar": 8.0, "protein bar": 40.0, "granola bar": 8.0,
             "trail mix": 15.0, "nuts": 20.0, "seeds": 20.0, "dried fruit": 3.0,
             "jerky": 30.0, "beef jerky": 30.0, "turkey jerky": 30.0,
             "pepperoni": 25.0, "salami": 22.0, "prosciutto": 28.0,
             "ham": 22.0, "bacon": 37.0, "sausage": 18.0, "chorizo": 22.0,
             "pepperoni": 25.0, "mortadella": 22.0, "bologna": 15.0,
             "pastrami": 22.0, "corned beef": 22.0, "roast beef": 26.0,
-            "turkey": 29.0, "chicken": 31.0, "duck": 23.0, "goose": 22.0,
+            "turkey": 40.6, "chicken": 43.4, "duck": 32.2, "goose": 22.0,
             "quail": 22.0, "pheasant": 22.0, "partridge": 22.0,
             "venison": 30.0, "bison": 28.0, "elk": 30.0, "rabbit": 28.0,
-            "lamb": 25.0, "veal": 24.0, "goat": 25.0, "wild boar": 25.0,
+            "lamb": 35.0, "veal": 24.0, "goat": 25.0, "wild boar": 25.0,
             "antelope": 30.0, "moose": 30.0, "bear": 25.0, "alligator": 25.0,
             "ostrich": 30.0, "emu": 30.0, "kangaroo": 30.0, "camel": 25.0,
             "horse": 25.0, "donkey": 25.0, "mule": 25.0, "buffalo": 25.0,
@@ -629,7 +629,7 @@ class GoogleVisionFoodDetector:
                 confidence = label.score
                 
                 # ENHANCED confidence threshold system - more sensitive to food items
-                if confidence >= 0.75:  # Very high confidence - process all
+                if confidence >= 0.70:  # Very high confidence - process all
                     print(f"   🔍 Very high confidence: {label_desc} (confidence: {confidence:.3f})")
                     if self._is_food_item(label_desc):
                         food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
@@ -640,7 +640,7 @@ class GoogleVisionFoodDetector:
                                 print(f"      ✅ Added: {food}")
                     else:
                         print(f"      ❌ Filtered out non-food: {label_desc}")
-                elif confidence >= 0.65:  # High confidence - process with validation
+                elif confidence >= 0.60:  # High confidence - process with validation
                     print(f"   🔍 High confidence: {label_desc} (confidence: {confidence:.3f})")
                     if self._is_food_item(label_desc):
                         food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
@@ -651,7 +651,7 @@ class GoogleVisionFoodDetector:
                                 print(f"      ✅ Added: {food}")
                     else:
                         print(f"      ❌ Filtered out non-food: {label_desc}")
-                elif confidence >= 0.55:  # Medium confidence - strict validation
+                elif confidence >= 0.50:  # Medium confidence - strict validation
                     print(f"   🔍 Medium confidence: {label_desc} (confidence: {confidence:.3f})")
                     # Only process if it's clearly food and contains specific food keywords (comprehensive list)
                     if self._is_food_item(label_desc) and any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "vegetable", "salad", "fruit", "soup", "sandwich", "pizza", "burger", "noodle", "grain", "dairy", "sausage", "bacon", "toast", "beans", "mushrooms", "tomato", "breakfast", "hash browns", "black pudding", "white pudding", "potato", "onion", "carrot", "broccoli", "spinach", "lettuce", "cucumber", "pepper", "corn", "peas", "lentils", "quinoa", "oats", "cereal", "yogurt", "milk", "butter", "oil", "sauce", "gravy", "herbs", "spices", "garlic", "ginger", "curry", "stir", "fry", "roast", "grill", "bake", "steam", "boil"]):
@@ -663,7 +663,7 @@ class GoogleVisionFoodDetector:
                                 print(f"      ✅ Added: {food}")
                     else:
                         print(f"      ❌ Filtered out unclear/non-food: {label_desc}")
-                elif confidence >= 0.50:  # Low confidence - very strict validation
+                elif confidence >= 0.45:  # Low confidence - very strict validation
                     print(f"   🔍 Low confidence: {label_desc} (confidence: {confidence:.3f})")
                     # Only process if it's very clearly food with high-confidence keywords (comprehensive list)
                     if self._is_food_item(label_desc) and any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "sausage", "bacon", "toast", "beans", "mushrooms", "tomato", "hash browns", "potato", "vegetable", "salad", "soup", "sandwich", "pizza", "burger", "noodle", "grain", "dairy", "fruit", "sauce", "gravy", "herbs", "spices", "curry", "stir", "fry", "roast", "grill", "bake"]):
@@ -686,7 +686,7 @@ class GoogleVisionFoodDetector:
                     confidence = entity.score
                     
                     # IMPROVED thresholds for web entities with food validation
-                    if confidence >= 0.70:  # Very high confidence web entities
+                    if confidence >= 0.65:  # Very high confidence web entities
                         print(f"   🌐 Very high confidence web entity: {entity_desc} (score: {confidence:.3f})")
                         if self._is_food_item(entity_desc):
                             food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
@@ -697,7 +697,7 @@ class GoogleVisionFoodDetector:
                                     print(f"      ✅ Added from web: {food}")
                         else:
                             print(f"      ❌ Filtered out non-food web entity: {entity_desc}")
-                    elif confidence >= 0.60:  # High confidence web entities
+                    elif confidence >= 0.55:  # High confidence web entities
                         print(f"   🌐 High confidence web entity: {entity_desc} (score: {confidence:.3f})")
                         if self._is_food_item(entity_desc):
                             food_items = self._extract_food_with_improved_matching(entity_desc, confidence, detected_foods)
@@ -708,7 +708,7 @@ class GoogleVisionFoodDetector:
                                     print(f"      ✅ Added from web: {food}")
                         else:
                             print(f"      ❌ Filtered out non-food web entity: {entity_desc}")
-                    elif confidence >= 0.55:  # Medium confidence web entities
+                    elif confidence >= 0.50:  # Medium confidence web entities
                         print(f"   🌐 Medium confidence web entity: {entity_desc} (score: {confidence:.3f})")
                         # Only process if it's clearly food and contains specific food keywords (comprehensive list)
                         if self._is_food_item(entity_desc) and any(keyword in entity_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "vegetable", "salad", "fruit", "soup", "sandwich", "pizza", "burger", "sausage", "bacon", "toast", "beans", "mushrooms", "tomato", "breakfast", "hash browns", "black pudding", "white pudding", "english breakfast", "full breakfast", "potato", "onion", "carrot", "broccoli", "spinach", "lettuce", "cucumber", "pepper", "corn", "peas", "lentils", "quinoa", "oats", "cereal", "yogurt", "milk", "butter", "oil", "sauce", "gravy", "herbs", "spices", "garlic", "ginger", "curry", "stir", "fry", "roast", "grill", "bake", "steam", "boil", "noodle", "grain", "dairy"]):
@@ -720,7 +720,7 @@ class GoogleVisionFoodDetector:
                                     print(f"      ✅ Added from web: {food}")
                         else:
                             print(f"      ❌ Filtered out unclear/non-food web entity: {entity_desc}")
-                    elif confidence >= 0.50:  # Low confidence web entities
+                    elif confidence >= 0.45:  # Low confidence web entities
                         print(f"   🌐 Low confidence web entity: {entity_desc} (score: {confidence:.3f})")
                         # Only process if it's very clearly food with high-confidence keywords
                         if self._is_food_item(entity_desc) and any(keyword in entity_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat"]):
@@ -1241,82 +1241,21 @@ class GoogleVisionFoodDetector:
                         foods.append(component)
         
         # Handle multi-item meal descriptions (e.g., "english breakfast", "full breakfast")
-        meal_keywords = ["breakfast", "lunch", "dinner", "meal", "plate", "dish"]
-        if any(keyword in label for keyword in meal_keywords):
-            # For meal descriptions, extract individual components
+        # Only trigger for very specific meal terms, not generic ones
+        specific_meal_keywords = ["english breakfast", "full english", "full breakfast", "american breakfast", "continental breakfast", "fry up", "big breakfast", "weekend breakfast", "brunch", "breakfast buffet", "breakfast sandwich", "breakfast burrito", "breakfast bowl", "breakfast platter"]
+        if any(keyword in label for keyword in specific_meal_keywords):
+            # For specific meal descriptions, extract individual components
             foods.extend(self._extract_meal_components(label, confidence))
             if foods:  # If we found meal components, return them
                 return foods
         
-        # IMPROVED: Special handling for breakfast items that suggest a full breakfast
-        breakfast_indicators = ["sausage", "bacon", "eggs", "toast", "beans", "mushrooms", "tomato"]
-        if any(indicator in label for indicator in breakfast_indicators):
-            # If we detect a breakfast item, check if it might be part of a full breakfast
-            if confidence >= 0.60:  # Medium confidence threshold
-                # Add common breakfast companions
-                breakfast_companions = []
-                if "sausage" in label:
-                    breakfast_companions = ["eggs", "bacon", "toast", "beans"]
-                elif "bacon" in label:
-                    breakfast_companions = ["eggs", "sausage", "toast"]
-                elif "eggs" in label:
-                    breakfast_companions = ["bacon", "sausage", "toast"]
-                
-                # Add companions if they're not already detected
-                for companion in breakfast_companions:
-                    if companion not in foods:
-                        foods.append(companion)
-                        print(f"🍳 Added breakfast companion: {companion} (detected with {label})")
+        # REMOVED: Special handling for breakfast items to prevent false positives
+        # Individual breakfast items should not trigger full breakfast detection
         
-        # ENHANCED: Comprehensive meal detection - detect ALL components for ANY meal type
-        # Define common meal patterns and their typical components
-        meal_patterns = {
-            # Breakfast patterns
-            "breakfast": ["eggs", "bacon", "sausage", "toast", "beans", "mushrooms", "tomato", "hash browns"],
-            "english_breakfast": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato", "hash browns"],
-            "full_breakfast": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato", "hash browns"],
-            
-            # Lunch patterns
-            "lunch": ["chicken", "rice", "vegetables", "salad", "bread"],
-            "sandwich": ["bread", "meat", "cheese", "vegetables", "sauce"],
-            "salad": ["lettuce", "tomato", "cucumber", "cheese", "dressing"],
-            
-            # Dinner patterns
-            "dinner": ["meat", "potato", "vegetables", "gravy", "bread"],
-            "steak_dinner": ["beef", "potato", "vegetables", "gravy", "bread"],
-            "chicken_dinner": ["chicken", "rice", "vegetables", "sauce", "bread"],
-            
-            # Pasta patterns
-            "pasta": ["pasta", "sauce", "cheese", "meat", "vegetables"],
-            "spaghetti": ["spaghetti", "tomato", "cheese", "meat", "herbs"],
-            
-            # Asian patterns
-            "stir_fry": ["rice", "vegetables", "meat", "sauce", "noodles"],
-            "curry": ["rice", "meat", "vegetables", "sauce", "bread"],
-            
-            # Generic patterns
-            "meal": ["protein", "carbohydrate", "vegetables", "sauce"],
-            "plate": ["protein", "carbohydrate", "vegetables", "sauce"]
-        }
+        # REMOVED: Comprehensive meal detection to prevent false positives
+        # Only detect what's explicitly mentioned in the label
         
-        # Check if the detected food suggests a larger meal pattern
-        detected_meal_type = None
-        for meal_type, components in meal_patterns.items():
-            if any(component in label for component in components):
-                detected_meal_type = meal_type
-                break
-        
-        # If we detected a meal pattern, add ALL typical components
-        if detected_meal_type and confidence >= 0.50:
-            typical_components = meal_patterns[detected_meal_type]
-            
-            # Add ALL typical components if not already detected
-            for component in typical_components:
-                if component not in foods:
-                    foods.append(component)
-                    print(f"🍽️ Added {detected_meal_type} component: {component} (detected with {label})")
-            
-            print(f"🍽️ {detected_meal_type.replace('_', ' ').title()} detected! Total components: {len(foods)}")
+        # REMOVED: Meal pattern detection to prevent false positives
         
         # IMPROVED partial matching for individual food items - more comprehensive
         for food_item in self.protein_database.keys():
@@ -1409,34 +1348,29 @@ class GoogleVisionFoodDetector:
         """Extract individual food components from meal descriptions with enhanced accuracy"""
         components = []
         
-        # ENHANCED breakfast components - comprehensive detection
+        # CONSERVATIVE breakfast components - only add what's clearly visible
         breakfast_components = {
-            "english breakfast": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato", "hash browns"],
-            "full english": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato", "hash browns"],
-            "full breakfast": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato", "hash browns"],
-            "american breakfast": ["bacon", "eggs", "pancakes", "toast", "sausage", "hash browns"],
-            "continental breakfast": ["bread", "cheese", "yogurt", "fruit", "cereal", "pastries"],
-            "breakfast": ["eggs", "bacon", "toast", "cereal", "milk", "yogurt", "sausage"],
-            "fry up": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato", "hash browns"],
-            "big breakfast": ["bacon", "eggs", "sausage", "toast", "beans", "hash browns", "mushrooms"],
-            "weekend breakfast": ["bacon", "eggs", "pancakes", "waffles", "french toast", "sausage", "hash browns"],
-            # ENHANCED: More comprehensive breakfast variations
-            "brunch": ["eggs", "bacon", "toast", "fruit", "pastries", "coffee", "sausage"],
-            "breakfast buffet": ["eggs", "bacon", "sausage", "toast", "cereal", "fruit", "pastries", "hash browns"],
-            "breakfast sandwich": ["bread", "eggs", "cheese", "bacon", "sausage", "hash browns"],
-            "breakfast burrito": ["tortilla", "eggs", "cheese", "bacon", "potato", "sausage"],
-            "breakfast bowl": ["eggs", "rice", "vegetables", "meat", "sauce", "bacon"],
-            "breakfast platter": ["eggs", "bacon", "sausage", "toast", "hash browns", "fruit", "mushrooms"],
-            # ENHANCED: Individual breakfast items trigger full breakfast detection
-            "sausage": ["sausage", "eggs", "bacon", "toast", "beans", "mushrooms", "tomato", "hash browns"],
-            "bacon": ["bacon", "eggs", "sausage", "toast", "beans", "mushrooms", "tomato", "hash browns"],
-            "eggs": ["eggs", "bacon", "sausage", "toast", "beans", "mushrooms", "tomato", "hash browns"]
+            "english breakfast": ["bacon", "eggs", "sausage", "toast", "beans"],
+            "full english": ["bacon", "eggs", "sausage", "toast", "beans"],
+            "full breakfast": ["bacon", "eggs", "sausage", "toast"],
+            "american breakfast": ["bacon", "eggs", "pancakes", "toast"],
+            "continental breakfast": ["bread", "cheese", "yogurt", "fruit"],
+            "breakfast": ["eggs", "bacon", "toast"],
+            "fry up": ["bacon", "eggs", "sausage", "toast", "beans"],
+            "big breakfast": ["bacon", "eggs", "sausage", "toast"],
+            "weekend breakfast": ["bacon", "eggs", "pancakes", "sausage"],
+            "brunch": ["eggs", "bacon", "toast", "fruit"],
+            "breakfast buffet": ["eggs", "bacon", "sausage", "toast"],
+            "breakfast sandwich": ["bread", "eggs", "cheese", "bacon"],
+            "breakfast burrito": ["tortilla", "eggs", "cheese", "bacon"],
+            "breakfast bowl": ["eggs", "rice", "vegetables"],
+            "breakfast platter": ["eggs", "bacon", "sausage", "toast"]
         }
         
-        # ENHANCED lunch/dinner components - comprehensive meal detection
+        # CONSERVATIVE lunch/dinner components - only add what's clearly visible
         meal_components = {
-            "lunch": ["sandwich", "salad", "soup", "pasta", "rice", "chicken", "beef", "vegetables", "bread"],
-            "dinner": ["steak", "chicken", "fish", "pasta", "rice", "vegetables", "salad", "potato", "gravy", "bread"],
+            "lunch": ["sandwich", "salad", "soup", "pasta", "rice"],
+            "dinner": ["steak", "chicken", "fish", "pasta", "rice"],
             "meal": ["protein", "carbohydrate", "vegetables", "sauce", "bread"],
             "plate": ["protein", "carbohydrate", "vegetables", "sauce", "bread"],
             "dish": ["protein", "carbohydrate", "vegetables", "sauce", "bread"],
@@ -1468,19 +1402,19 @@ class GoogleVisionFoodDetector:
         for meal_type, items in breakfast_components.items():
             if meal_type in meal_label:
                 meal_found = True
-                # Add components based on confidence level - ENHANCED thresholds for better detection
-                if confidence >= 0.70:  # High confidence - add most components
-                    components.extend(items[:8])  # Add up to 8 components for full breakfast
-                    print(f"🍳 High confidence breakfast: {meal_type} -> {items[:8]}")
-                elif confidence >= 0.60:  # Medium-high confidence
-                    components.extend(items[:7])  # Add up to 7 components
-                    print(f"🍳 Medium-high confidence breakfast: {meal_type} -> {items[:7]}")
-                elif confidence >= 0.50:  # Medium confidence
-                    components.extend(items[:6])  # Add up to 6 components
-                    print(f"🍳 Medium confidence breakfast: {meal_type} -> {items[:6]}")
+                # Add components based on confidence level - CONSERVATIVE approach
+                if confidence >= 0.85:  # Very high confidence - add most components
+                    components.extend(items[:4])  # Add up to 4 components
+                    print(f"🍳 Very high confidence breakfast: {meal_type} -> {items[:4]}")
+                elif confidence >= 0.75:  # High confidence
+                    components.extend(items[:3])  # Add up to 3 components
+                    print(f"🍳 High confidence breakfast: {meal_type} -> {items[:3]}")
+                elif confidence >= 0.65:  # Medium-high confidence
+                    components.extend(items[:2])  # Add up to 2 components
+                    print(f"🍳 Medium-high confidence breakfast: {meal_type} -> {items[:2]}")
                 else:
-                    components.extend(items[:5])  # Add up to 5 components even at low confidence
-                    print(f"🍳 Low confidence breakfast: {meal_type} -> {items[:5]}")
+                    components.extend(items[:1])  # Add only 1 component at low confidence
+                    print(f"🍳 Low confidence breakfast: {meal_type} -> {items[:1]}")
                 break
         
         # Check other meal patterns if no breakfast found
@@ -1488,19 +1422,19 @@ class GoogleVisionFoodDetector:
             for meal_type, items in meal_components.items():
                 if meal_type in meal_label:
                     meal_found = True
-                    # For generic meals, be more inclusive to detect all components
-                    if confidence >= 0.65:  # High confidence - add most components
-                        components.extend(items[:6])  # Add up to 6 components
-                        print(f"🍽️ High confidence meal: {meal_type} -> {items[:6]}")
-                    elif confidence >= 0.55:  # Medium-high confidence
-                        components.extend(items[:5])  # Add up to 5 components
-                        print(f"🍽️ Medium-high confidence meal: {meal_type} -> {items[:5]}")
-                    elif confidence >= 0.50:  # Medium confidence
-                        components.extend(items[:4])  # Add up to 4 components
-                        print(f"🍽️ Medium confidence meal: {meal_type} -> {items[:4]}")
+                    # For generic meals, be conservative to avoid false positives
+                    if confidence >= 0.80:  # Very high confidence - add most components
+                        components.extend(items[:3])  # Add up to 3 components
+                        print(f"🍽️ Very high confidence meal: {meal_type} -> {items[:3]}")
+                    elif confidence >= 0.70:  # High confidence
+                        components.extend(items[:2])  # Add up to 2 components
+                        print(f"🍽️ High confidence meal: {meal_type} -> {items[:2]}")
+                    elif confidence >= 0.60:  # Medium-high confidence
+                        components.extend(items[:1])  # Add up to 1 component
+                        print(f"🍽️ Medium-high confidence meal: {meal_type} -> {items[:1]}")
                     else:
-                        components.extend(items[:3])  # Add up to 3 components even at low confidence
-                        print(f"🍽️ Low confidence meal: {meal_type} -> {items[:3]}")
+                        # Don't add any components at low confidence
+                        print(f"🍽️ Low confidence meal: {meal_type} -> no components added")
                     break
         
         # If no specific meal pattern found, try to extract individual food items
