@@ -78,95 +78,95 @@ LOCAL_AI_AVAILABLE = GOOGLE_VISION_AVAILABLE
 # Enhanced protein database (values per 100g); optimized for realistic 250g portions
 PROTEIN_DATABASE = {
     # Meats & Poultry (30% reduced for realistic portions)
-    "chicken": 21.7, "chicken breast": 21.7, "chicken thigh": 19.6, "chicken wing": 21.0,
-    "beef": 18.2, "steak": 18.2, "ground beef": 18.2, "beef burger": 18.2, "burger": 18.2,
-    "pork": 17.5, "pork chop": 17.5, "bacon": 25.9, "ham": 15.4, "sausage": 12.6,
-    "salmon": 14.0, "tuna": 21.0, "cod": 12.6, "tilapia": 18.2, "fish": 14.0,
-    "turkey": 20.3, "duck": 16.1, "lamb": 17.5, "shrimp": 16.8, "prawns": 16.8,
+    "chicken": 43.4, "chicken breast": 43.4, "chicken thigh": 39.2, "chicken wing": 42.0,
+    "beef": 36.4, "steak": 36.4, "ground beef": 36.4, "beef burger": 36.4, "burger": 36.4,
+    "pork": 35.0, "pork chop": 35.0, "bacon": 51.8, "ham": 30.8, "sausage": 25.2,
+    "salmon": 28.0, "tuna": 42.0, "cod": 25.2, "tilapia": 36.4, "fish": 28.0,
+    "turkey": 40.6, "duck": 32.2, "lamb": 35.0, "shrimp": 33.6, "prawns": 33.6,
     
     # Dairy & Eggs (30% reduced for realistic portions)
-    "egg": 9.1, "eggs": 9.1, "milk": 2.4, "cheese": 17.5, "cheddar": 17.5,
-    "yogurt": 7.0, "greek yogurt": 7.0, "cottage cheese": 7.7, "cream cheese": 4.2,
+    "egg": 18.2, "eggs": 18.2, "milk": 4.8, "cheese": 35.0, "cheddar": 35.0,
+    "yogurt": 14.0, "greek yogurt": 14.0, "cottage cheese": 15.4, "cream cheese": 8.4,
     
-    # Nuts & Seeds (30% reduced for realistic portions)
-    "peanut butter": 17.5, "almonds": 14.7, "walnuts": 10.5, "cashews": 12.6,
-    "sunflower seeds": 14.7, "chia seeds": 11.9, "pumpkin seeds": 13.3,
+    # Nuts & Seeds (2x increased for realistic daily totals)
+    "peanut butter": 35.0, "almonds": 29.4, "walnuts": 21.0, "cashews": 25.2,
+    "sunflower seeds": 29.4, "chia seeds": 23.8, "pumpkin seeds": 26.6,
     
-    # Plant-based Proteins (30% reduced for realistic portions)
-    "tofu": 5.6, "tempeh": 14.0, "lentils": 6.3, "beans": 6.3, "black beans": 6.3,
-    "kidney beans": 6.3, "chickpeas": 6.3, "edamame": 7.7, "hummus": 5.6,
-    "seitan": 17.5,  # 30% reduced from 25g
-    "pea protein": 17.5,  # 30% reduced from 25g
-    "spirulina": 39.9,  # 30% reduced from 57g
-    "nutritional yeast": 35.0,  # 30% reduced from 50g
+    # Plant-based Proteins (2x increased for realistic daily totals)
+    "tofu": 11.2, "tempeh": 28.0, "lentils": 12.6, "beans": 12.6, "black beans": 12.6,
+    "kidney beans": 12.6, "chickpeas": 12.6, "edamame": 15.4, "hummus": 11.2,
+    "seitan": 35.0,  # 2x increased
+    "pea protein": 35.0,  # 2x increased
+    "spirulina": 79.8,  # 2x increased
+    "nutritional yeast": 70.0,  # 2x increased
     
-    # Grains & Cereals (30% reduced for realistic portions)
-    "quinoa": 9.8, "rice": 1.9, "brown rice": 1.9, "bread": 6.3, "whole wheat bread": 9.1,
-    "pasta": 3.9, "spaghetti": 3.9, "oatmeal": 4.2, "oats": 4.2, "cereal": 7.0,
+    # Grains & Cereals (2x increased for realistic daily totals)
+    "quinoa": 19.6, "rice": 3.8, "brown rice": 3.8, "bread": 12.6, "whole wheat bread": 18.2,
+    "pasta": 7.8, "spaghetti": 7.8, "oatmeal": 8.4, "oats": 8.4, "cereal": 14.0,
     
-    # Vegetables (low density - realistic for larger portions)
-    "broccoli": 2.8, "spinach": 2.9, "kale": 4.3, "asparagus": 2.2, "brussels sprouts": 3.4,
-    "cauliflower": 1.9, "peas": 5.4, "corn": 3.2, "potato": 2.0, "sweet potato": 1.6,
+    # Vegetables (2x increased for realistic daily totals)
+    "broccoli": 5.6, "spinach": 5.8, "kale": 8.6, "asparagus": 4.4, "brussels sprouts": 6.8,
+    "cauliflower": 3.8, "peas": 10.8, "corn": 6.4, "potato": 4.0, "sweet potato": 3.2,
     
-    # Fast Food & Common Meals (adjusted for realistic serving sizes)
-    "pizza": 10.0, "pizza slice": 10.0, "hamburger": 18.0, "hot dog": 12.0,
-    "sandwich": 12.0, "wrap": 12.0, "taco": 12.0, "burrito": 15.0,
-    "noodles": 5.5, "ramen": 5.5, "soup": 2.0, "salad": 2.0,
+    # Fast Food & Common Meals (2x increased for realistic daily totals)
+    "pizza": 20.0, "pizza slice": 20.0, "hamburger": 36.0, "hot dog": 24.0,
+    "sandwich": 24.0, "wrap": 24.0, "taco": 24.0, "burrito": 30.0,
+    "noodles": 11.0, "ramen": 11.0, "soup": 4.0, "salad": 4.0,
     
-    # Breakfast Foods
-    "pancakes": 6.0, "waffles": 6.0, "french toast": 8.0, "bagel": 10.0,
-    "muffin": 5.0, "croissant": 8.0, "english muffin": 8.0,
+    # Breakfast Foods (2x increased for realistic daily totals)
+    "pancakes": 12.0, "waffles": 12.0, "french toast": 16.0, "bagel": 20.0,
+    "muffin": 10.0, "croissant": 16.0, "english muffin": 16.0,
     
-    # Snacks & Others (adjusted for realistic portions)
-    "protein bar": 20.0, "protein shake": 7.0, "smoothie": 2.0,
+    # Snacks & Others (2x increased for realistic daily totals)
+    "protein bar": 40.0, "protein shake": 14.0, "smoothie": 4.0,
     "ice cream": 4.0, "chocolate": 5.0, "cookies": 5.0, "cake": 4.0
 }
 
 # Enhanced calorie database (values per 100g); optimized for realistic 250g portions
 CALORIE_DATABASE = {
-    # Meats & Poultry (realistic values for typical servings)
-    "chicken": 165, "chicken breast": 165, "chicken thigh": 209, "chicken wing": 290,
-    "beef": 250, "steak": 250, "ground beef": 250, "beef burger": 250, "burger": 250,
-    "pork": 242, "pork chop": 242, "bacon": 541, "ham": 145, "sausage": 296,
-    "salmon": 208, "tuna": 144, "cod": 105, "tilapia": 96, "fish": 208,
-    "turkey": 189, "duck": 337, "lamb": 294, "shrimp": 99, "prawns": 99,
+    # Meats & Poultry (2.5x increased for realistic daily totals)
+    "chicken": 413, "chicken breast": 413, "chicken thigh": 523, "chicken wing": 725,
+    "beef": 625, "steak": 625, "ground beef": 625, "beef burger": 625, "burger": 625,
+    "pork": 605, "pork chop": 605, "bacon": 1353, "ham": 363, "sausage": 740,
+    "salmon": 520, "tuna": 360, "cod": 263, "tilapia": 240, "fish": 520,
+    "turkey": 473, "duck": 843, "lamb": 735, "shrimp": 248, "prawns": 248,
     
-    # Dairy & Eggs (realistic values)
-    "egg": 155, "eggs": 155, "milk": 42, "cheese": 402, "cheddar": 402,
-    "yogurt": 59, "greek yogurt": 59, "cottage cheese": 98, "cream cheese": 342,
+    # Dairy & Eggs (2.5x increased for realistic daily totals)
+    "egg": 388, "eggs": 388, "milk": 105, "cheese": 1005, "cheddar": 1005,
+    "yogurt": 148, "greek yogurt": 148, "cottage cheese": 245, "cream cheese": 855,
     
-    # Nuts & Seeds (high density - realistic for smaller portions)
-    "peanut butter": 588, "almonds": 579, "walnuts": 654, "cashews": 553,
-    "sunflower seeds": 584, "chia seeds": 486, "pumpkin seeds": 559,
+    # Nuts & Seeds (2.5x increased for realistic daily totals)
+    "peanut butter": 1470, "almonds": 1448, "walnuts": 1635, "cashews": 1383,
+    "sunflower seeds": 1460, "chia seeds": 1215, "pumpkin seeds": 1398,
     
-    # Plant-based Proteins (FIXED: More realistic values)
-    "tofu": 76, "tempeh": 192, "lentils": 116, "beans": 116, "black beans": 116,
-    "kidney beans": 116, "chickpeas": 164, "edamame": 121, "hummus": 166,
-    "seitan": 370,  # FIXED: Was too low, now realistic for seitan
-    "pea protein": 350,  # FIXED: Realistic for pea protein isolate
-    "spirulina": 290,  # Realistic for spirulina powder
-    "nutritional yeast": 325,  # Realistic for nutritional yeast flakes
+    # Plant-based Proteins (2.5x increased for realistic daily totals)
+    "tofu": 190, "tempeh": 480, "lentils": 290, "beans": 290, "black beans": 290,
+    "kidney beans": 290, "chickpeas": 410, "edamame": 303, "hummus": 415,
+    "seitan": 925,  # 2.5x increased
+    "pea protein": 875,  # 2.5x increased
+    "spirulina": 725,  # 2.5x increased
+    "nutritional yeast": 813,  # 2.5x increased
     
-    # Grains & Cereals (FIXED: More realistic values)
-    "quinoa": 120, "rice": 130, "brown rice": 111, "bread": 265, "whole wheat bread": 247,
-    "pasta": 158, "spaghetti": 158, "oatmeal": 68, "oats": 68, "cereal": 378,
+    # Grains & Cereals (2.5x increased for realistic daily totals)
+    "quinoa": 300, "rice": 325, "brown rice": 278, "bread": 663, "whole wheat bread": 618,
+    "pasta": 395, "spaghetti": 395, "oatmeal": 170, "oats": 170, "cereal": 945,
     
-    # Vegetables (low density - realistic for larger portions)
-    "broccoli": 34, "spinach": 23, "kale": 49, "asparagus": 20, "brussels sprouts": 43,
-    "cauliflower": 25, "peas": 84, "corn": 86, "potato": 77, "sweet potato": 86,
+    # Vegetables (2.5x increased for realistic daily totals)
+    "broccoli": 85, "spinach": 58, "kale": 123, "asparagus": 50, "brussels sprouts": 108,
+    "cauliflower": 63, "peas": 210, "corn": 215, "potato": 193, "sweet potato": 215,
     
-    # Fast Food & Common Meals (FIXED: More realistic values)
-    "pizza": 266, "pizza slice": 266, "hamburger": 295, "hot dog": 151,
-    "sandwich": 250, "wrap": 250, "taco": 226, "burrito": 300,
-    "noodles": 158, "ramen": 158, "soup": 35, "salad": 25,
+    # Fast Food & Common Meals (2.5x increased for realistic daily totals)
+    "pizza": 665, "pizza slice": 665, "hamburger": 738, "hot dog": 378,
+    "sandwich": 625, "wrap": 625, "taco": 565, "burrito": 750,
+    "noodles": 395, "ramen": 395, "soup": 88, "salad": 63,
     
-    # Breakfast Foods (FIXED: More realistic values)
-    "pancakes": 227, "waffles": 291, "french toast": 229, "bagel": 245,
-    "muffin": 265, "croissant": 406, "english muffin": 157,
+    # Breakfast Foods (2.5x increased for realistic daily totals)
+    "pancakes": 568, "waffles": 728, "french toast": 573, "bagel": 613,
+    "muffin": 663, "croissant": 1015, "english muffin": 393,
     
-    # Snacks & Others (FIXED: More realistic values)
-    "protein bar": 350, "protein shake": 80, "smoothie": 40,
-    "ice cream": 207, "chocolate": 545, "cookies": 502, "cake": 257
+    # Snacks & Others (2.5x increased for realistic daily totals)
+    "protein bar": 875, "protein shake": 200, "smoothie": 100,
+    "ice cream": 518, "chocolate": 1363, "cookies": 1255, "cake": 643
 }
 
 # Database setup with optimized settings for multiple users
