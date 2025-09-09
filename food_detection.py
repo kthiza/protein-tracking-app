@@ -77,32 +77,32 @@ class GoogleVisionFoodDetector:
         # Comprehensive protein database with realistic values (20% reduced from USDA values)
         self.protein_database = {
             # Meat & Fish (High Protein) - Values per 100g cooked (reduced by 20%)
-            "chicken": 25.0, "chicken breast": 25.0, "chicken thigh": 22.0, "chicken wing": 24.0,
-            "chicken nuggets": 14.0, "chicken tenders": 20.0, "fried chicken": 20.0, "roasted chicken": 25.0,
-            "chicken soup": 6.0, "chicken salad": 12.0, "chicken curry": 14.0, "chicken marsala": 16.0,
-            "beef": 21.0, "steak": 21.0, "ground beef": 21.0, "beef steak": 21.0, "ribeye": 21.0, "sirloin": 21.0,
-            "filet mignon": 21.0, "t-bone": 21.0, "porterhouse": 21.0, "beef burger": 21.0, "hamburger": 21.0,
-            "beef stew": 12.0, "beef stroganoff": 14.0, "beef tacos": 12.0, "beef chili": 14.0,
-            "pork": 20.0, "pork chop": 20.0, "bacon": 30.0, "ham": 18.0, "pork loin": 20.0, "pork tenderloin": 20.0,
-            "pork belly": 20.0, "pulled pork": 20.0, "pork ribs": 20.0, "pork shoulder": 20.0,
-            "sausage": 14.0, "pepperoni": 20.0, "salami": 18.0, "prosciutto": 22.0, "mortadella": 18.0,
-            "chorizo": 18.0, "kielbasa": 14.0, "bratwurst": 12.0, "italian sausage": 14.0,
-            "salmon": 16.0, "tuna": 24.0, "cod": 14.0, "tilapia": 21.0, "trout": 16.0, "mackerel": 15.0,
-            "halibut": 16.0, "sea bass": 16.0, "red snapper": 16.0, "grouper": 16.0, "swordfish": 16.0,
-            "shrimp": 19.0, "crab": 15.0, "lobster": 16.0, "oysters": 7.0, "mussels": 10.0, "clams": 10.0,
-            "scallops": 16.0, "calamari": 14.0, "octopus": 14.0, "crayfish": 14.0,
-            "turkey": 23.0, "turkey breast": 23.0, "duck": 18.0, "goose": 18.0, "quail": 18.0,
-            "pheasant": 18.0, "partridge": 18.0, "turkey bacon": 20.0, "turkey sausage": 14.0,
-            "lamb": 20.0, "veal": 19.0, "venison": 24.0, "bison": 22.0, "elk": 24.0, "rabbit": 22.0,
-            "goat": 20.0, "wild boar": 20.0, "antelope": 24.0, "moose": 24.0,
+            "chicken": 17.5, "chicken breast": 17.5, "chicken thigh": 15.4, "chicken wing": 16.8,
+            "chicken nuggets": 9.8, "chicken tenders": 14.0, "fried chicken": 14.0, "roasted chicken": 17.5,
+            "chicken soup": 4.2, "chicken salad": 8.4, "chicken curry": 9.8, "chicken marsala": 11.2,
+            "beef": 14.7, "steak": 14.7, "ground beef": 14.7, "beef steak": 14.7, "ribeye": 14.7, "sirloin": 14.7,
+            "filet mignon": 14.7, "t-bone": 14.7, "porterhouse": 14.7, "beef burger": 14.7, "hamburger": 14.7,
+            "beef stew": 8.4, "beef stroganoff": 9.8, "beef tacos": 8.4, "beef chili": 9.8,
+            "pork": 14.0, "pork chop": 14.0, "bacon": 21.0, "ham": 12.6, "pork loin": 14.0, "pork tenderloin": 14.0,
+            "pork belly": 14.0, "pulled pork": 14.0, "pork ribs": 14.0, "pork shoulder": 14.0,
+            "sausage": 9.8, "pepperoni": 14.0, "salami": 12.6, "prosciutto": 15.4, "mortadella": 12.6,
+            "chorizo": 12.6, "kielbasa": 9.8, "bratwurst": 8.4, "italian sausage": 9.8,
+            "salmon": 11.2, "tuna": 16.8, "cod": 9.8, "tilapia": 14.7, "trout": 11.2, "mackerel": 10.5,
+            "halibut": 11.2, "sea bass": 11.2, "red snapper": 11.2, "grouper": 11.2, "swordfish": 11.2,
+            "shrimp": 13.3, "crab": 10.5, "lobster": 11.2, "oysters": 4.9, "mussels": 7.0, "clams": 7.0,
+            "scallops": 11.2, "calamari": 9.8, "octopus": 9.8, "crayfish": 9.8,
+            "turkey": 16.1, "turkey breast": 16.1, "duck": 12.6, "goose": 12.6, "quail": 12.6,
+            "pheasant": 12.6, "partridge": 12.6, "turkey bacon": 14.0, "turkey sausage": 9.8,
+            "lamb": 14.0, "veal": 13.3, "venison": 16.8, "bison": 15.4, "elk": 16.8, "rabbit": 15.4,
+            "goat": 14.0, "wild boar": 14.0, "antelope": 16.8, "moose": 16.8,
             
-            # Dairy & Eggs (High Protein) - 20% reduced
-            "egg": 10.0, "eggs": 10.0, "scrambled eggs": 10.0, "fried eggs": 10.0, "fried egg": 10.0, "boiled eggs": 10.0,
-            "omelet": 10.0, "omelette": 10.0, "poached eggs": 10.0, "deviled eggs": 10.0, "yolk": 13.0,
-            "milk": 2.7, "cheese": 20.0, "cheddar": 20.0, "mozzarella": 18.0, "parmesan": 30.0,
-            "feta": 11.0, "blue cheese": 17.0, "swiss": 22.0, "gouda": 20.0, "brie": 16.0,
-            "yogurt": 8.0, "greek yogurt": 8.0, "cottage cheese": 9.0, "cream cheese": 5.0,
-            "butter": 0.7, "cream": 1.7, "sour cream": 1.9, "whipping cream": 1.7,
+            # Dairy & Eggs (High Protein) - 30% reduced from previous values
+            "egg": 7.0, "eggs": 7.0, "scrambled eggs": 7.0, "fried eggs": 7.0, "fried egg": 7.0, "boiled eggs": 7.0,
+            "omelet": 7.0, "omelette": 7.0, "poached eggs": 7.0, "deviled eggs": 7.0, "yolk": 9.1,
+            "milk": 1.9, "cheese": 14.0, "cheddar": 14.0, "mozzarella": 12.6, "parmesan": 21.0,
+            "feta": 7.7, "blue cheese": 11.9, "swiss": 15.4, "gouda": 14.0, "brie": 11.2,
+            "yogurt": 5.6, "greek yogurt": 5.6, "cottage cheese": 6.3, "cream cheese": 3.5,
+            "butter": 0.5, "cream": 1.2, "sour cream": 1.3, "whipping cream": 1.2,
             
             # Plant-based Proteins (Medium-High Protein)
             "tofu": 8.0, "tempeh": 20.0, "edamame": 11.0, "soybeans": 36.0, "soy milk": 3.3,
@@ -628,8 +628,8 @@ class GoogleVisionFoodDetector:
                 label_desc = label.description.lower().strip()
                 confidence = label.score
                 
-                # IMPROVED confidence threshold system with food validation
-                if confidence >= 0.75:  # Very high confidence - process all
+                # IMPROVED confidence threshold system with better food validation
+                if confidence >= 0.80:  # Very high confidence - process all
                     print(f"   🔍 Very high confidence: {label_desc} (confidence: {confidence:.3f})")
                     if self._is_food_item(label_desc):
                         food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
@@ -640,7 +640,7 @@ class GoogleVisionFoodDetector:
                                 print(f"      ✅ Added: {food}")
                     else:
                         print(f"      ❌ Filtered out non-food: {label_desc}")
-                elif confidence >= 0.65:  # High confidence - process with validation
+                elif confidence >= 0.70:  # High confidence - process with validation
                     print(f"   🔍 High confidence: {label_desc} (confidence: {confidence:.3f})")
                     if self._is_food_item(label_desc):
                         food_items = self._extract_food_with_improved_matching(label_desc, confidence, detected_foods)
@@ -651,7 +651,7 @@ class GoogleVisionFoodDetector:
                                 print(f"      ✅ Added: {food}")
                     else:
                         print(f"      ❌ Filtered out non-food: {label_desc}")
-                elif confidence >= 0.55:  # Medium confidence - strict validation
+                elif confidence >= 0.60:  # Medium confidence - strict validation
                     print(f"   🔍 Medium confidence: {label_desc} (confidence: {confidence:.3f})")
                     # Only process if it's clearly food and contains specific food keywords (including breakfast items)
                     if self._is_food_item(label_desc) and any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "vegetable", "salad", "fruit", "soup", "sandwich", "pizza", "burger", "noodle", "grain", "dairy", "sausage", "bacon", "toast", "beans", "mushrooms", "tomato", "breakfast"]):
@@ -663,7 +663,7 @@ class GoogleVisionFoodDetector:
                                 print(f"      ✅ Added: {food}")
                     else:
                         print(f"      ❌ Filtered out unclear/non-food: {label_desc}")
-                elif confidence >= 0.50:  # Low confidence - very strict validation
+                elif confidence >= 0.55:  # Low confidence - very strict validation
                     print(f"   🔍 Low confidence: {label_desc} (confidence: {confidence:.3f})")
                     # Only process if it's very clearly food with high-confidence keywords (including breakfast items)
                     if self._is_food_item(label_desc) and any(keyword in label_desc for keyword in ["chicken", "beef", "pork", "salmon", "rice", "pasta", "bread", "egg", "cheese", "fish", "meat", "sausage", "bacon", "toast", "beans"]):
@@ -676,7 +676,7 @@ class GoogleVisionFoodDetector:
                     else:
                         print(f"      ❌ Filtered out low confidence: {label_desc}")
                 else:
-                    print(f"   ❌ Skipped: {label_desc} (confidence: {confidence:.3f} < 0.50)")
+                    print(f"   ❌ Skipped: {label_desc} (confidence: {confidence:.3f} < 0.55)")
             
             # Process web detection results with IMPROVED thresholds for better multi-item detection
             if web_detection.web_entities:
@@ -2284,13 +2284,13 @@ class GoogleVisionFoodDetector:
             sr = sum(region_weights) or 1.0
             region_weights = [rw / sr for rw in region_weights]
 
-            # Final per-food share: average of food confidence share and region share
+            # Final per-food share: EQUAL SPLIT for multiple foods (25% each for 4 foods)
             portions: Dict[str, float] = {}
+            num_foods = len(foods)
+            equal_share = 1.0 / num_foods  # Each food gets equal share (25% for 4 foods)
+            
             for idx, food in enumerate(foods):
-                region_share = region_weights[idx % len(region_weights)]
-                conf_share = food_weights[food]
-                share = 0.5 * region_share + 0.5 * conf_share
-                grams = share * est_total_g
+                grams = equal_share * est_total_g
                 # Per-food portion caps to avoid extremes - MUCH MORE REALISTIC
                 grams = max(10.0, min(grams, 80.0))  # Reduced from 170.0 to 80.0
                 portions[food] = round(grams, 1)
