@@ -77,7 +77,7 @@ class GoogleVisionFoodDetector:
         # Comprehensive protein database with realistic values (20% reduced from USDA values)
         self.protein_database = {
             # Meat & Fish (High Protein) - Values per 100g cooked (reduced by 20%)
-n breakfast            "chicken": 35.0, "chicken breast": 35.0, "chicken thigh": 30.8, "chicken wing": 33.6,
+            "chicken": 35.0, "chicken breast": 35.0, "chicken thigh": 30.8, "chicken wing": 33.6,
             "chicken nuggets": 9.8, "chicken tenders": 14.0, "fried chicken": 14.0, "roasted chicken": 17.5,
             "chicken soup": 4.2, "chicken salad": 8.4, "chicken curry": 9.8, "chicken marsala": 11.2,
             "beef": 29.4, "steak": 29.4, "ground beef": 29.4, "beef steak": 29.4, "ribeye": 29.4, "sirloin": 29.4,

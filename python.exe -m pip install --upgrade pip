@@ -1,0 +1,84 @@
+[1mdiff --git a/main.py b/main.py[m
+[1mindex d58f3e7..dad1a19 100644[m
+[1m--- a/main.py[m
+[1m+++ b/main.py[m
+[36m@@ -77,32 +77,32 @@[m [mLOCAL_AI_AVAILABLE = GOOGLE_VISION_AVAILABLE[m
+ [m
+ # Enhanced protein database (values per 100g); optimized for realistic 250g portions[m
+ PROTEIN_DATABASE = {[m
+[31m-    # Meats & Poultry (realistic values for typical servings)[m
+[31m-    "chicken": 31.0, "chicken breast": 31.0, "chicken thigh": 28.0, "chicken wing": 30.0,[m
+[31m-    "beef": 26.0, "steak": 26.0, "ground beef": 26.0, "beef burger": 26.0, "burger": 26.0,[m
+[31m-    "pork": 25.0, "pork chop": 25.0, "bacon": 37.0, "ham": 22.0, "sausage": 18.0,[m
+[31m-    "salmon": 20.0, "tuna": 30.0, "cod": 18.0, "tilapia": 26.0, "fish": 20.0,[m
+[31m-    "turkey": 29.0, "duck": 23.0, "lamb": 25.0, "shrimp": 24.0, "prawns": 24.0,[m
+[31m-    [m
+[31m-    # Dairy & Eggs (adjusted for realistic portions)[m
+[31m-    "egg": 13.0, "eggs": 13.0, "milk": 3.4, "cheese": 25.0, "cheddar": 25.0,[m
+[31m-    "yogurt": 10.0, "greek yogurt": 10.0, "cottage cheese": 11.0, "cream cheese": 6.0,[m
+[31m-    [m
+[31m-    # Nuts & Seeds (high density foods - realistic for smaller portions)[m
+[31m-    "peanut butter": 25.0, "almonds": 21.0, "walnuts": 15.0, "cashews": 18.0,[m
+[31m-    "sunflower seeds": 21.0, "chia seeds": 17.0, "pumpkin seeds": 19.0,[m
+[31m-    [m
+[31m-    # Plant-based Proteins (FIXED: More realistic values)[m
+[31m-    "tofu": 8.0, "tempeh": 20.0, "lentils": 9.0, "beans": 9.0, "black beans": 9.0,[m
+[31m-    "kidney beans": 9.0, "chickpeas": 9.0, "edamame": 11.0, "hummus": 8.0,[m
+[31m-    "seitan": 25.0,  # FIXED: Was 75g, now realistic 25g/100g[m
+[31m-    "pea protein": 25.0,  # FIXED: Was 80g, now realistic 25g/100g (for pea protein isolate)[m
+[31m-    "spirulina": 57.0,  # This is actually accurate for spirulina powder[m
+[31m-    "nutritional yeast": 50.0,  # This is accurate for nutritional yeast flakes[m
+[31m-    [m
+[31m-    # Grains & Cereals (adjusted for realistic portions)[m
+[31m-    "quinoa": 14.0, "rice": 2.7, "brown rice": 2.7, "bread": 9.0, "whole wheat bread": 13.0,[m
+[31m-    "pasta": 5.5, "spaghetti": 5.5, "oatmeal": 6.0, "oats": 6.0, "cereal": 10.0,[m
+[32m+[m[32m    # Meats & Poultry (30% reduced for realistic portions)[m
+[32m+[m[32m    "chicken": 21.7, "chicken breast": 21.7, "chicken thigh": 19.6, "chicken wing": 21.0,[m
+[32m+[m[32m    "beef": 18.2, "steak": 18.2, "ground beef": 18.2, "beef burger": 18.2, "burger": 18.2,[m
+[32m+[m[32m    "pork": 17.5, "pork chop": 17.5, "bacon": 25.9, "ham": 15.4, "sausage": 12.6,[m
+[32m+[m[32m    "salmon": 14.0, "tuna": 21.0, "cod": 12.6, "tilapia": 18.2, "fish": 14.0,[m
+[32m+[m[32m    "turkey": 20.3, "duck": 16.1, "lamb": 17.5, "shrimp": 16.8, "prawns": 16.8,[m
+[32m+[m[41m    [m
+[32m+[m[32m    # Dairy & Eggs (30% reduced for realistic portions)[m
+[32m+[m[32m    "egg": 9.1, "eggs": 9.1, "milk": 2.4, "cheese": 17.5, "cheddar": 17.5,[m
+[32m+[m[32m    "yogurt": 7.0, "greek yogurt": 7.0, "cottage cheese": 7.7, "cream cheese": 4.2,[m
+[32m+[m[41m    [m
+[32m+[m[32m    # Nuts & Seeds (30% reduced for realistic portions)[m
+[32m+[m[32m    "peanut butter": 17.5, "almonds": 14.7, "walnuts": 10.5, "cashews": 12.6,[m
+[32m+[m[32m    "sunflower seeds": 14.7, "chia seeds": 11.9, "pumpkin seeds": 13.3,[m
+[32m+[m[41m    [m
+[32m+[m[32m    # Plant-based Proteins (30% reduced for realistic portions)[m
+[32m+[m[32m    "tofu": 5.6, "tempeh": 14.0, "lentils": 6.3, "beans": 6.3, "black beans": 6.3,[m
+[32m+[m[32m    "kidney beans": 6.3, "chickpeas": 6.3, "edamame": 7.7, "hummus": 5.6,[m
+[32m+[m[32m    "seitan": 17.5,  # 30% reduced from 25g[m
+[32m+[m[32m    "pea protein": 17.5,  # 30% reduced from 25g[m
+[32m+[m[32m    "spirulina": 39.9,  # 30% reduced from 57g[m
+[32m+[m[32m    "nutritional yeast": 35.0,  # 30% reduced from 50g[m
+[32m+[m[41m    [m
+[32m+[m[32m    # Grains & Cereals (30% reduced for realistic portions)[m
+[32m+[m[32m    "quinoa": 9.8, "rice": 1.9, "brown rice": 1.9, "bread": 6.3, "whole wheat bread": 9.1,[m
+[32m+[m[32m    "pasta": 3.9, "spaghetti": 3.9, "oatmeal": 4.2, "oats": 4.2, "cereal": 7.0,[m
+     [m
+     # Vegetables (low density - realistic for larger portions)[m
+     "broccoli": 2.8, "spinach": 2.9, "kale": 4.3, "asparagus": 2.2, "brussels sprouts": 3.4,[m
+[36m@@ -680,15 +680,15 @@[m [mdef _compute_portion_weights(food_items: List[str]) -> tuple[Dict[str, float], f[m
+         food_weights[food_item] = realistic_portion[m
+         total_weight += realistic_portion[m
+ [m
+[31m-    # Choose normalization target by number of items to balance protein:calorie ratio[m
+[32m+[m[32m    # Choose normalization target by number of items - MUCH MORE REALISTIC PORTIONS[m
+     if len(food_items) <= 1:[m
+[31m-        target_total = 400.0[m
+[32m+[m[32m        target_total = 120.0  # Reduced from 400g to 120g[m
+     elif len(food_items) == 2:[m
+[31m-        target_total = 600.0[m
+[32m+[m[32m        target_total = 200.0  # Reduced from 600g to 200g[m
+     elif len(food_items) <= 4:[m
+[31m-        target_total = 800.0[m
+[32m+[m[32m        target_total = 300.0  # Reduced from 800g to 300g[m
+     else:[m
+[31m-        target_total = 1000.0[m
+[32m+[m[32m        target_total = 400.0  # Reduced from 1000g to 400g[m
+ [m
+     if total_weight > 0:[m
+         scale_factor = target_total / total_weight[m
