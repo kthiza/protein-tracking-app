@@ -2244,19 +2244,19 @@ class GoogleVisionFoodDetector:
                 return {}, 0.0
 
             # Heuristic: map total relative area to grams range depending on zoom
-            # Use piecewise mapping to avoid extremes
+            # Use piecewise mapping to avoid extremes - MUCH MORE REALISTIC PORTIONS
             avg_rel_area = min(1.0, max(0.0, total_rel_area))
-            # Calibrated to avoid unrealistic gram totals
+            # Calibrated to avoid unrealistic gram totals - reduced by ~60%
             if avg_rel_area > 0.35:
-                est_total_g = 350.0
+                est_total_g = 140.0  # Reduced from 350.0
             elif avg_rel_area > 0.20:
-                est_total_g = 250.0
+                est_total_g = 100.0  # Reduced from 250.0
             elif avg_rel_area > 0.10:
-                est_total_g = 180.0
+                est_total_g = 70.0   # Reduced from 180.0
             elif avg_rel_area > 0.05:
-                est_total_g = 120.0
+                est_total_g = 50.0   # Reduced from 120.0
             else:
-                est_total_g = 80.0
+                est_total_g = 35.0   # Reduced from 80.0
 
             # Distribute grams across foods by combining food confidence and region prominence
             # Build food weights
@@ -2291,17 +2291,17 @@ class GoogleVisionFoodDetector:
                 conf_share = food_weights[food]
                 share = 0.5 * region_share + 0.5 * conf_share
                 grams = share * est_total_g
-                # Per-food portion caps to avoid extremes
-                grams = max(15.0, min(grams, 170.0))
+                # Per-food portion caps to avoid extremes - MUCH MORE REALISTIC
+                grams = max(10.0, min(grams, 80.0))  # Reduced from 170.0 to 80.0
                 portions[food] = round(grams, 1)
 
-            # Ensure total grams are not excessive
+            # Ensure total grams are not excessive - MUCH MORE REALISTIC
             total_grams = sum(portions.values())
-            if total_grams > 450.0:
-                scale = 450.0 / total_grams
+            if total_grams > 180.0:  # Reduced from 450.0 to 180.0
+                scale = 180.0 / total_grams
                 for k in portions:
                     portions[k] = round(portions[k] * scale, 1)
-                total_grams = round(450.0, 1)
+                total_grams = round(180.0, 1)
 
             return portions, round(total_grams, 1)
         except Exception as _e:
