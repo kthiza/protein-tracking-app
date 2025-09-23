@@ -1381,6 +1381,19 @@
             50% { transform: translateY(-10px); }
         }
     </style>
+    <script>
+        // Optional: force-enable animations even if OS has Reduced Motion enabled
+        // Toggle via localStorage.setItem('forceAnimations','on') / removeItem('forceAnimations')
+        (function(){
+            try{
+                if(localStorage.getItem('forceAnimations')==='on'){
+                    const s=document.createElement('style');
+                    s.textContent = `@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration: inherit !important; animation-iteration-count: inherit !important; transition-duration: inherit !important;}}`;
+                    document.head.appendChild(s);
+                }
+            }catch(_){/* noop */}
+        })();
+    </script>
 </head>
 <body>
 
@@ -1673,19 +1686,41 @@
     </footer>
 
     <script>
-        // Smooth scrolling for navigation links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
+        // Smooth scrolling for navigation links with easing and header offset
+        (function initSmoothScroll(){
+            const header = document.querySelector('.header');
+            const headerHeight = () => (header ? header.offsetHeight : 0);
+            const easeInOutQuad = (t) => (t<0.5 ? 2*t*t : -1 + (4 - 2*t)*t);
+            function animateScrollTo(toY, duration=700){
+                const startY = window.scrollY || window.pageYOffset;
+                const delta = toY - startY;
+                if (Math.abs(delta) < 2){ window.scrollTo(0, toY); return; }
+                const startTime = performance.now();
+                function step(now){
+                    const t = Math.min(1, (now - startTime) / duration);
+                    const eased = easeInOutQuad(t);
+                    window.scrollTo(0, startY + delta * eased);
+                    if (t < 1) requestAnimationFrame(step);
                 }
+                requestAnimationFrame(step);
+            }
+            function scrollWithOffset(target){
+                const rectTop = target.getBoundingClientRect().top;
+                const toY = Math.max(0, window.scrollY + rectTop - headerHeight() - 16);
+                animateScrollTo(toY, 700);
+            }
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const sel = this.getAttribute('href');
+                    const target = document.querySelector(sel);
+                    if (target) {
+                        history.pushState(null, '', sel);
+                        scrollWithOffset(target);
+                    }
+                });
             });
-        });
+        })();
 
         // Animate elements on scroll
         (function initScrollAnimations() {
@@ -1717,6 +1752,8 @@
                     }
                 });
             };
+            // Mark above-the-fold hero content visible immediately
+            document.querySelectorAll('.hero .animate-on-scroll').forEach(el=>el.classList.add('visible'));
             revealInView();
             window.addEventListener('load', revealInView);
             window.addEventListener('resize', revealInView);
@@ -1885,9 +1922,11 @@
                 observer.observe(el);
             });
 
-            // Enhanced header scroll effect
+        // Enhanced header scroll effect + nav active state (scroll spy)
             let lastScrollY = window.scrollY;
             const header = document.querySelector('.header');
+        const navLinksAll = Array.from(document.querySelectorAll('.nav-links a[href^="#"]'));
+        const sections = navLinksAll.map(a => ({ link: a, el: document.querySelector(a.getAttribute('href')) })).filter(x=>x.el);
             
             window.addEventListener('scroll', () => {
                 const currentScrollY = window.scrollY;
@@ -1906,6 +1945,16 @@
                 }
                 
                 lastScrollY = currentScrollY;
+
+            // Scroll spy: highlight current section
+            const y = currentScrollY + (header ? header.offsetHeight + 24 : 24);
+            let active = null;
+            for (const {link, el} of sections){
+                const top = el.offsetTop;
+                const bottom = top + el.offsetHeight;
+                if (y >= top && y < bottom){ active = link; break; }
+            }
+            navLinksAll.forEach(a => a.classList.toggle('active', a === active));
             });
 
             // Add smooth scrolling with offset for fixed header
