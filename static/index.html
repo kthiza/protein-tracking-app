@@ -1688,23 +1688,39 @@
         });
 
         // Animate elements on scroll
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
+        (function initScrollAnimations() {
+            const els = Array.from(document.querySelectorAll('.animate-on-scroll'));
+            // Fallback for browsers without IntersectionObserver
+            if (!('IntersectionObserver' in window)) {
+                els.forEach(el => el.classList.add('visible'));
+                return;
+            }
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                }
-            });
-        }, observerOptions);
+            const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, observerOptions);
 
-        // Observe all elements with animate-on-scroll class
-        document.querySelectorAll('.animate-on-scroll').forEach(el => {
-            observer.observe(el);
-        });
+            // Observe all elements
+            els.forEach(el => observer.observe(el));
+
+            // Immediately reveal items already in viewport on load
+            const revealInView = () => {
+                els.forEach(el => {
+                    const r = el.getBoundingClientRect();
+                    if (r.top < window.innerHeight - 50 && r.bottom > 0) {
+                        el.classList.add('visible');
+                    }
+                });
+            };
+            revealInView();
+            window.addEventListener('load', revealInView);
+            window.addEventListener('resize', revealInView);
+        })();
 
         // Header scroll effect
         window.addEventListener('scroll', () => {
@@ -2029,10 +2045,10 @@
                 }
             });
 
-            // Add loading animation
-            window.addEventListener('load', () => {
-                document.body.classList.add('loaded');
-            });
+            // Add loading animation (also ensure on DOMContentLoaded)
+            const markLoaded = () => document.body.classList.add('loaded');
+            if (document.readyState === 'complete') markLoaded();
+            window.addEventListener('load', markLoaded);
         });
     </script>
 </body>
